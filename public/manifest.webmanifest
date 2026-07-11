@@ -1,0 +1,11 @@
+{
+  "name": "Together — пространство для пары",
+  "short_name": "Together",
+  "description": "Приватное пространство для двоих",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#fffafc",
+  "theme_color": "#fffafc",
+  "lang": "ru",
+  "icons": []
+}

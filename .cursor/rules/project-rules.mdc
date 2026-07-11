@@ -1,0 +1,52 @@
+---
+description: Core rules for the Together couple Pre-MVP
+alwaysApply: true
+---
+
+# Product
+This is a mobile-first, private application for exactly two linked partners.
+The Pre-MVP validates whether couples return to share moods, plans, daily answers and memories.
+
+# Stack
+- Next.js App Router
+- React
+- TypeScript strict mode
+- Tailwind CSS
+- Supabase Auth, Postgres and Storage
+- Vercel
+- PWA as the first distribution format
+
+# Coding rules
+- Read relevant files in /docs before implementation.
+- Start with a plan and list files that will change.
+- Modify only files required for the current task.
+- Never use `any` unless documented with a reason.
+- Use Server Components by default.
+- Use Client Components only for browser state or interaction.
+- Keep domain logic out of visual components.
+- Validate external input with Zod.
+- Include loading, empty, success and error states.
+- Do not install a dependency without explaining its purpose.
+- Run `npm run typecheck`, `npm run lint` and `npm run build`.
+- Never silently ignore errors.
+- Never expose server-only secrets to the browser.
+
+# Security and privacy
+- Couple data is private by default.
+- Enforce authorization with Supabase RLS, not only UI checks.
+- Use the Supabase publishable key in browser code.
+- Never use the service role key in client-side code.
+- Do not log messages, answers, moods, media URLs or personal fields.
+- Destructive actions require explicit confirmation.
+- Mood sharing is optional and must not be framed as surveillance.
+- Do not create manipulative relationship scores.
+- Treat invitation tokens as secrets; store only hashes when feasible.
+- Preserve a safe path for unlinking, export and deletion.
+
+# UX
+- Optimize for 360–430px mobile screens first.
+- Avoid hover-only interactions.
+- Use touch targets of at least 44px.
+- Keep the primary action visually obvious.
+- Do not hide essential actions behind gestures only.
+- Use Russian UI copy unless a task says otherwise.
