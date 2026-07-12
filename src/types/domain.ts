@@ -18,3 +18,12 @@ export type ActionResult = {
   ok: boolean;
   error?: string;
 };
+
+export type ChatMessage = {
+  id: string;
+  coupleId: string;
+  senderId: string;
+  senderName: string;
+  body: string;
+  createdAt: string;
+};

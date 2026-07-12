@@ -47,6 +47,10 @@ export const profileSchema = z.object({
     .optional(),
 });
 
+export const messageSchema = z.object({
+  body: z.string().trim().min(1, "Напишите сообщение").max(2000, "Слишком длинное сообщение"),
+});
+
 export function parseFormData(formData: FormData): Record<string, string> {
   const result: Record<string, string> = {};
   for (const [key, value] of formData.entries()) {
