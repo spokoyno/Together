@@ -1,8 +1,13 @@
 "use client";
 
 import { Bell, BellOff } from "lucide-react";
-import { useState, useTransition } from "react";
-import { removePushSubscription, savePushSubscription } from "@/lib/push/actions";
+import { useEffect, useState, useTransition } from "react";
+import {
+  getPushStatus,
+  removePushSubscription,
+  savePushSubscription,
+  sendTestPushNotification,
+} from "@/lib/push/actions";
 import {
   getPushPermission,
   getServiceWorkerRegistration,
@@ -11,6 +16,10 @@ import {
 
 type PushNotificationsSetupProps = {
   vapidPublicKey: string | null;
+  initialSubscriptionCount: number;
+  serverReady: boolean;
+  vapidConfigured: boolean;
+  serviceRoleConfigured: boolean;
 };
 
 function subscriptionToPayload(subscription: PushSubscription) {
@@ -26,16 +35,76 @@ function subscriptionToPayload(subscription: PushSubscription) {
   };
 }
 
-export function PushNotificationsSetup({ vapidPublicKey }: PushNotificationsSetupProps) {
+async function subscribeToPush(publicKey: string) {
+  const registration = await getServiceWorkerRegistration();
+  if (!registration) {
+    throw new Error("Service worker не готов. Обновите страницу.");
+  }
+
+  const existing = await registration.pushManager.getSubscription();
+  if (existing) {
+    await existing.unsubscribe();
+  }
+
+  const subscription = await registration.pushManager.subscribe({
+    userVisibleOnly: true,
+    applicationServerKey: urlBase64ToUint8Array(publicKey),
+  });
+
+  const payload = subscriptionToPayload(subscription);
+  if (!payload) {
+    throw new Error("Не удалось оформить подписку.");
+  }
+
+  const saveResult = await savePushSubscription(payload);
+  if (!saveResult.ok) {
+    throw new Error(saveResult.error ?? "Не удалось сохранить подписку.");
+  }
+
+  return payload.endpoint;
+}
+
+export function PushNotificationsSetup({
+  vapidPublicKey,
+  initialSubscriptionCount,
+  serverReady,
+  vapidConfigured,
+  serviceRoleConfigured,
+}: PushNotificationsSetupProps) {
   const permission = getPushPermission();
-  const [enabled, setEnabled] = useState(permission === "granted");
+  const [enabled, setEnabled] = useState(
+    permission === "granted" && initialSubscriptionCount > 0,
+  );
   const [error, setError] = useState("");
+  const [info, setInfo] = useState("");
   const [isPending, startTransition] = useTransition();
+
+  useEffect(() => {
+    if (permission !== "granted" || !vapidPublicKey) {
+      return;
+    }
+
+    void (async () => {
+      const status = await getPushStatus();
+      if (status.subscriptionCount > 0) {
+        setEnabled(true);
+        return;
+      }
+
+      try {
+        await subscribeToPush(vapidPublicKey);
+        setEnabled(true);
+        setInfo("Подписка синхронизирована.");
+      } catch {
+        // User may need to tap enable manually after changing VAPID keys.
+      }
+    })();
+  }, [permission, vapidPublicKey]);
 
   if (permission === "unsupported" || !vapidPublicKey) {
     return (
       <section className="rounded-3xl border border-dashed border-[var(--border)] bg-white p-4 text-sm text-[var(--muted)]">
-        Уведомления недоступны в этом браузере или не настроены на сервере.
+        Уведомления недоступны в этом браузере или VAPID ключ не задан на сервере.
       </section>
     );
   }
@@ -46,46 +115,31 @@ export function PushNotificationsSetup({ vapidPublicKey }: PushNotificationsSetu
     }
 
     setError("");
+    setInfo("");
     startTransition(async () => {
-      const publicKey = vapidPublicKey;
-      const result = await Notification.requestPermission();
-      if (result !== "granted") {
-        setError("Разрешите уведомления в настройках браузера.");
-        return;
-      }
+      try {
+        const result = await Notification.requestPermission();
+        if (result !== "granted") {
+          setError("Разрешите уведомления в настройках браузера.");
+          return;
+        }
 
-      const registration = await getServiceWorkerRegistration();
-      if (!registration) {
-        setError("Service worker не готов. Обновите страницу.");
-        return;
+        await subscribeToPush(vapidPublicKey);
+        setEnabled(true);
+        setInfo("Уведомления включены.");
+      } catch (subscribeError) {
+        setError(
+          subscribeError instanceof Error
+            ? subscribeError.message
+            : "Не удалось включить уведомления.",
+        );
       }
-
-      let subscription = await registration.pushManager.getSubscription();
-      if (!subscription) {
-        subscription = await registration.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(publicKey),
-        });
-      }
-
-      const payload = subscriptionToPayload(subscription);
-      if (!payload) {
-        setError("Не удалось оформить подписку.");
-        return;
-      }
-
-      const saveResult = await savePushSubscription(payload);
-      if (!saveResult.ok) {
-        setError(saveResult.error ?? "Не удалось включить уведомления.");
-        return;
-      }
-
-      setEnabled(true);
     });
   }
 
   function disableNotifications() {
     setError("");
+    setInfo("");
     startTransition(async () => {
       const registration = await getServiceWorkerRegistration();
       const subscription = await registration?.pushManager.getSubscription();
@@ -97,6 +151,20 @@ export function PushNotificationsSetup({ vapidPublicKey }: PushNotificationsSetu
       }
 
       setEnabled(false);
+    });
+  }
+
+  function testNotification() {
+    setError("");
+    setInfo("");
+    startTransition(async () => {
+      const result = await sendTestPushNotification();
+      if (!result.ok) {
+        setError(result.error ?? "Тест не удался.");
+        return;
+      }
+
+      setInfo("Тест отправлен. Сверните приложение, если уведомление не видно.");
     });
   }
 
@@ -118,8 +186,8 @@ export function PushNotificationsSetup({ vapidPublicKey }: PushNotificationsSetu
         <div>
           <p className="font-semibold">Уведомления чата</p>
           <p className="mt-1 text-sm leading-6 text-[var(--muted)]">
-            Получайте сообщения партнёра, даже когда приложение свёрнуто. На iPhone нужна
-            установка PWA на главный экран.
+            Получайте сообщения партнёра, когда приложение свёрнуто. На iPhone нужен PWA с главного
+            экрана и iOS 16.4+.
           </p>
         </div>
         {enabled ? (
@@ -129,18 +197,49 @@ export function PushNotificationsSetup({ vapidPublicKey }: PushNotificationsSetu
         )}
       </div>
 
-      <button
-        className="mt-4 w-full rounded-2xl bg-[var(--accent)] px-4 py-3 text-sm font-semibold text-white disabled:opacity-60"
-        disabled={isPending}
-        onClick={enabled ? disableNotifications : enableNotifications}
-        type="button"
-      >
-        {isPending
-          ? "Сохраняем..."
-          : enabled
-            ? "Отключить уведомления"
-            : "Включить уведомления"}
-      </button>
+      {!serverReady ? (
+        <div className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+          Сервер не готов отправлять push:
+          <ul className="mt-2 list-disc pl-5">
+            {!vapidConfigured ? <li>Нет VAPID ключей на сервере</li> : null}
+            {!serviceRoleConfigured ? (
+              <li>Нет SUPABASE_SERVICE_ROLE_KEY (нужен для отправки партнёру)</li>
+            ) : null}
+          </ul>
+        </div>
+      ) : null}
+
+      <div className="mt-4 grid gap-2">
+        <button
+          className="w-full rounded-2xl bg-[var(--accent)] px-4 py-3 text-sm font-semibold text-white disabled:opacity-60"
+          disabled={isPending}
+          onClick={enabled ? disableNotifications : enableNotifications}
+          type="button"
+        >
+          {isPending
+            ? "Сохраняем..."
+            : enabled
+              ? "Отключить уведомления"
+              : "Включить уведомления"}
+        </button>
+
+        {enabled ? (
+          <button
+            className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 text-sm font-semibold"
+            disabled={isPending}
+            onClick={testNotification}
+            type="button"
+          >
+            Отправить тестовое уведомление
+          </button>
+        ) : null}
+      </div>
+
+      {info ? (
+        <p className="mt-3 rounded-2xl border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-800">
+          {info}
+        </p>
+      ) : null}
 
       {error ? (
         <p className="mt-3 rounded-2xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">

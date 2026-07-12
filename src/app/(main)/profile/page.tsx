@@ -8,7 +8,8 @@ import { requireUser } from "@/lib/auth/session";
 import { getCoupleContext } from "@/lib/couple/context";
 import { daysBetween, formatDateRu } from "@/lib/dates";
 import { updateProfile } from "@/lib/profile/actions";
-import { getVapidPublicKey } from "@/lib/push/web-push";
+import { getPushStatus } from "@/lib/push/actions";
+import { getPushServerConfig } from "@/lib/push/config";
 
 export default async function ProfilePage() {
   const { supabase, user } = await requireUser();
@@ -43,7 +44,8 @@ export default async function ProfilePage() {
 
   const daysTogether =
     context?.relationshipStartedOn ? daysBetween(context.relationshipStartedOn) : null;
-  const vapidPublicKey = getVapidPublicKey();
+  const pushConfig = getPushServerConfig();
+  const pushStatus = await getPushStatus();
 
   return (
     <main className="mx-auto min-h-screen max-w-md px-5 pb-28 pt-8">
@@ -156,7 +158,13 @@ export default async function ProfilePage() {
 
       {context?.isComplete ? (
         <div className="mt-5">
-          <PushNotificationsSetup vapidPublicKey={vapidPublicKey} />
+          <PushNotificationsSetup
+            initialSubscriptionCount={pushStatus.subscriptionCount}
+            serverReady={pushConfig.serverReady}
+            serviceRoleConfigured={pushConfig.serviceRoleConfigured}
+            vapidConfigured={pushConfig.vapidConfigured}
+            vapidPublicKey={pushConfig.vapidPublicKey}
+          />
         </div>
       ) : null}
 

@@ -4,7 +4,8 @@ import { PushNotificationsSetup } from "@/components/pwa/push-notifications-setu
 import { requireUser } from "@/lib/auth/session";
 import { getCoupleMessages } from "@/lib/chat/messages";
 import { getCoupleContext } from "@/lib/couple/context";
-import { getVapidPublicKey } from "@/lib/push/web-push";
+import { getPushStatus } from "@/lib/push/actions";
+import { getPushServerConfig } from "@/lib/push/config";
 
 export default async function ChatPage() {
   const { supabase, user } = await requireUser();
@@ -16,7 +17,8 @@ export default async function ChatPage() {
 
   const partner = context.partner;
   const messages = await getCoupleMessages(supabase, context.coupleId);
-  const vapidPublicKey = getVapidPublicKey();
+  const pushConfig = getPushServerConfig();
+  const pushStatus = await getPushStatus();
 
   return (
     <main className="mx-auto min-h-screen max-w-md px-5 pb-28 pt-8">
@@ -26,7 +28,13 @@ export default async function ChatPage() {
       </p>
 
       <div className="mt-4">
-        <PushNotificationsSetup vapidPublicKey={vapidPublicKey} />
+        <PushNotificationsSetup
+          initialSubscriptionCount={pushStatus.subscriptionCount}
+          serverReady={pushConfig.serverReady}
+          serviceRoleConfigured={pushConfig.serviceRoleConfigured}
+          vapidConfigured={pushConfig.vapidConfigured}
+          vapidPublicKey={pushConfig.vapidPublicKey}
+        />
       </div>
 
       <div className="mt-6">
