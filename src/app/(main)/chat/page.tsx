@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
-import { ChatPanel } from "@/components/features/chat/chat-panel";
+import { ChatShell } from "@/components/features/chat/chat-shell";
 import { requireUser } from "@/lib/auth/session";
 import { getCoupleMessages } from "@/lib/chat/messages";
+import { getChatNotes, getSavedMessageIds, getSavedMessages } from "@/lib/chat/private";
 import { markChatAsRead } from "@/lib/chat/unread";
 import { getCoupleContext } from "@/lib/couple/context";
 
@@ -15,7 +16,13 @@ export default async function ChatPage() {
 
   const partner = context.partner;
   await markChatAsRead(supabase, user.id, context.coupleId);
-  const messages = await getCoupleMessages(supabase, context.coupleId);
+
+  const [messages, savedIds, savedMessages, notes] = await Promise.all([
+    getCoupleMessages(supabase, context.coupleId),
+    getSavedMessageIds(supabase, user.id, context.coupleId),
+    getSavedMessages(supabase, user.id, context.coupleId),
+    getChatNotes(supabase, user.id, context.coupleId),
+  ]);
 
   return (
     <main className="mx-auto flex h-[100dvh] max-w-md flex-col bg-[var(--chat-bg)]">
@@ -31,9 +38,12 @@ export default async function ChatPage() {
         </div>
       </header>
 
-      <ChatPanel
+      <ChatShell
         coupleId={context.coupleId}
         initialMessages={messages}
+        initialNotes={notes}
+        initialSavedIds={savedIds}
+        initialSavedMessages={savedMessages}
         partnerName={partner?.display_name ?? "Партнёр"}
         userId={user.id}
       />

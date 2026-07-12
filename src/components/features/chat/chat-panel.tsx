@@ -1,17 +1,25 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
-import { Send } from "lucide-react";
-import { markChatRead, sendMessage } from "@/lib/chat/actions";
+import { Bookmark, BookmarkCheck, Send, StickyNote } from "lucide-react";
+import {
+  createChatNote,
+  markChatRead,
+  sendMessage,
+  toggleSaveMessage,
+} from "@/lib/chat/actions";
 import { formatChatDayHeader, formatMessageTime, getChatDayKey } from "@/lib/dates";
 import { createClient } from "@/lib/supabase/client";
-import type { ChatMessage } from "@/types/domain";
+import type { ChatMessage, ChatNote } from "@/types/domain";
 
 type ChatPanelProps = {
   coupleId: string;
   userId: string;
   partnerName: string;
   initialMessages: ChatMessage[];
+  savedIds: Set<string>;
+  onSavedChange: (messageId: string, saved: boolean, message?: ChatMessage) => void;
+  onNoteCreated: (note: ChatNote) => void;
 };
 
 function mergeMessages(current: ChatMessage[], incoming: ChatMessage): ChatMessage[] {
@@ -29,10 +37,15 @@ export function ChatPanel({
   userId,
   partnerName,
   initialMessages,
+  savedIds,
+  onSavedChange,
+  onNoteCreated,
 }: ChatPanelProps) {
   const [messages, setMessages] = useState(initialMessages);
   const [draft, setDraft] = useState("");
   const [error, setError] = useState("");
+  const [noteTargetId, setNoteTargetId] = useState<string | null>(null);
+  const [noteDraft, setNoteDraft] = useState("");
   const [isPending, startTransition] = useTransition();
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -111,6 +124,45 @@ export function ChatPanel({
     });
   }
 
+  function handleToggleSave(message: ChatMessage) {
+    startTransition(async () => {
+      const result = await toggleSaveMessage(message.id);
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+
+      onSavedChange(message.id, result.saved, message);
+    });
+  }
+
+  function handleCreateNote(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const text = noteDraft.trim();
+    if (!text || !noteTargetId || isPending) {
+      return;
+    }
+
+    const targetId = noteTargetId;
+    const targetMessage = messages.find((message) => message.id === targetId) ?? null;
+
+    setError("");
+    startTransition(async () => {
+      const result = await createChatNote(text, targetId);
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+
+      onNoteCreated({
+        ...result.note,
+        linkedMessage: targetMessage,
+      });
+      setNoteDraft("");
+      setNoteTargetId(null);
+    });
+  }
+
   const renderedMessages = useMemo(
     () =>
       messages.map((message, index) => {
@@ -132,6 +184,8 @@ export function ChatPanel({
           <div className="space-y-2">
             {renderedMessages.map(({ message, showDay }) => {
               const isMine = message.senderId === userId;
+              const isSaved = savedIds.has(message.id);
+              const isNoteOpen = noteTargetId === message.id;
 
               return (
                 <div key={message.id}>
@@ -141,23 +195,87 @@ export function ChatPanel({
                     </p>
                   ) : null}
                   <article className={`message-enter flex ${isMine ? "justify-end" : "justify-start"}`}>
-                    <div
-                      className={`max-w-[82%] px-3.5 py-2 shadow-sm ${
-                        isMine
-                          ? "rounded-[18px] rounded-br-[6px] bg-[var(--chat-outgoing)] text-white"
-                          : "rounded-[18px] rounded-bl-[6px] bg-[var(--chat-incoming)] text-[var(--foreground)]"
-                      }`}
-                    >
-                      <p className="whitespace-pre-wrap break-words text-[15px] leading-6">
-                        {message.body}
-                      </p>
-                      <p
-                        className={`mt-1 text-right text-[11px] ${
-                          isMine ? "text-white/75" : "text-[var(--muted)]"
+                    <div className="max-w-[88%]">
+                      <div
+                        className={`px-3.5 py-2 shadow-sm ${
+                          isMine
+                            ? "rounded-[18px] rounded-br-[6px] bg-[var(--chat-outgoing)] text-white"
+                            : "rounded-[18px] rounded-bl-[6px] bg-[var(--chat-incoming)] text-[var(--foreground)]"
                         }`}
                       >
-                        {formatMessageTime(message.createdAt)}
-                      </p>
+                        <p className="whitespace-pre-wrap break-words text-[15px] leading-6">
+                          {message.body}
+                        </p>
+                        <div
+                          className={`mt-1 flex items-center justify-end gap-1 ${
+                            isMine ? "text-white/75" : "text-[var(--muted)]"
+                          }`}
+                        >
+                          <button
+                            aria-label={isSaved ? "Убрать из сохранённых" : "Сохранить в личное"}
+                            className={`grid size-7 place-items-center rounded-full transition-colors ${
+                              isMine ? "hover:bg-white/15" : "hover:bg-[var(--input-bg)]"
+                            } ${isSaved ? "text-[var(--accent)]" : ""}`}
+                            disabled={isPending}
+                            onClick={() => handleToggleSave(message)}
+                            type="button"
+                          >
+                            {isSaved ? (
+                              <BookmarkCheck aria-hidden className="size-4" />
+                            ) : (
+                              <Bookmark aria-hidden className="size-4" />
+                            )}
+                          </button>
+                          <button
+                            aria-label="Добавить заметку"
+                            className={`grid size-7 place-items-center rounded-full transition-colors ${
+                              isMine ? "hover:bg-white/15" : "hover:bg-[var(--input-bg)]"
+                            } ${isNoteOpen ? "text-[var(--accent)]" : ""}`}
+                            disabled={isPending}
+                            onClick={() => {
+                              setNoteTargetId(isNoteOpen ? null : message.id);
+                              setNoteDraft("");
+                            }}
+                            type="button"
+                          >
+                            <StickyNote aria-hidden className="size-4" />
+                          </button>
+                          <span className="text-[11px]">{formatMessageTime(message.createdAt)}</span>
+                        </div>
+                      </div>
+
+                      {isNoteOpen ? (
+                        <form className="mt-2 grid gap-2" onSubmit={handleCreateNote}>
+                          <textarea
+                            autoFocus
+                            className="min-h-20 rounded-2xl surface-input px-3 py-2 text-sm"
+                            disabled={isPending}
+                            maxLength={2000}
+                            onChange={(event) => setNoteDraft(event.target.value)}
+                            placeholder="Ваша личная заметка к этому сообщению..."
+                            value={noteDraft}
+                          />
+                          <div className="flex gap-2">
+                            <button
+                              className="rounded-xl bg-[var(--accent)] px-3 py-2 text-xs font-semibold text-white disabled:opacity-60"
+                              disabled={isPending || !noteDraft.trim()}
+                              type="submit"
+                            >
+                              Сохранить заметку
+                            </button>
+                            <button
+                              className="rounded-xl surface-input px-3 py-2 text-xs font-semibold"
+                              onClick={() => {
+                                setNoteTargetId(null);
+                                setNoteDraft("");
+                              }}
+                              type="button"
+                            >
+                              Отмена
+                            </button>
+                          </div>
+                        </form>
+                      ) : null}
                     </div>
                   </article>
                 </div>
@@ -207,9 +325,7 @@ export function ChatPanel({
           </button>
         </div>
         {error ? (
-          <p className="mt-2 alert-error rounded-xl px-3 py-2 text-sm">
-            {error}
-          </p>
+          <p className="mt-2 alert-error rounded-xl px-3 py-2 text-sm">{error}</p>
         ) : null}
       </form>
     </div>

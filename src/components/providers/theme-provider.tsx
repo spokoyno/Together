@@ -8,8 +8,10 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { saveThemePreference } from "@/lib/profile/theme";
+import type { ThemePreference } from "@/types/domain";
 
-type Theme = "light" | "dark";
+type Theme = ThemePreference;
 
 type ThemeContextValue = {
   theme: Theme;
@@ -51,6 +53,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     setThemeState(next);
     localStorage.setItem(STORAGE_KEY, next);
     applyTheme(next);
+    void saveThemePreference(next);
   }, []);
 
   const toggleTheme = useCallback(() => {
@@ -58,6 +61,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       const next = current === "dark" ? "light" : "dark";
       localStorage.setItem(STORAGE_KEY, next);
       applyTheme(next);
+      void saveThemePreference(next);
       return next;
     });
   }, []);

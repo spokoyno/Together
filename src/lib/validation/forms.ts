@@ -51,6 +51,11 @@ export const messageSchema = z.object({
   body: z.string().trim().min(1, "Напишите сообщение").max(2000, "Слишком длинное сообщение"),
 });
 
+export const chatNoteSchema = z.object({
+  body: z.string().trim().min(1, "Напишите заметку").max(2000, "Слишком длинная заметка"),
+  messageId: z.string().uuid().optional(),
+});
+
 export function parseFormData(formData: FormData): Record<string, string> {
   const result: Record<string, string> = {};
   for (const [key, value] of formData.entries()) {

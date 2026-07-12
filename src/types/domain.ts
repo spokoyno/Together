@@ -27,3 +27,19 @@ export type ChatMessage = {
   body: string;
   createdAt: string;
 };
+
+export type ChatSavedMessage = ChatMessage & {
+  savedAt: string;
+};
+
+export type ChatNote = {
+  id: string;
+  coupleId: string;
+  messageId: string | null;
+  body: string;
+  createdAt: string;
+  updatedAt: string;
+  linkedMessage: ChatMessage | null;
+};
+
+export type ThemePreference = "light" | "dark";
