@@ -20,6 +20,9 @@ export function CreateCoupleForm() {
       const result = await createCouple(formData);
       if (!result.ok) {
         setError(result.error);
+        if (result.error.includes("Обновите страницу")) {
+          window.location.reload();
+        }
         return;
       }
       setInviteUrl(result.inviteUrl);

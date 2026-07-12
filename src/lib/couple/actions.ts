@@ -14,26 +14,32 @@ function getAppUrl() {
   return process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 }
 
-function mapCoupleError(message: string): string {
-  if (message.includes("already_in_couple")) {
-    return "Вы уже состоите в паре.";
+function mapCoupleError(message: string, details?: string): string {
+  const text = `${message} ${details ?? ""}`.toLowerCase();
+
+  if (text.includes("already_in_couple")) {
+    return "Вы уже состоите в паре. Обновите страницу — ниже можно создать новую ссылку.";
   }
-  if (message.includes("invalid_or_expired")) {
+  if (text.includes("invalid_or_expired")) {
     return "Ссылка недействительна или истекла.";
   }
-  if (message.includes("not_authenticated")) {
-    return "Сначала войдите в аккаунт.";
+  if (text.includes("not_authenticated")) {
+    return "Сессия истекла. Войдите снова.";
   }
-  if (message.includes("not_in_couple")) {
+  if (text.includes("not_in_couple")) {
     return "Сначала создайте пару.";
   }
-  if (message.includes("couple_complete")) {
+  if (text.includes("couple_complete")) {
     return "Партнёр уже подключён.";
   }
-  if (message.includes("Could not find the function")) {
-    return "Примените миграцию 004_create_couple_rpc.sql в Supabase SQL Editor.";
+  if (text.includes("could not find the function")) {
+    return "Функция create_couple не найдена. Выполните: supabase db push";
   }
-  return "Не удалось выполнить действие. Проверьте миграции Supabase.";
+  if (text.includes("duplicate key")) {
+    return "Пара уже создана. Обновите страницу — ниже можно получить новую ссылку.";
+  }
+
+  return `Ошибка: ${message}`;
 }
 
 type CreateCoupleResult =
@@ -43,12 +49,7 @@ type CreateCoupleResult =
 export async function createCouple(
   formData: FormData,
 ): Promise<CreateCoupleResult> {
-  const { supabase, user } = await requireUser();
-  const existing = await getCoupleContext(supabase, user.id);
-
-  if (existing) {
-    return actionError("Пара уже создана. Используйте кнопку ниже для новой ссылки.");
-  }
+  const { supabase } = await requireUser();
 
   const parsed = createCoupleSchema.safeParse(parseFormData(formData));
   if (!parsed.success) {
@@ -60,23 +61,20 @@ export async function createCouple(
   });
 
   if (error) {
-    return actionError(mapCoupleError(error.message));
+    return actionError(mapCoupleError(error.message, error.details));
   }
 
   const payload = data as { invitation_token?: string } | null;
   const token = payload?.invitation_token;
 
   if (!token) {
-    return actionError("Пара создана, но ссылка не получена. Создайте её кнопкой ниже.");
+    return actionError("Не удалось получить ссылку. Нажмите «Создать ссылку-приглашение».");
   }
 
   revalidatePath("/pair");
   revalidatePath("/dashboard");
 
-  return {
-    ok: true,
-    inviteUrl: `${getAppUrl()}/invite/${token}`,
-  };
+  return { ok: true, inviteUrl: `${getAppUrl()}/invite/${token}` };
 }
 
 export async function createInvitation(): Promise<
@@ -96,7 +94,7 @@ export async function createInvitation(): Promise<
   const { data, error } = await supabase.rpc("create_invitation");
 
   if (error) {
-    return actionError(mapCoupleError(error.message));
+    return actionError(mapCoupleError(error.message, error.details));
   }
 
   const payload = data as { invitation_token?: string } | null;
