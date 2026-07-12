@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth/session";
 import { mapMessageSendError } from "@/lib/chat/errors";
+import { getOlderCoupleMessages } from "@/lib/chat/messages";
 import { markChatAsRead } from "@/lib/chat/unread";
 import { getCoupleContext } from "@/lib/couple/context";
 import { previewChatMessage, sendChatPushNotification } from "@/lib/push/send-chat-push";
@@ -90,6 +91,39 @@ export async function markChatRead(): Promise<void> {
   await markChatAsRead(supabase, user.id, context.coupleId);
   revalidatePath("/chat");
   revalidatePath("/dashboard", "layout");
+}
+
+type LoadOlderResult =
+  | { ok: true; messages: ChatMessage[]; hasMore: boolean }
+  | { ok: false; error: string };
+
+export async function loadOlderMessages(
+  beforeCreatedAt: string,
+  beforeId: string,
+): Promise<LoadOlderResult> {
+  const { supabase, user } = await requireUser();
+  const context = await getCoupleContext(supabase, user.id);
+
+  if (!context?.isComplete) {
+    return actionError("Чат доступен после подключения партнёра.");
+  }
+
+  const memberNames = Object.fromEntries(
+    context.members.map((member) => [member.id, member.display_name]),
+  );
+
+  const page = await getOlderCoupleMessages(
+    supabase,
+    context.coupleId,
+    memberNames,
+    { createdAt: beforeCreatedAt, id: beforeId },
+  );
+
+  return {
+    ok: true,
+    messages: page.messages,
+    hasMore: page.hasMore,
+  };
 }
 
 export async function sendMessageForm(formData: FormData): Promise<ActionResult | void> {

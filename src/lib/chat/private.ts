@@ -8,7 +8,6 @@ type MessageJoin = {
   sender_id: string;
   body: string;
   created_at: string;
-  profiles: { display_name: string } | { display_name: string }[] | null;
 };
 
 export async function getSavedMessageIds(
@@ -29,12 +28,11 @@ export async function getSavedMessages(
   supabase: SupabaseClient,
   userId: string,
   coupleId: string,
+  memberNames: Record<string, string>,
 ): Promise<ChatSavedMessage[]> {
   const { data } = await supabase
     .from("chat_saved_messages")
-    .select(
-      "saved_at, messages(id, couple_id, sender_id, body, created_at, profiles(display_name))",
-    )
+    .select("saved_at, messages(id, couple_id, sender_id, body, created_at)")
     .eq("user_id", userId)
     .eq("couple_id", coupleId)
     .order("saved_at", { ascending: false });
@@ -49,7 +47,7 @@ export async function getSavedMessages(
     }
 
     saved.push({
-      ...mapMessageRow(message),
+      ...mapMessageRow(message, memberNames),
       savedAt: row.saved_at,
     });
   }
@@ -61,11 +59,12 @@ export async function getChatNotes(
   supabase: SupabaseClient,
   userId: string,
   coupleId: string,
+  memberNames: Record<string, string>,
 ): Promise<ChatNote[]> {
   const { data } = await supabase
     .from("chat_notes")
     .select(
-      "id, couple_id, message_id, body, created_at, updated_at, messages(id, couple_id, sender_id, body, created_at, profiles(display_name))",
+      "id, couple_id, message_id, body, created_at, updated_at, messages(id, couple_id, sender_id, body, created_at)",
     )
     .eq("user_id", userId)
     .eq("couple_id", coupleId)
@@ -82,7 +81,7 @@ export async function getChatNotes(
       body: row.body,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
-      linkedMessage: message ? mapMessageRow(message) : null,
+      linkedMessage: message ? mapMessageRow(message, memberNames) : null,
     };
   });
 }

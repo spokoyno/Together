@@ -12,6 +12,7 @@ type ChatShellProps = {
   userId: string;
   partnerName: string;
   initialMessages: ChatMessage[];
+  initialHasMore: boolean;
   initialSavedIds: string[];
   initialSavedMessages: ChatSavedMessage[];
   initialNotes: ChatNote[];
@@ -22,6 +23,7 @@ export function ChatShell({
   userId,
   partnerName,
   initialMessages,
+  initialHasMore,
   initialSavedIds,
   initialSavedMessages,
   initialNotes,
@@ -87,6 +89,7 @@ export function ChatShell({
       {tab === "chat" ? (
         <ChatPanel
           coupleId={coupleId}
+          initialHasMore={initialHasMore}
           initialMessages={initialMessages}
           onNoteCreated={(note) => setNotes((current) => [note, ...current])}
           onSavedChange={handleSavedChange}

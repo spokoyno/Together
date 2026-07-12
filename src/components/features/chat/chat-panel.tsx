@@ -1,13 +1,23 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
-import { Bookmark, BookmarkCheck, Send, StickyNote } from "lucide-react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
+import { Bookmark, BookmarkCheck, Loader2, Send, StickyNote } from "lucide-react";
 import {
   createChatNote,
+  loadOlderMessages,
   markChatRead,
   sendMessage,
   toggleSaveMessage,
 } from "@/lib/chat/actions";
+import { mergeMessages, prependMessages } from "@/lib/chat/messages";
 import { formatChatDayHeader, formatMessageTime, getChatDayKey } from "@/lib/dates";
 import { createClient } from "@/lib/supabase/client";
 import type { ChatMessage, ChatNote } from "@/types/domain";
@@ -17,45 +27,152 @@ type ChatPanelProps = {
   userId: string;
   partnerName: string;
   initialMessages: ChatMessage[];
+  initialHasMore: boolean;
   savedIds: Set<string>;
   onSavedChange: (messageId: string, saved: boolean, message?: ChatMessage) => void;
   onNoteCreated: (note: ChatNote) => void;
 };
 
-function mergeMessages(current: ChatMessage[], incoming: ChatMessage): ChatMessage[] {
-  if (current.some((message) => message.id === incoming.id)) {
-    return current;
-  }
-
-  return [...current, incoming].sort(
-    (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
-  );
-}
+type ScrollAnchor = {
+  scrollTop: number;
+  scrollHeight: number;
+};
 
 export function ChatPanel({
   coupleId,
   userId,
   partnerName,
   initialMessages,
+  initialHasMore,
   savedIds,
   onSavedChange,
   onNoteCreated,
 }: ChatPanelProps) {
   const [messages, setMessages] = useState(initialMessages);
+  const [hasMore, setHasMore] = useState(initialHasMore);
+  const [isLoadingOlder, setIsLoadingOlder] = useState(false);
   const [draft, setDraft] = useState("");
   const [error, setError] = useState("");
   const [noteTargetId, setNoteTargetId] = useState<string | null>(null);
   const [noteDraft, setNoteDraft] = useState("");
   const [isPending, startTransition] = useTransition();
+
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const topSentinelRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const scrollAnchorRef = useRef<ScrollAnchor | null>(null);
+  const stickToBottomRef = useRef(true);
+  const hasInitialScrolledRef = useRef(false);
+  const prevLastMessageIdRef = useRef<string | undefined>(initialMessages.at(-1)?.id);
+  const loadingOlderRef = useRef(false);
+
+  const oldestMessage = messages[0];
+  const lastMessageId = messages.at(-1)?.id;
 
   useEffect(() => {
     void markChatRead();
   }, []);
 
+  useLayoutEffect(() => {
+    if (hasInitialScrolledRef.current) {
+      return;
+    }
+
+    hasInitialScrolledRef.current = true;
+    bottomRef.current?.scrollIntoView({ behavior: "auto" });
+  }, []);
+
+  useLayoutEffect(() => {
+    const anchor = scrollAnchorRef.current;
+    const container = scrollRef.current;
+
+    if (anchor && container) {
+      scrollAnchorRef.current = null;
+      container.scrollTop = anchor.scrollTop + (container.scrollHeight - anchor.scrollHeight);
+      return;
+    }
+
+    const previousLastId = prevLastMessageIdRef.current;
+    prevLastMessageIdRef.current = lastMessageId;
+
+    if (!lastMessageId || lastMessageId === previousLastId) {
+      return;
+    }
+
+    if (stickToBottomRef.current) {
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [lastMessageId, messages.length]);
+
+  const handleScroll = useCallback(() => {
+    const container = scrollRef.current;
+    if (!container) {
+      return;
+    }
+
+    stickToBottomRef.current =
+      container.scrollHeight - container.scrollTop - container.clientHeight < 96;
+  }, []);
+
+  const fetchOlderMessages = useCallback(async () => {
+    if (!oldestMessage || loadingOlderRef.current || !hasMore) {
+      return;
+    }
+
+    const container = scrollRef.current;
+    if (container) {
+      scrollAnchorRef.current = {
+        scrollTop: container.scrollTop,
+        scrollHeight: container.scrollHeight,
+      };
+    }
+
+    loadingOlderRef.current = true;
+    setIsLoadingOlder(true);
+    setError("");
+
+    const result = await loadOlderMessages(oldestMessage.createdAt, oldestMessage.id);
+
+    loadingOlderRef.current = false;
+    setIsLoadingOlder(false);
+
+    if (!result.ok) {
+      scrollAnchorRef.current = null;
+      setError(result.error ?? "Не удалось загрузить сообщения.");
+      return;
+    }
+
+    setHasMore(result.hasMore);
+    setMessages((current) => prependMessages(current, result.messages));
+  }, [hasMore, oldestMessage]);
+
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    const root = scrollRef.current;
+    const sentinel = topSentinelRef.current;
+
+    if (!root || !sentinel || !hasMore) {
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          void fetchOlderMessages();
+        }
+      },
+      {
+        root,
+        rootMargin: "120px 0px 0px 0px",
+        threshold: 0,
+      },
+    );
+
+    observer.observe(sentinel);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [fetchOlderMessages, hasMore]);
 
   useEffect(() => {
     const supabase = createClient();
@@ -111,6 +228,7 @@ export function ChatPanel({
 
     setError("");
     setDraft("");
+    stickToBottomRef.current = true;
 
     startTransition(async () => {
       const result = await sendMessage(text);
@@ -179,7 +297,28 @@ export function ChatPanel({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="min-h-0 flex-1 overflow-y-auto px-3 py-4">
+      <div
+        className="min-h-0 flex-1 overflow-y-auto px-3 py-4"
+        onScroll={handleScroll}
+        ref={scrollRef}
+      >
+        <div ref={topSentinelRef} className="h-px w-full" />
+
+        {isLoadingOlder ? (
+          <div className="mb-3 flex justify-center">
+            <Loader2
+              aria-hidden
+              className="size-5 animate-spin text-[var(--muted)]"
+            />
+          </div>
+        ) : hasMore ? (
+          <p className="mb-3 text-center text-xs text-[var(--muted)]">
+            Листайте вверх для более ранних сообщений
+          </p>
+        ) : messages.length > 0 ? (
+          <p className="mb-3 text-center text-xs text-[var(--muted)]">Начало переписки</p>
+        ) : null}
+
         {messages.length ? (
           <div className="space-y-2">
             {renderedMessages.map(({ message, showDay }) => {
