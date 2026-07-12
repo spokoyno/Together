@@ -47,7 +47,7 @@ export default async function QuestionPage() {
         <form action={saveAnswer} className="mt-8 grid gap-3">
           <input name="dailyQuestionId" type="hidden" value={dailyQuestion.id} />
           <textarea
-            className="rounded-2xl border border-[var(--border)] bg-white px-4 py-3"
+            className="rounded-2xl surface-input px-4 py-3"
             name="answer"
             placeholder="Ваш ответ"
             required
@@ -58,20 +58,20 @@ export default async function QuestionPage() {
           </button>
         </form>
       ) : (
-        <section className="mt-8 rounded-3xl border border-[var(--border)] bg-white p-5">
+        <section className="mt-8 rounded-3xl surface-panel p-5">
           <p className="text-sm text-[var(--muted)]">Ваш ответ</p>
           <p className="mt-2 leading-7">{myAnswer.answer}</p>
         </section>
       )}
 
       {myAnswer && !partnerAnswer ? (
-        <p className="mt-6 rounded-2xl border border-[var(--border)] bg-white px-4 py-3 text-sm text-[var(--muted)]">
+        <p className="mt-6 rounded-2xl surface-input px-4 py-3 text-sm text-[var(--muted)]">
           Ответ партнёра откроется, когда {context.partner?.display_name} тоже ответит.
         </p>
       ) : null}
 
       {bothAnswered && partnerAnswer ? (
-        <section className="mt-6 rounded-3xl border border-[var(--border)] bg-white p-5">
+        <section className="mt-6 rounded-3xl surface-panel p-5">
           <p className="text-sm text-[var(--muted)]">{context.partner?.display_name}</p>
           <p className="mt-2 leading-7">{partnerAnswer.answer}</p>
         </section>

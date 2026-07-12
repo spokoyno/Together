@@ -48,12 +48,12 @@ export function LeaveCoupleButton({
   if (showConfirm) {
     return (
       <div className={className ?? "grid gap-3"}>
-        <div className="rounded-2xl border border-red-200 bg-red-50 p-4">
-          <p className="font-semibold text-red-800">{copy.title}</p>
-          <p className="mt-2 text-sm leading-6 text-red-700">{copy.body}</p>
+        <div className="alert-error rounded-2xl p-4">
+          <p className="font-semibold">{copy.title}</p>
+          <p className="mt-2 text-sm leading-6 opacity-90">{copy.body}</p>
           <div className="mt-4 grid gap-2">
             <button
-              className="rounded-2xl bg-red-600 px-4 py-3 font-semibold text-white disabled:opacity-60"
+              className="rounded-2xl bg-[var(--accent)] px-4 py-3 font-semibold text-white disabled:opacity-60"
               disabled={isPending}
               onClick={handleLeave}
               type="button"
@@ -61,7 +61,7 @@ export function LeaveCoupleButton({
               {isPending ? "Отвязываем..." : copy.confirm}
             </button>
             <button
-              className="rounded-2xl border border-red-200 bg-white px-4 py-3 font-semibold text-red-700"
+              className="surface-input rounded-2xl px-4 py-3 font-semibold"
               disabled={isPending}
               onClick={() => setShowConfirm(false)}
               type="button"
@@ -71,7 +71,7 @@ export function LeaveCoupleButton({
           </div>
         </div>
         {error ? (
-          <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <p className="alert-error rounded-2xl px-4 py-3 text-sm">
             {error}
           </p>
         ) : null}
@@ -83,7 +83,7 @@ export function LeaveCoupleButton({
     <button
       className={
         className ??
-        "w-full rounded-2xl border border-red-200 bg-red-50 px-5 py-4 font-semibold text-red-700"
+        "alert-error w-full rounded-2xl px-5 py-4 font-semibold"
       }
       onClick={() => setShowConfirm(true)}
       type="button"

@@ -29,14 +29,14 @@ export function ExportDataButton() {
   return (
     <div>
       <button
-        className="w-full rounded-2xl border border-[var(--border)] bg-white px-5 py-4 font-semibold disabled:opacity-60"
+        className="w-full rounded-2xl surface-panel px-5 py-4 font-semibold disabled:opacity-60"
         disabled={isPending}
         onClick={handleExport}
         type="button"
       >
         {isPending ? "Готовим файл..." : "Экспортировать мои данные"}
       </button>
-      {error ? <p className="mt-2 text-sm text-red-600">{error}</p> : null}
+      {error ? <p className="mt-2 text-sm text-[var(--danger-text)]">{error}</p> : null}
     </div>
   );
 }

@@ -60,7 +60,7 @@ export function UpdatePasswordForm() {
         <span className="text-sm font-medium">Новый пароль</span>
         <input
           autoComplete="new-password"
-          className="rounded-2xl border border-[var(--border)] bg-white px-4 py-3"
+          className="rounded-2xl surface-input px-4 py-3"
           disabled={loading}
           minLength={8}
           onChange={(event) => setPassword(event.target.value)}
@@ -68,7 +68,7 @@ export function UpdatePasswordForm() {
           value={password}
         />
         {fieldErrors.password ? (
-          <span className="text-sm text-red-600">{fieldErrors.password}</span>
+          <span className="text-sm text-[var(--danger-text)]">{fieldErrors.password}</span>
         ) : null}
       </label>
 
@@ -76,7 +76,7 @@ export function UpdatePasswordForm() {
         <span className="text-sm font-medium">Повторите пароль</span>
         <input
           autoComplete="new-password"
-          className="rounded-2xl border border-[var(--border)] bg-white px-4 py-3"
+          className="rounded-2xl surface-input px-4 py-3"
           disabled={loading}
           minLength={8}
           onChange={(event) => setConfirmPassword(event.target.value)}
@@ -84,12 +84,12 @@ export function UpdatePasswordForm() {
           value={confirmPassword}
         />
         {fieldErrors.confirmPassword ? (
-          <span className="text-sm text-red-600">{fieldErrors.confirmPassword}</span>
+          <span className="text-sm text-[var(--danger-text)]">{fieldErrors.confirmPassword}</span>
         ) : null}
       </label>
 
       {error ? (
-        <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <p className="alert-error rounded-2xl px-4 py-3 text-sm">
           {error}
         </p>
       ) : null}

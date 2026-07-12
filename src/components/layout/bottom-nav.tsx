@@ -105,7 +105,7 @@ export function BottomNav({ coupleId, userId, initialUnread }: BottomNavProps) {
       >
         <MessageCircle aria-hidden className="size-7" strokeWidth={2.2} />
         {visibleUnread > 0 ? (
-          <span className="absolute -right-0.5 -top-0.5 grid min-w-5 place-items-center rounded-full bg-white px-1.5 py-0.5 text-[11px] font-bold leading-none text-[var(--accent)]">
+          <span className="absolute -right-0.5 -top-0.5 grid min-w-5 place-items-center rounded-full bg-[var(--badge-bg)] px-1.5 py-0.5 text-[11px] font-bold leading-none text-[var(--badge-text)]">
             {visibleUnread > 99 ? "99+" : visibleUnread}
           </span>
         ) : null}

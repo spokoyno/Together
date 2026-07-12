@@ -33,12 +33,12 @@ export function InviteRegenerateButton({
   if (inviteUrl) {
     return (
       <div className="grid gap-3">
-        <p className="rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+        <p className="rounded-2xl alert-success rounded-2xl px-4 py-3 text-sm">
           Новая ссылка создана. Предыдущие ссылки тоже остаются действительными до истечения срока.
         </p>
         <InviteLinkDisplay inviteUrl={inviteUrl} />
         <button
-          className="rounded-2xl border border-[var(--border)] bg-white px-4 py-3 text-sm font-semibold"
+          className="rounded-2xl surface-input px-4 py-3 text-sm font-semibold"
           disabled={isPending}
           onClick={handleCreate}
           type="button"
@@ -60,7 +60,7 @@ export function InviteRegenerateButton({
         {isPending ? "Создаём ссылку..." : label}
       </button>
       {error ? (
-        <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <p className="alert-error rounded-2xl px-4 py-3 text-sm">
           {error}
         </p>
       ) : null}

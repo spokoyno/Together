@@ -29,10 +29,10 @@ export default async function EventsPage() {
         Годовщины, встречи и важные даты с обратным отсчётом.
       </p>
 
-      <form action={createEvent} className="mt-8 grid gap-3 rounded-3xl border border-[var(--border)] bg-white p-5">
+      <form action={createEvent} className="mt-8 grid gap-3 rounded-3xl surface-panel p-5">
         <p className="font-semibold">Новое событие</p>
-        <input className="rounded-2xl border border-[var(--border)] px-4 py-3" name="title" placeholder="Название" required />
-        <input className="rounded-2xl border border-[var(--border)] px-4 py-3" name="startsAt" required type="datetime-local" />
+        <input className="rounded-2xl surface-input px-4 py-3" name="title" placeholder="Название" required />
+        <input className="rounded-2xl surface-input px-4 py-3" name="startsAt" required type="datetime-local" />
         <button className="rounded-2xl bg-[var(--accent)] px-4 py-3 font-semibold text-white" type="submit">
           Добавить
         </button>
@@ -43,7 +43,7 @@ export default async function EventsPage() {
         <div className="mt-4 grid gap-3">
           {upcoming.length ? (
             upcoming.map((event) => (
-              <article className="rounded-3xl border border-[var(--border)] bg-white p-4" key={event.id}>
+              <article className="rounded-3xl surface-panel p-4" key={event.id}>
                 <p className="font-semibold">{event.title}</p>
                 <p className="mt-2 text-sm text-[var(--muted)]">{formatDateTimeRu(event.starts_at)}</p>
                 <p className="mt-1 text-sm font-semibold text-[var(--accent)]">
@@ -67,7 +67,7 @@ export default async function EventsPage() {
           <h2 className="text-lg font-bold">Прошедшие</h2>
           <div className="mt-4 grid gap-3">
             {past.map((event) => (
-              <article className="rounded-3xl border border-[var(--border)] bg-white p-4 opacity-75" key={event.id}>
+              <article className="rounded-3xl surface-panel p-4 opacity-75" key={event.id}>
                 <p className="font-semibold">{event.title}</p>
                 <p className="mt-2 text-sm text-[var(--muted)]">{formatDateTimeRu(event.starts_at)}</p>
               </article>

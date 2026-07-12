@@ -30,7 +30,7 @@ export function CreateCoupleForm() {
       <label className="grid gap-2">
         <span className="text-sm font-medium">Дата начала отношений</span>
         <input
-          className="rounded-2xl border border-[var(--border)] bg-white px-4 py-3"
+          className="rounded-2xl surface-input px-4 py-3"
           disabled={isPending}
           name="relationshipStartedOn"
           required
@@ -39,7 +39,7 @@ export function CreateCoupleForm() {
       </label>
 
       {error ? (
-        <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <p className="alert-error rounded-2xl px-4 py-3 text-sm">
           {error}
         </p>
       ) : null}

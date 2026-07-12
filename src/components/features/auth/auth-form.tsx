@@ -180,7 +180,7 @@ export function AuthForm({
             <span className="text-sm font-medium">Email</span>
             <input
               autoComplete="email"
-              className="rounded-2xl border border-[var(--border)] bg-white px-4 py-3"
+              className="rounded-2xl surface-input px-4 py-3"
               disabled={loading}
               onChange={(event) => setEmail(event.target.value)}
               placeholder="name@example.com"
@@ -188,18 +188,18 @@ export function AuthForm({
               value={email}
             />
             {fieldErrors.email ? (
-              <span className="text-sm text-red-600">{fieldErrors.email}</span>
+              <span className="text-sm text-[var(--danger-text)]">{fieldErrors.email}</span>
             ) : null}
           </label>
 
           {error ? (
-            <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            <p className="alert-error rounded-2xl px-4 py-3 text-sm">
               {error}
             </p>
           ) : null}
 
           {success ? (
-            <p className="rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+            <p className="rounded-2xl alert-success rounded-2xl px-4 py-3 text-sm">
               {success}
             </p>
           ) : null}
@@ -226,7 +226,7 @@ export function AuthForm({
 
   return (
     <div>
-      <div className="grid grid-cols-2 gap-2 rounded-2xl border border-[var(--border)] bg-white p-1">
+      <div className="grid grid-cols-2 gap-2 rounded-2xl surface-panel p-1">
         <button
           className={`rounded-xl px-4 py-3 text-sm font-semibold ${
             mode === "signup"
@@ -262,14 +262,14 @@ export function AuthForm({
             <span className="text-sm font-medium">Имя</span>
             <input
               autoComplete="name"
-              className="rounded-2xl border border-[var(--border)] bg-white px-4 py-3"
+              className="rounded-2xl surface-input px-4 py-3"
               disabled={loading}
               onChange={(event) => setDisplayName(event.target.value)}
               placeholder="Ваше имя"
               value={displayName}
             />
             {fieldErrors.displayName ? (
-              <span className="text-sm text-red-600">{fieldErrors.displayName}</span>
+              <span className="text-sm text-[var(--danger-text)]">{fieldErrors.displayName}</span>
             ) : null}
           </label>
         ) : null}
@@ -278,7 +278,7 @@ export function AuthForm({
           <span className="text-sm font-medium">Email</span>
           <input
             autoComplete="email"
-            className="rounded-2xl border border-[var(--border)] bg-white px-4 py-3"
+            className="rounded-2xl surface-input px-4 py-3"
             disabled={loading}
             onChange={(event) => setEmail(event.target.value)}
             placeholder="name@example.com"
@@ -286,7 +286,7 @@ export function AuthForm({
             value={email}
           />
           {fieldErrors.email ? (
-            <span className="text-sm text-red-600">{fieldErrors.email}</span>
+            <span className="text-sm text-[var(--danger-text)]">{fieldErrors.email}</span>
           ) : null}
         </label>
 
@@ -294,7 +294,7 @@ export function AuthForm({
           <span className="text-sm font-medium">Пароль</span>
           <input
             autoComplete={mode === "signup" ? "new-password" : "current-password"}
-            className="rounded-2xl border border-[var(--border)] bg-white px-4 py-3"
+            className="rounded-2xl surface-input px-4 py-3"
             disabled={loading}
             minLength={mode === "signup" ? 8 : undefined}
             onChange={(event) => setPassword(event.target.value)}
@@ -303,7 +303,7 @@ export function AuthForm({
             value={password}
           />
           {fieldErrors.password ? (
-            <span className="text-sm text-red-600">{fieldErrors.password}</span>
+            <span className="text-sm text-[var(--danger-text)]">{fieldErrors.password}</span>
           ) : null}
         </label>
 
@@ -318,13 +318,13 @@ export function AuthForm({
         ) : null}
 
         {error ? (
-          <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <p className="alert-error rounded-2xl px-4 py-3 text-sm">
             {error}
           </p>
         ) : null}
 
         {success ? (
-          <p className="rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+          <p className="rounded-2xl alert-success rounded-2xl px-4 py-3 text-sm">
             {success}
           </p>
         ) : null}

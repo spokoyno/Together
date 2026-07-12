@@ -103,7 +103,7 @@ export function PushNotificationsSetup({
 
   if (permission === "unsupported" || !vapidPublicKey) {
     return (
-      <section className="rounded-3xl border border-dashed border-[var(--border)] bg-white p-4 text-sm text-[var(--muted)]">
+      <section className="rounded-3xl surface-panel border-dashed p-4 text-sm text-[var(--muted)]">
         Уведомления недоступны в этом браузере или VAPID ключ не задан на сервере.
       </section>
     );
@@ -170,7 +170,7 @@ export function PushNotificationsSetup({
 
   if (permission === "denied") {
     return (
-      <section className="rounded-3xl border border-[var(--border)] bg-white p-4">
+      <section className="rounded-3xl surface-panel p-4">
         <p className="font-semibold">Уведомления заблокированы</p>
         <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
           Разрешите уведомления для Together в настройках браузера или телефона, затем вернитесь
@@ -181,7 +181,7 @@ export function PushNotificationsSetup({
   }
 
   return (
-    <section className="rounded-3xl border border-[var(--border)] bg-white p-4">
+    <section className="rounded-3xl surface-panel p-4">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="font-semibold">Уведомления чата</p>
@@ -225,7 +225,7 @@ export function PushNotificationsSetup({
 
         {enabled ? (
           <button
-            className="w-full rounded-2xl border border-[var(--border)] bg-white px-4 py-3 text-sm font-semibold"
+            className="w-full rounded-2xl surface-input px-4 py-3 text-sm font-semibold"
             disabled={isPending}
             onClick={testNotification}
             type="button"
@@ -236,13 +236,13 @@ export function PushNotificationsSetup({
       </div>
 
       {info ? (
-        <p className="mt-3 rounded-2xl border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-800">
+        <p className="mt-3 alert-success rounded-2xl px-3 py-2 text-sm">
           {info}
         </p>
       ) : null}
 
       {error ? (
-        <p className="mt-3 rounded-2xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+        <p className="mt-3 alert-error rounded-xl px-3 py-2 text-sm">
           {error}
         </p>
       ) : null}

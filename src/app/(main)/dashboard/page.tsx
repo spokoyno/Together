@@ -24,7 +24,7 @@ export default async function DashboardPage() {
           <h1 className="text-2xl font-bold">Together</h1>
         </header>
 
-        <section className="mt-7 rounded-3xl border border-dashed border-[var(--border)] bg-white p-5">
+        <section className="mt-7 rounded-3xl surface-panel border-dashed p-5">
           <p className="text-sm font-semibold text-[var(--accent)]">Почти готово</p>
           <p className="mt-2 leading-7 text-[var(--muted)]">
             Приложение откроется полностью, когда партнёр примет приглашение. Пока можно
@@ -135,7 +135,7 @@ export default async function DashboardPage() {
 
       <section className="mt-5 grid grid-cols-2 gap-3">
         <Link
-          className="rounded-3xl border border-[var(--border)] bg-white p-4 shadow-sm"
+          className="rounded-3xl surface-panel p-4 shadow-sm"
           href="/mood"
         >
           <p className="text-sm text-[var(--muted)]">Настроение</p>
@@ -150,7 +150,7 @@ export default async function DashboardPage() {
         </Link>
 
         <Link
-          className="rounded-3xl border border-[var(--border)] bg-white p-4 shadow-sm"
+          className="rounded-3xl surface-panel p-4 shadow-sm"
           href="/events"
         >
           <p className="text-sm text-[var(--muted)]">Событие</p>
@@ -163,7 +163,7 @@ export default async function DashboardPage() {
         </Link>
 
         <Link
-          className="rounded-3xl border border-[var(--border)] bg-white p-4 shadow-sm"
+          className="rounded-3xl surface-panel p-4 shadow-sm"
           href="/plans"
         >
           <p className="text-sm text-[var(--muted)]">Планы</p>
@@ -172,7 +172,7 @@ export default async function DashboardPage() {
         </Link>
 
         <Link
-          className="rounded-3xl border border-[var(--border)] bg-white p-4 shadow-sm"
+          className="rounded-3xl surface-panel p-4 shadow-sm"
           href="/memories"
         >
           <p className="text-sm text-[var(--muted)]">Воспоминания</p>
@@ -183,7 +183,7 @@ export default async function DashboardPage() {
         </Link>
       </section>
 
-      <section className="mt-5 rounded-3xl border border-[var(--border)] bg-white p-5">
+      <section className="mt-5 rounded-3xl surface-panel p-5">
         <p className="text-sm font-semibold text-[var(--accent)]">Вопрос дня</p>
         <h2 className="mt-2 text-xl font-bold">
           {dailyQuestion?.questions?.prompt ?? "Вопросы скоро появятся"}
@@ -196,7 +196,7 @@ export default async function DashboardPage() {
         </Link>
       </section>
 
-      <section className="mt-5 rounded-3xl border border-[var(--border)] bg-white p-5">
+      <section className="mt-5 rounded-3xl surface-panel p-5">
         <p className="text-sm font-semibold text-[var(--accent)]">Статистика</p>
         <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
           <div>

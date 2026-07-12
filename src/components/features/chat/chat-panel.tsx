@@ -183,7 +183,7 @@ export function ChatPanel({
       >
         <div className="flex items-end gap-2">
           <textarea
-            className="max-h-28 min-h-11 flex-1 resize-none rounded-full border border-[var(--border)] bg-[var(--surface)] px-4 py-2.5 text-[15px] transition-colors focus:border-[var(--accent)] focus:outline-none"
+            className="max-h-28 min-h-11 flex-1 resize-none rounded-full surface-input px-4 py-2.5 text-[15px] transition-colors focus:border-[var(--accent)] focus:outline-none"
             disabled={isPending}
             maxLength={2000}
             onChange={(event) => setDraft(event.target.value)}
@@ -207,7 +207,7 @@ export function ChatPanel({
           </button>
         </div>
         {error ? (
-          <p className="mt-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+          <p className="mt-2 alert-error rounded-xl px-3 py-2 text-sm">
             {error}
           </p>
         ) : null}

@@ -55,15 +55,15 @@ export default async function ProfilePage() {
         Настройки аккаунта, приватность и управление парой.
       </p>
 
-      <section className="mt-8 rounded-3xl border border-[var(--border)] bg-white p-5 shadow-sm">
+      <section className="mt-8 rounded-3xl surface-panel p-5 shadow-sm">
         <p className="text-sm text-[var(--muted)]">Email</p>
         <p className="mt-1 font-medium">{user.email}</p>
       </section>
 
-      <form action={updateProfile} className="mt-5 grid gap-3 rounded-3xl border border-[var(--border)] bg-white p-5">
+      <form action={updateProfile} className="mt-5 grid gap-3 rounded-3xl surface-panel p-5">
         <p className="font-semibold">Имя</p>
         <input
-          className="rounded-2xl border border-[var(--border)] px-4 py-3"
+          className="rounded-2xl surface-input px-4 py-3"
           defaultValue={profile?.display_name ?? ""}
           name="displayName"
           required
@@ -72,7 +72,7 @@ export default async function ProfilePage() {
           <>
             <p className="font-semibold">Дата отношений</p>
             <input
-              className="rounded-2xl border border-[var(--border)] px-4 py-3"
+              className="rounded-2xl surface-input px-4 py-3"
               defaultValue={context.relationshipStartedOn}
               name="relationshipStartedOn"
               type="date"
@@ -86,7 +86,7 @@ export default async function ProfilePage() {
 
       {context?.isComplete ? (
         <>
-          <section className="mt-5 rounded-3xl border border-[var(--border)] bg-white p-5">
+          <section className="mt-5 rounded-3xl surface-panel p-5">
             <p className="font-semibold">Ваша пара</p>
             <p className="mt-2 text-[var(--muted)]">
               {context.members.map((member) => member.display_name).join(" + ")}
@@ -101,7 +101,7 @@ export default async function ProfilePage() {
             ) : null}
           </section>
 
-          <section className="mt-5 rounded-3xl border border-[var(--border)] bg-white p-5">
+          <section className="mt-5 rounded-3xl surface-panel p-5">
             <p className="font-semibold">Статистика</p>
             <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
               <p>Настроений: {stats?.[0].count ?? 0}</p>
@@ -111,7 +111,7 @@ export default async function ProfilePage() {
             </div>
           </section>
 
-          <section className="mt-5 rounded-3xl border border-[var(--border)] bg-white p-5">
+          <section className="mt-5 rounded-3xl surface-panel p-5">
             <p className="font-semibold">Приватность</p>
             <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
               Данные пары видны только вам двоим. Настроение вы публикуете добровольно.
@@ -128,7 +128,7 @@ export default async function ProfilePage() {
           </div>
         </>
       ) : context ? (
-        <section className="mt-5 grid gap-4 rounded-3xl border border-dashed border-[var(--border)] bg-white p-5">
+        <section className="mt-5 grid gap-4 rounded-3xl surface-panel border-dashed p-5">
           <div>
             <p className="font-semibold">Ожидаем партнёра</p>
             <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
@@ -147,7 +147,7 @@ export default async function ProfilePage() {
           <LeaveCoupleButton variant="solo" />
         </section>
       ) : (
-        <section className="mt-5 rounded-3xl border border-dashed border-[var(--border)] bg-white p-5">
+        <section className="mt-5 rounded-3xl surface-panel border-dashed p-5">
           <p className="font-semibold">Пара не подключена</p>
           <Link className="mt-3 inline-block text-[var(--accent)]" href="/pair">
             Создать или принять приглашение
@@ -173,7 +173,7 @@ export default async function ProfilePage() {
         </div>
       ) : null}
 
-      <section className="mt-5 rounded-3xl border border-[var(--border)] bg-white p-5">
+      <section className="mt-5 rounded-3xl surface-panel p-5">
         <p className="font-semibold">Удаление аккаунта</p>
         <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
           Полное удаление выполняется через Supabase Dashboard → Authentication → Users.
@@ -183,7 +183,7 @@ export default async function ProfilePage() {
 
       <form action={signOut} className="mt-5">
         <button
-          className="w-full rounded-2xl border border-[var(--border)] bg-white px-5 py-4 font-semibold"
+          className="w-full rounded-2xl surface-panel px-5 py-4 font-semibold"
           type="submit"
         >
           Выйти

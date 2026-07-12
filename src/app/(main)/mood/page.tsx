@@ -42,9 +42,9 @@ export default async function MoodPage() {
         Делитесь состоянием добровольно — это не слежка, а способ быть ближе.
       </p>
 
-      <form action={saveMood} className="mt-8 grid gap-3 rounded-3xl border border-[var(--border)] bg-white p-5">
+      <form action={saveMood} className="mt-8 grid gap-3 rounded-3xl surface-panel p-5">
         <p className="font-semibold">Как вы сейчас?</p>
-        <select className="rounded-2xl border border-[var(--border)] px-4 py-3" name="level" required>
+        <select className="rounded-2xl surface-input px-4 py-3" name="level" required>
           {moodLevels.map((level) => (
             <option key={level} value={level}>
               {MOOD_EMOJI[level]} {MOOD_LABELS[level]}
@@ -53,10 +53,10 @@ export default async function MoodPage() {
         </select>
         <label className="grid gap-2">
           <span className="text-sm">Энергия (1–5)</span>
-          <input className="rounded-2xl border border-[var(--border)] px-4 py-3" max={5} min={1} name="energy" type="number" />
+          <input className="rounded-2xl surface-input px-4 py-3" max={5} min={1} name="energy" type="number" />
         </label>
         <textarea
-          className="rounded-2xl border border-[var(--border)] px-4 py-3"
+          className="rounded-2xl surface-input px-4 py-3"
           maxLength={500}
           name="note"
           placeholder="Комментарий (необязательно)"
@@ -74,7 +74,7 @@ export default async function MoodPage() {
             myMoods.map((mood) => {
               const level = mood.level as MoodLevel;
               return (
-                <article className="rounded-3xl border border-[var(--border)] bg-white p-4" key={mood.created_at}>
+                <article className="rounded-3xl surface-panel p-4" key={mood.created_at}>
                   <p className="font-semibold">
                     {MOOD_EMOJI[level]} {MOOD_LABELS[level]}
                   </p>
@@ -97,7 +97,7 @@ export default async function MoodPage() {
               partnerMoods.map((mood) => {
                 const level = mood.level as MoodLevel;
                 return (
-                  <article className="rounded-3xl border border-[var(--border)] bg-white p-4" key={mood.created_at}>
+                  <article className="rounded-3xl surface-panel p-4" key={mood.created_at}>
                     <p className="font-semibold">
                       {MOOD_EMOJI[level]} {MOOD_LABELS[level]}
                     </p>

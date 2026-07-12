@@ -85,7 +85,7 @@ export function PwaInstallBanner() {
   }
 
   return (
-    <section className="fixed inset-x-4 bottom-[calc(max(1rem,env(safe-area-inset-bottom))+5.5rem)] z-50 mx-auto max-w-md rounded-3xl border border-[var(--border)] bg-white p-4 shadow-xl">
+    <section className="fixed inset-x-4 bottom-[calc(max(1rem,env(safe-area-inset-bottom))+5.5rem)] z-50 mx-auto max-w-md rounded-3xl surface-panel p-4 shadow-xl">
       <div className="flex items-start gap-3">
         <div className="grid size-11 shrink-0 place-items-center rounded-2xl bg-[var(--accent-soft)] text-lg">
           ♥

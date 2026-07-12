@@ -26,17 +26,17 @@ export default async function MemoriesPage() {
         Сохраняйте важные воспоминания вместе.
       </p>
 
-      <form action={createMemory} className="mt-8 grid gap-3 rounded-3xl border border-[var(--border)] bg-white p-5">
+      <form action={createMemory} className="mt-8 grid gap-3 rounded-3xl surface-panel p-5">
         <p className="font-semibold">Новое воспоминание</p>
-        <input className="rounded-2xl border border-[var(--border)] px-4 py-3" name="title" placeholder="Заголовок" />
+        <input className="rounded-2xl surface-input px-4 py-3" name="title" placeholder="Заголовок" />
         <textarea
-          className="rounded-2xl border border-[var(--border)] px-4 py-3"
+          className="rounded-2xl surface-input px-4 py-3"
           name="body"
           placeholder="Что произошло?"
           rows={4}
         />
-        <input className="rounded-2xl border border-[var(--border)] px-4 py-3" name="happenedOn" type="date" />
-        <input className="rounded-2xl border border-[var(--border)] px-4 py-3" name="tags" placeholder="Теги через запятую" />
+        <input className="rounded-2xl surface-input px-4 py-3" name="happenedOn" type="date" />
+        <input className="rounded-2xl surface-input px-4 py-3" name="tags" placeholder="Теги через запятую" />
         <button className="rounded-2xl bg-[var(--accent)] px-4 py-3 font-semibold text-white" type="submit">
           Сохранить
         </button>
@@ -45,7 +45,7 @@ export default async function MemoriesPage() {
       <section className="mt-8 grid gap-3">
         {memories?.length ? (
           memories.map((memory) => (
-            <article className="rounded-3xl border border-[var(--border)] bg-white p-5" key={memory.id}>
+            <article className="rounded-3xl surface-panel p-5" key={memory.id}>
               {memory.title ? <h2 className="text-xl font-bold">{memory.title}</h2> : null}
               {memory.body ? (
                 <p className="mt-2 leading-7 text-[var(--muted)]">{memory.body}</p>

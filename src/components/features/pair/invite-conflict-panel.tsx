@@ -61,7 +61,7 @@ export function InviteConflictPanel({ token, isComplete }: InviteConflictPanelPr
       </button>
 
       <Link
-        className="block rounded-2xl border border-[var(--border)] bg-white px-5 py-4 text-center font-semibold"
+        className="block rounded-2xl surface-panel px-5 py-4 text-center font-semibold"
         href="/pair"
       >
         Оставить мою пару
@@ -70,7 +70,7 @@ export function InviteConflictPanel({ token, isComplete }: InviteConflictPanelPr
       <LeaveCoupleButton variant="solo" />
 
       {error ? (
-        <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <p className="alert-error rounded-2xl px-4 py-3 text-sm">
           {error}
         </p>
       ) : null}

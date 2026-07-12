@@ -37,9 +37,9 @@ export function PwaInstallHelp() {
 
   if (mode === "installed") {
     return (
-      <section className="mt-5 rounded-3xl border border-green-200 bg-green-50 p-5">
-        <p className="font-semibold text-green-900">Приложение установлено</p>
-        <p className="mt-2 text-sm leading-6 text-green-800">
+      <section className="alert-success mt-5 rounded-3xl p-5">
+        <p className="font-semibold">Приложение установлено</p>
+        <p className="mt-2 text-sm leading-6 opacity-90">
           Together открыт как PWA с главного экрана.
         </p>
       </section>
@@ -51,7 +51,7 @@ export function PwaInstallHelp() {
   }
 
   return (
-    <section className="mt-5 rounded-3xl border border-[var(--border)] bg-white p-5">
+    <section className="mt-5 rounded-3xl surface-panel p-5">
       <p className="font-semibold">Установить на телефон</p>
       {isIosDevice() ? (
         <ol className="mt-3 list-decimal space-y-2 pl-4 text-sm leading-6 text-[var(--muted)]">

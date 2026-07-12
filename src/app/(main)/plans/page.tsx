@@ -29,21 +29,21 @@ export default async function PlansPage() {
         Свидания, покупки, поездки и любые общие задачи.
       </p>
 
-      <form action={createPlan} className="mt-8 grid gap-3 rounded-3xl border border-[var(--border)] bg-white p-5">
+      <form action={createPlan} className="mt-8 grid gap-3 rounded-3xl surface-panel p-5">
         <p className="font-semibold">Новый план</p>
         <input
-          className="rounded-2xl border border-[var(--border)] px-4 py-3"
+          className="rounded-2xl surface-input px-4 py-3"
           name="title"
           placeholder="Название"
           required
         />
         <textarea
-          className="rounded-2xl border border-[var(--border)] px-4 py-3"
+          className="rounded-2xl surface-input px-4 py-3"
           name="details"
           placeholder="Детали (необязательно)"
           rows={3}
         />
-        <input className="rounded-2xl border border-[var(--border)] px-4 py-3" name="dueAt" type="datetime-local" />
+        <input className="rounded-2xl surface-input px-4 py-3" name="dueAt" type="datetime-local" />
         <button className="rounded-2xl bg-[var(--accent)] px-4 py-3 font-semibold text-white" type="submit">
           Добавить
         </button>
@@ -54,7 +54,7 @@ export default async function PlansPage() {
         <div className="mt-4 grid gap-3">
           {activePlans.length ? (
             activePlans.map((plan) => (
-              <article className="rounded-3xl border border-[var(--border)] bg-white p-4" key={plan.id}>
+              <article className="rounded-3xl surface-panel p-4" key={plan.id}>
                 <p className="font-semibold">{plan.title}</p>
                 {plan.details ? (
                   <p className="mt-2 text-sm leading-6 text-[var(--muted)]">{plan.details}</p>
@@ -87,7 +87,7 @@ export default async function PlansPage() {
           <h2 className="text-lg font-bold">Завершённые</h2>
           <div className="mt-4 grid gap-3">
             {completedPlans.map((plan) => (
-              <article className="rounded-3xl border border-[var(--border)] bg-white p-4 opacity-80" key={plan.id}>
+              <article className="rounded-3xl surface-panel p-4 opacity-80" key={plan.id}>
                 <p className="font-semibold line-through">{plan.title}</p>
               </article>
             ))}

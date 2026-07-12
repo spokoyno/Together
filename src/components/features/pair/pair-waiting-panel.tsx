@@ -29,7 +29,7 @@ export function PairWaitingPanel({
       </div>
 
       {relationshipStartedOn ? (
-        <p className="rounded-2xl border border-[var(--border)] bg-white px-4 py-3 text-sm">
+        <p className="rounded-2xl surface-input px-4 py-3 text-sm">
           Вместе с {formatDateRu(relationshipStartedOn)}
         </p>
       ) : null}
@@ -57,7 +57,7 @@ export function PairWaitingPanel({
 
         {showProfileLink ? (
           <Link
-            className="block rounded-2xl border border-[var(--border)] bg-white px-5 py-4 text-center font-semibold"
+            className="block rounded-2xl surface-panel px-5 py-4 text-center font-semibold"
             href="/profile"
           >
             Профиль и настройки
