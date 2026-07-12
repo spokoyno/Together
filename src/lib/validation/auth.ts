@@ -18,5 +18,24 @@ export const signInSchema = z.object({
   password: z.string().min(1, "Введите пароль"),
 });
 
+export const resetPasswordRequestSchema = z.object({
+  email: z.string().trim().email("Некорректный email"),
+});
+
+export const updatePasswordSchema = z
+  .object({
+    password: z
+      .string()
+      .min(8, "Пароль должен содержать минимум 8 символов")
+      .max(72, "Пароль слишком длинный"),
+    confirmPassword: z.string().min(1, "Повторите пароль"),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Пароли не совпадают",
+    path: ["confirmPassword"],
+  });
+
 export type SignUpInput = z.infer<typeof signUpSchema>;
 export type SignInInput = z.infer<typeof signInSchema>;
+export type ResetPasswordRequestInput = z.infer<typeof resetPasswordRequestSchema>;
+export type UpdatePasswordInput = z.infer<typeof updatePasswordSchema>;

@@ -10,10 +10,13 @@ export async function getSessionUser() {
   return { supabase, user };
 }
 
-export async function requireUser() {
+export async function requireUser(nextPath?: string) {
   const { supabase, user } = await getSessionUser();
 
   if (!user) {
+    if (nextPath) {
+      redirect(`/auth?next=${encodeURIComponent(nextPath)}`);
+    }
     redirect("/auth");
   }
 

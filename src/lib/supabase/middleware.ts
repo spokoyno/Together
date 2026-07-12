@@ -1,5 +1,10 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import {
+  getPostAuthPath,
+  isAuthPublicPath,
+  isProtectedPath,
+} from "@/lib/auth/routes";
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
@@ -28,7 +33,28 @@ export async function updateSession(request: NextRequest) {
     },
   });
 
-  await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const pathname = request.nextUrl.pathname;
+
+  if (!user && isProtectedPath(pathname)) {
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.pathname = "/auth";
+    redirectUrl.searchParams.set("next", pathname);
+    return NextResponse.redirect(redirectUrl);
+  }
+
+  if (user && pathname === "/auth") {
+    const destination = await getPostAuthPath(supabase, user.id);
+    return NextResponse.redirect(new URL(destination, request.url));
+  }
+
+  if (user && pathname.startsWith("/auth") && !isAuthPublicPath(pathname)) {
+    const destination = await getPostAuthPath(supabase, user.id);
+    return NextResponse.redirect(new URL(destination, request.url));
+  }
 
   return supabaseResponse;
 }
