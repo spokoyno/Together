@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { getSessionUser } from "@/lib/auth/session";
+import { getCoupleContext } from "@/lib/couple/context";
 
 const features = [
   "Настроение партнёра",
@@ -7,7 +9,21 @@ const features = [
   "Лента воспоминаний",
 ];
 
-export default function LandingPage() {
+export default async function LandingPage() {
+  const { supabase, user } = await getSessionUser();
+  const context = user ? await getCoupleContext(supabase, user.id) : null;
+
+  const primaryHref = user
+    ? context?.isComplete
+      ? "/dashboard"
+      : "/pair"
+    : "/auth";
+  const primaryLabel = user
+    ? context?.isComplete
+      ? "Открыть приложение"
+      : "Подключить пару"
+    : "Создать аккаунт";
+
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col px-5 py-8">
       <div className="mb-auto">
@@ -39,16 +55,18 @@ export default function LandingPage() {
       <div className="mt-10 grid gap-3">
         <Link
           className="rounded-2xl bg-[var(--accent)] px-5 py-4 text-center font-semibold text-white"
-          href="/dashboard"
+          href={primaryHref}
         >
-          Открыть демо
+          {primaryLabel}
         </Link>
-        <Link
-          className="rounded-2xl border border-[var(--border)] bg-white px-5 py-4 text-center font-semibold"
-          href="/auth"
-        >
-          Создать аккаунт
-        </Link>
+        {!user ? (
+          <Link
+            className="rounded-2xl border border-[var(--border)] bg-white px-5 py-4 text-center font-semibold"
+            href="/auth"
+          >
+            Войти
+          </Link>
+        ) : null}
       </div>
     </main>
   );
