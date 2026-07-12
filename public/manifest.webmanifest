@@ -6,24 +6,18 @@
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "display_override": ["standalone", "minimal-ui"],
-  "orientation": "portrait",
+  "display_override": ["standalone", "minimal-ui", "window-controls-overlay"],
+  "orientation": "portrait-primary",
   "background_color": "#fffafc",
   "theme_color": "#fffafc",
   "lang": "ru",
   "categories": ["lifestyle", "social"],
   "icons": [
     {
-      "src": "/icons/icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
+      "src": "/icons/icon-144.png",
+      "sizes": "144x144",
+      "type": "image/png",
       "purpose": "any"
-    },
-    {
-      "src": "/icons/maskable-icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "maskable"
     },
     {
       "src": "/icons/icon-192.png",
@@ -38,10 +32,26 @@
       "purpose": "any"
     },
     {
-      "src": "/icons/icon-512.png",
+      "src": "/icons/icon-maskable-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshots/mobile.png",
+      "sizes": "1024x1536",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Главный экран на телефоне"
+    },
+    {
+      "src": "/screenshots/desktop.png",
+      "sizes": "1536x1024",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Главный экран"
     }
   ]
 }
