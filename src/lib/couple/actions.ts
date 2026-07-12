@@ -1,6 +1,5 @@
 "use server";
 
-import { createHash, randomBytes } from "crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth/session";
@@ -15,59 +14,69 @@ function getAppUrl() {
   return process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 }
 
-function mapCoupleError(code: string): string {
-  switch (code) {
-    case "already_in_couple":
-      return "Вы уже состоите в паре.";
-    case "invalid_or_expired_invitation":
-      return "Ссылка недействительна или истекла.";
-    case "not_authenticated":
-      return "Сначала войдите в аккаунт.";
-    case "not_in_couple":
-      return "Вы не состоите в паре.";
-    default:
-      return "Не удалось выполнить действие.";
+function mapCoupleError(message: string): string {
+  if (message.includes("already_in_couple")) {
+    return "Вы уже состоите в паре.";
   }
+  if (message.includes("invalid_or_expired")) {
+    return "Ссылка недействительна или истекла.";
+  }
+  if (message.includes("not_authenticated")) {
+    return "Сначала войдите в аккаунт.";
+  }
+  if (message.includes("not_in_couple")) {
+    return "Сначала создайте пару.";
+  }
+  if (message.includes("couple_complete")) {
+    return "Партнёр уже подключён.";
+  }
+  if (message.includes("Could not find the function")) {
+    return "Примените миграцию 004_create_couple_rpc.sql в Supabase SQL Editor.";
+  }
+  return "Не удалось выполнить действие. Проверьте миграции Supabase.";
 }
 
-export async function createCouple(formData: FormData): Promise<void> {
+type CreateCoupleResult =
+  | { ok: true; inviteUrl: string }
+  | { ok: false; error: string };
+
+export async function createCouple(
+  formData: FormData,
+): Promise<CreateCoupleResult> {
   const { supabase, user } = await requireUser();
   const existing = await getCoupleContext(supabase, user.id);
 
   if (existing) {
-    redirect("/pair");
+    return actionError("Пара уже создана. Используйте кнопку ниже для новой ссылки.");
   }
 
   const parsed = createCoupleSchema.safeParse(parseFormData(formData));
   if (!parsed.success) {
-    return;
+    return actionError(parsed.error.issues[0]?.message ?? "Проверьте дату");
   }
 
-  const { data: couple, error: coupleError } = await supabase
-    .from("couples")
-    .insert({
-      created_by: user.id,
-      relationship_started_on: parsed.data.relationshipStartedOn,
-    })
-    .select("id")
-    .single();
-
-  if (coupleError || !couple) {
-    return;
-  }
-
-  const { error: memberError } = await supabase.from("couple_members").insert({
-    couple_id: couple.id,
-    user_id: user.id,
+  const { data, error } = await supabase.rpc("create_couple", {
+    p_relationship_started_on: parsed.data.relationshipStartedOn,
   });
 
-  if (memberError) {
-    return;
+  if (error) {
+    return actionError(mapCoupleError(error.message));
+  }
+
+  const payload = data as { invitation_token?: string } | null;
+  const token = payload?.invitation_token;
+
+  if (!token) {
+    return actionError("Пара создана, но ссылка не получена. Создайте её кнопкой ниже.");
   }
 
   revalidatePath("/pair");
   revalidatePath("/dashboard");
-  redirect("/pair");
+
+  return {
+    ok: true,
+    inviteUrl: `${getAppUrl()}/invite/${token}`,
+  };
 }
 
 export async function createInvitation(): Promise<
@@ -84,18 +93,16 @@ export async function createInvitation(): Promise<
     return actionError("Партнёр уже подключён.");
   }
 
-  const token = randomBytes(32).toString("base64url");
-  const tokenHash = createHash("sha256").update(token).digest("hex");
-  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
-
-  const { error } = await supabase.from("invitations").insert({
-    couple_id: context.coupleId,
-    created_by: user.id,
-    token_hash: tokenHash,
-    expires_at: expiresAt,
-  });
+  const { data, error } = await supabase.rpc("create_invitation");
 
   if (error) {
+    return actionError(mapCoupleError(error.message));
+  }
+
+  const payload = data as { invitation_token?: string } | null;
+  const token = payload?.invitation_token;
+
+  if (!token) {
     return actionError("Не удалось создать приглашение.");
   }
 
@@ -110,12 +117,7 @@ export async function acceptInvitation(token: string) {
   });
 
   if (error) {
-    const code = error.message.includes("already_in_couple")
-      ? "already_in_couple"
-      : error.message.includes("invalid_or_expired")
-        ? "invalid_or_expired_invitation"
-        : "unknown";
-    return actionError(mapCoupleError(code));
+    return actionError(mapCoupleError(error.message));
   }
 
   if (!data) {

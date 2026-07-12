@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { createInvitation } from "@/lib/couple/actions";
+import { InviteLinkDisplay } from "@/components/features/pair/invite-link-display";
 
 export function InviteLinkButton() {
   const [inviteUrl, setInviteUrl] = useState<string | null>(null);
@@ -20,9 +21,8 @@ export function InviteLinkButton() {
     });
   }
 
-  async function handleCopy() {
-    if (!inviteUrl) return;
-    await navigator.clipboard.writeText(inviteUrl);
+  if (inviteUrl) {
+    return <InviteLinkDisplay inviteUrl={inviteUrl} />;
   }
 
   return (
@@ -40,20 +40,6 @@ export function InviteLinkButton() {
         <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {error}
         </p>
-      ) : null}
-
-      {inviteUrl ? (
-        <div className="rounded-2xl border border-[var(--border)] bg-white p-4">
-          <p className="text-sm text-[var(--muted)]">Отправьте эту ссылку партнёру:</p>
-          <p className="mt-2 break-all text-sm font-medium">{inviteUrl}</p>
-          <button
-            className="mt-4 w-full rounded-2xl bg-[var(--accent-soft)] px-4 py-3 font-semibold text-[var(--accent)]"
-            onClick={handleCopy}
-            type="button"
-          >
-            Скопировать
-          </button>
-        </div>
       ) : null}
     </div>
   );
