@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth/session";
 import { mapMessageRow } from "@/lib/chat/messages";
 import { getCoupleContext } from "@/lib/couple/context";
+import { previewChatMessage, sendChatPushNotification } from "@/lib/push/send-chat-push";
 import { actionError, messageSchema } from "@/lib/validation/forms";
 import type { ActionResult, ChatMessage } from "@/types/domain";
 
@@ -36,11 +37,27 @@ export async function sendMessage(body: string): Promise<SendMessageResult> {
     return actionError("Не удалось отправить сообщение.");
   }
 
+  const message = mapMessageRow(data);
+  const senderName =
+    context.members.find((member) => member.id === user.id)?.display_name ?? "Партнёр";
+
+  if (context.partner) {
+    try {
+      await sendChatPushNotification({
+        partnerId: context.partner.id,
+        senderName,
+        preview: previewChatMessage(parsed.data.body),
+      });
+    } catch {
+      // Push must not block message delivery.
+    }
+  }
+
   revalidatePath("/chat");
 
   return {
     ok: true,
-    message: mapMessageRow(data),
+    message,
   };
 }
 

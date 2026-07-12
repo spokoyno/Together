@@ -1,12 +1,14 @@
 import Link from "next/link";
 import { signOut } from "@/app/auth/actions";
 import { ExportDataButton } from "@/components/features/profile/export-data-button";
+import { PushNotificationsSetup } from "@/components/pwa/push-notifications-setup";
 import { PwaInstallHelp } from "@/components/pwa/pwa-install-help";
 import { LeaveCoupleButton } from "@/components/features/pair/leave-couple-button";
 import { requireUser } from "@/lib/auth/session";
 import { getCoupleContext } from "@/lib/couple/context";
 import { daysBetween, formatDateRu } from "@/lib/dates";
 import { updateProfile } from "@/lib/profile/actions";
+import { getVapidPublicKey } from "@/lib/push/web-push";
 
 export default async function ProfilePage() {
   const { supabase, user } = await requireUser();
@@ -41,6 +43,7 @@ export default async function ProfilePage() {
 
   const daysTogether =
     context?.relationshipStartedOn ? daysBetween(context.relationshipStartedOn) : null;
+  const vapidPublicKey = getVapidPublicKey();
 
   return (
     <main className="mx-auto min-h-screen max-w-md px-5 pb-28 pt-8">
@@ -150,6 +153,12 @@ export default async function ProfilePage() {
       )}
 
       <PwaInstallHelp />
+
+      {context?.isComplete ? (
+        <div className="mt-5">
+          <PushNotificationsSetup vapidPublicKey={vapidPublicKey} />
+        </div>
+      ) : null}
 
       <section className="mt-5 rounded-3xl border border-[var(--border)] bg-white p-5">
         <p className="font-semibold">Удаление аккаунта</p>
