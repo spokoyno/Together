@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { PairWaitingPanel } from "@/components/features/pair/pair-waiting-panel";
 import { requireUser } from "@/lib/auth/session";
 import { getCoupleContext } from "@/lib/couple/context";
 import { daysBetween, daysUntil, formatDateTimeRu, greeting, relativeTimeRu, todayIso } from "@/lib/dates";
@@ -11,8 +12,36 @@ export default async function DashboardPage() {
   const { supabase, user } = await requireUser();
   const context = await getCoupleContext(supabase, user.id);
 
-  if (!context?.isComplete) {
+  if (!context) {
     redirect("/pair");
+  }
+
+  if (!context.isComplete) {
+    return (
+      <main className="mx-auto min-h-screen max-w-md px-5 pb-28 pt-7">
+        <header>
+          <p className="text-sm text-[var(--muted)]">{greeting()}</p>
+          <h1 className="text-2xl font-bold">Together</h1>
+        </header>
+
+        <section className="mt-7 rounded-3xl border border-dashed border-[var(--border)] bg-white p-5">
+          <p className="text-sm font-semibold text-[var(--accent)]">Почти готово</p>
+          <p className="mt-2 leading-7 text-[var(--muted)]">
+            Приложение откроется полностью, когда партнёр примет приглашение. Пока можно
+            управлять ссылкой и настройками профиля.
+          </p>
+        </section>
+
+        <div className="mt-6">
+          <PairWaitingPanel
+            inviteUrl={null}
+            relationshipStartedOn={context.relationshipStartedOn}
+            showDashboardLink={false}
+            showProfileLink
+          />
+        </div>
+      </main>
+    );
   }
 
   const me = context.members.find((member) => member.id === user.id);

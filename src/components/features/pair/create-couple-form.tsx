@@ -1,18 +1,17 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { createCouple } from "@/lib/couple/actions";
-import { InviteLinkDisplay } from "@/components/features/pair/invite-link-display";
 
 export function CreateCoupleForm() {
+  const router = useRouter();
   const [error, setError] = useState("");
-  const [inviteUrl, setInviteUrl] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
-    setInviteUrl(null);
 
     const formData = new FormData(event.currentTarget);
 
@@ -20,24 +19,10 @@ export function CreateCoupleForm() {
       const result = await createCouple(formData);
       if (!result.ok) {
         setError(result.error);
-        if (result.error.includes("Обновите страницу")) {
-          window.location.reload();
-        }
         return;
       }
-      setInviteUrl(result.inviteUrl);
+      router.refresh();
     });
-  }
-
-  if (inviteUrl) {
-    return (
-      <div className="mt-8 grid gap-4">
-        <p className="rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
-          Пара создана. Отправьте ссылку партнёру.
-        </p>
-        <InviteLinkDisplay inviteUrl={inviteUrl} />
-      </div>
-    );
   }
 
   return (

@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { CreateCoupleForm } from "@/components/features/pair/create-couple-form";
-import { InviteLinkButton } from "@/components/features/pair/invite-link-button";
+import { PairWaitingPanel } from "@/components/features/pair/pair-waiting-panel";
 import { requireUser } from "@/lib/auth/session";
 import { getCoupleContext } from "@/lib/couple/context";
-import { formatDateRu } from "@/lib/dates";
+import { createInvitationUrl } from "@/lib/couple/invitation";
 
 export default async function PairPage() {
   const { supabase, user } = await requireUser();
@@ -14,11 +14,21 @@ export default async function PairPage() {
     redirect("/dashboard");
   }
 
+  const inviteUrl =
+    context && !context.isComplete ? await createInvitationUrl(supabase) : null;
+
   return (
     <main className="mx-auto min-h-screen max-w-md px-5 py-8">
-      <Link className="text-sm text-[var(--accent)]" href="/dashboard">
-        ← Назад
-      </Link>
+      <div className="flex items-center justify-between">
+        <Link className="text-sm text-[var(--accent)]" href="/profile">
+          Профиль
+        </Link>
+        {context ? (
+          <Link className="text-sm text-[var(--muted)]" href="/dashboard">
+            Главная
+          </Link>
+        ) : null}
+      </div>
 
       {!context ? (
         <>
@@ -31,24 +41,14 @@ export default async function PairPage() {
           <CreateCoupleForm />
         </>
       ) : (
-        <>
-          <p className="mt-6 text-sm font-semibold text-[var(--accent)]">Приглашение</p>
-          <h1 className="mt-2 text-3xl font-bold">Подключите партнёра</h1>
-          <p className="mt-3 leading-7 text-[var(--muted)]">
-            Ссылка действует 7 дней. После подключения партнёра откроется полный доступ к
-            приложению.
-          </p>
-
-          {context.relationshipStartedOn ? (
-            <p className="mt-4 rounded-2xl border border-[var(--border)] bg-white px-4 py-3 text-sm">
-              Вместе с {formatDateRu(context.relationshipStartedOn)}
-            </p>
-          ) : null}
-
-          <div className="mt-8">
-            <InviteLinkButton />
-          </div>
-        </>
+        <div className="mt-6">
+          <PairWaitingPanel
+            inviteUrl={inviteUrl}
+            relationshipStartedOn={context.relationshipStartedOn}
+            showDashboardLink
+            showProfileLink
+          />
+        </div>
       )}
     </main>
   );

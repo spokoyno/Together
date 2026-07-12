@@ -14,7 +14,7 @@ export default async function MoodPage() {
   const context = await getCoupleContext(supabase, user.id);
 
   if (!context?.isComplete) {
-    redirect("/pair");
+    redirect("/dashboard");
   }
 
   const { data: myMoods } = await supabase

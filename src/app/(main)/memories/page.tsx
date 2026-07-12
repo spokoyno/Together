@@ -10,7 +10,7 @@ export default async function MemoriesPage() {
   const context = await getCoupleContext(supabase, user.id);
 
   if (!context?.isComplete) {
-    redirect("/pair");
+    redirect("/dashboard");
   }
 
   const { data: memories } = await supabase

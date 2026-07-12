@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { signOut } from "@/app/auth/actions";
 import { ExportDataButton } from "@/components/features/profile/export-data-button";
+import { LeaveCoupleButton } from "@/components/features/pair/leave-couple-button";
 import { requireUser } from "@/lib/auth/session";
-import { leaveCouple } from "@/lib/couple/actions";
 import { getCoupleContext } from "@/lib/couple/context";
 import { daysBetween, formatDateRu } from "@/lib/dates";
 import { updateProfile } from "@/lib/profile/actions";
@@ -116,15 +116,29 @@ export default async function ProfilePage() {
             <ExportDataButton />
           </div>
 
-          <form action={leaveCouple} className="mt-5">
-            <button
-              className="w-full rounded-2xl border border-red-200 bg-red-50 px-5 py-4 font-semibold text-red-700"
-              type="submit"
-            >
-              Отвязать пару
-            </button>
-          </form>
+          <div className="mt-5">
+            <LeaveCoupleButton variant="complete" />
+          </div>
         </>
+      ) : context ? (
+        <section className="mt-5 grid gap-4 rounded-3xl border border-dashed border-[var(--border)] bg-white p-5">
+          <div>
+            <p className="font-semibold">Ожидаем партнёра</p>
+            <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+              Пара создана, но партнёр ещё не подключился. Отправьте ссылку или отвяжите пару,
+              чтобы начать заново.
+            </p>
+            {context.relationshipStartedOn ? (
+              <p className="mt-2 text-sm">с {formatDateRu(context.relationshipStartedOn)}</p>
+            ) : null}
+          </div>
+
+          <Link className="text-[var(--accent)]" href="/pair">
+            Управление приглашением
+          </Link>
+
+          <LeaveCoupleButton variant="solo" />
+        </section>
       ) : (
         <section className="mt-5 rounded-3xl border border-dashed border-[var(--border)] bg-white p-5">
           <p className="font-semibold">Пара не подключена</p>

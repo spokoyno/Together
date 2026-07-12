@@ -10,7 +10,7 @@ export default async function EventsPage() {
   const context = await getCoupleContext(supabase, user.id);
 
   if (!context?.isComplete) {
-    redirect("/pair");
+    redirect("/dashboard");
   }
 
   const { data: events } = await supabase

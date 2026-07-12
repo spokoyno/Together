@@ -11,7 +11,7 @@ export async function getPostAuthPath(
 ): Promise<string> {
   const context = await getCoupleContext(supabase, userId);
 
-  if (!context?.isComplete) {
+  if (!context) {
     return "/pair";
   }
 

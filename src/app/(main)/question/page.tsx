@@ -9,7 +9,7 @@ export default async function QuestionPage() {
   const context = await getCoupleContext(supabase, user.id);
 
   if (!context?.isComplete) {
-    redirect("/pair");
+    redirect("/dashboard");
   }
 
   const dailyQuestion = await getOrCreateDailyQuestion(supabase, context.coupleId);
