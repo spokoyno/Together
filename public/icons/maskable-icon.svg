@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Together">
+  <rect width="512" height="512" fill="#fffafc"/>
+  <path
+    d="M256 392c-8-6-152-104-152-208 0-58 46-98 98-98 36 0 54 18 54 18s18-18 54-18c52 0 98 40 98 98 0 104-144 202-152 208z"
+    fill="#ef476f"
+  />
+</svg>
