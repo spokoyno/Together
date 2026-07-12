@@ -16,7 +16,7 @@ export function BottomNav() {
   const isChatActive = pathname === "/chat";
 
   return (
-    <nav className="fixed bottom-4 left-1/2 flex w-[calc(100%-2rem)] max-w-md -translate-x-1/2 items-end justify-between rounded-3xl border border-[var(--border)] bg-white/95 px-3 py-3 text-sm shadow-lg backdrop-blur">
+    <nav className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] left-1/2 flex w-[calc(100%-2rem)] max-w-md -translate-x-1/2 items-end justify-between rounded-3xl border border-[var(--border)] bg-white/95 px-3 py-3 text-sm shadow-lg backdrop-blur">
       {sideLinks.slice(0, 2).map((link) => (
         <Link
           className={`min-h-11 min-w-11 px-2 py-2 text-center ${

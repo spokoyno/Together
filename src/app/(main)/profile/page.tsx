@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { signOut } from "@/app/auth/actions";
 import { ExportDataButton } from "@/components/features/profile/export-data-button";
+import { PwaInstallHelp } from "@/components/pwa/pwa-install-help";
 import { LeaveCoupleButton } from "@/components/features/pair/leave-couple-button";
 import { requireUser } from "@/lib/auth/session";
 import { getCoupleContext } from "@/lib/couple/context";
@@ -147,6 +148,8 @@ export default async function ProfilePage() {
           </Link>
         </section>
       )}
+
+      <PwaInstallHelp />
 
       <section className="mt-5 rounded-3xl border border-[var(--border)] bg-white p-5">
         <p className="font-semibold">Удаление аккаунта</p>

@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { PwaInstallBanner } from "@/components/pwa/pwa-install-banner";
 import { PwaRegister } from "@/components/pwa/pwa-register";
 import "./globals.css";
 
@@ -38,6 +39,7 @@ export default function RootLayout({
   return (
     <html lang="ru">
       <body>
+        <PwaInstallBanner />
         {children}
         <PwaRegister />
       </body>

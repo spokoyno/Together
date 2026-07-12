@@ -8,7 +8,12 @@ export function PwaRegister() {
       return;
     }
 
-    void navigator.serviceWorker.register("/sw.js", { scope: "/" });
+    void navigator.serviceWorker
+      .register("/sw.js", { scope: "/", updateViaCache: "none" })
+      .then((registration) => registration.update())
+      .catch(() => {
+        // Service worker is optional for basic Add to Home Screen on iOS.
+      });
   }, []);
 
   return null;
