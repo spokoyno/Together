@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { getAppUrl } from "@/lib/auth/routes";
+import { getAppUrl } from "@/lib/config/app-url";
 
 export type InvitationValidation =
   | { valid: true; coupleId: string }

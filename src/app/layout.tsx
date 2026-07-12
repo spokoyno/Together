@@ -1,4 +1,6 @@
 import type { Metadata, Viewport } from "next";
+import Script from "next/script";
+import { ThemeProvider } from "@/components/providers/theme-provider";
 import { PwaInstallBanner } from "@/components/pwa/pwa-install-banner";
 import { PwaRegister } from "@/components/pwa/pwa-register";
 import "./globals.css";
@@ -30,18 +32,41 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: "#fffafc",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#fffafc" },
+    { media: "(prefers-color-scheme: dark)", color: "#0f1115" },
+  ],
 };
+
+const themeInitScript = `
+(() => {
+  try {
+    const stored = localStorage.getItem("together-theme");
+    const theme = stored === "dark" || stored === "light"
+      ? stored
+      : (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    document.documentElement.dataset.theme = theme;
+    document.documentElement.style.colorScheme = theme;
+  } catch {}
+})();
+`;
 
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="ru">
+    <html lang="ru" suppressHydrationWarning>
+      <head>
+        <Script id="theme-init" strategy="beforeInteractive">
+          {themeInitScript}
+        </Script>
+      </head>
       <body>
-        <PwaInstallBanner />
-        {children}
-        <PwaRegister />
+        <ThemeProvider>
+          <PwaInstallBanner />
+          {children}
+          <PwaRegister />
+        </ThemeProvider>
       </body>
     </html>
   );

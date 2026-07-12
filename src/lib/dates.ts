@@ -81,3 +81,28 @@ export function formatMessageTime(value: string): string {
     minute: "2-digit",
   }).format(date);
 }
+
+export function formatChatDayHeader(value: string): string {
+  const date = new Date(value);
+  const now = new Date();
+
+  if (date.toDateString() === now.toDateString()) {
+    return "Сегодня";
+  }
+
+  const yesterday = new Date(now);
+  yesterday.setDate(yesterday.getDate() - 1);
+  if (date.toDateString() === yesterday.toDateString()) {
+    return "Вчера";
+  }
+
+  return new Intl.DateTimeFormat("ru-RU", {
+    day: "numeric",
+    month: "long",
+    year: date.getFullYear() === now.getFullYear() ? undefined : "numeric",
+  }).format(date);
+}
+
+export function getChatDayKey(value: string): string {
+  return value.slice(0, 10);
+}

@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ZodError } from "zod";
 import { createClient } from "@/lib/supabase/client";
-import { getAppUrl } from "@/lib/auth/routes";
+import { getAppUrl } from "@/lib/config/app-url";
 import {
   resetPasswordRequestSchema,
   signInSchema,

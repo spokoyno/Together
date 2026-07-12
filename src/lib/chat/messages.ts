@@ -27,7 +27,7 @@ export function mapMessageRow(row: MessageRow): ChatMessage {
 export async function getCoupleMessages(
   supabase: SupabaseClient,
   coupleId: string,
-  limit = 100,
+  limit = 50,
 ): Promise<ChatMessage[]> {
   const { data } = await supabase
     .from("messages")

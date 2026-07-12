@@ -49,6 +49,7 @@ export async function sendChatPushNotification(input: ChatPushInput): Promise<vo
     body: `${input.senderName}: ${input.preview}`,
     url: "/chat",
     tag: "together-chat",
+    badge: 1,
   };
 
   await Promise.all(

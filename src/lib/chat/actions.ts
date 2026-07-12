@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth/session";
 import { mapMessageRow } from "@/lib/chat/messages";
+import { markChatAsRead } from "@/lib/chat/unread";
 import { getCoupleContext } from "@/lib/couple/context";
 import { previewChatMessage, sendChatPushNotification } from "@/lib/push/send-chat-push";
 import { actionError, messageSchema } from "@/lib/validation/forms";
@@ -59,6 +60,19 @@ export async function sendMessage(body: string): Promise<SendMessageResult> {
     ok: true,
     message,
   };
+}
+
+export async function markChatRead(): Promise<void> {
+  const { supabase, user } = await requireUser();
+  const context = await getCoupleContext(supabase, user.id);
+
+  if (!context?.isComplete) {
+    return;
+  }
+
+  await markChatAsRead(supabase, user.id, context.coupleId);
+  revalidatePath("/chat");
+  revalidatePath("/dashboard", "layout");
 }
 
 export async function sendMessageForm(formData: FormData): Promise<ActionResult | void> {

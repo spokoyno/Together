@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth/session";
-import { getAppUrl } from "@/lib/auth/routes";
+import { getAppUrl } from "@/lib/config/app-url";
 import { getCoupleContext } from "@/lib/couple/context";
 import {
   actionError,

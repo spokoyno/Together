@@ -7,6 +7,7 @@ import { LeaveCoupleButton } from "@/components/features/pair/leave-couple-butto
 import { requireUser } from "@/lib/auth/session";
 import { getCoupleContext } from "@/lib/couple/context";
 import { daysBetween, formatDateRu } from "@/lib/dates";
+import { ThemeToggle } from "@/components/features/profile/theme-toggle";
 import { updateProfile } from "@/lib/profile/actions";
 import { getPushStatus } from "@/lib/push/actions";
 import { getPushServerConfig } from "@/lib/push/config";
@@ -153,6 +154,10 @@ export default async function ProfilePage() {
           </Link>
         </section>
       )}
+
+      <section className="mt-5">
+        <ThemeToggle />
+      </section>
 
       <PwaInstallHelp />
 

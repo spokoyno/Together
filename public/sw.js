@@ -1,4 +1,4 @@
-const CACHE_NAME = "together-shell-v4";
+const CACHE_NAME = "together-shell-v5";
 const SHELL_URLS = [
   "/",
   "/manifest.webmanifest",
@@ -33,13 +33,20 @@ self.addEventListener("push", (event) => {
   const tag = typeof payload.tag === "string" ? payload.tag : "together-chat";
 
   event.waitUntil(
-    self.registration.showNotification(title, {
-      body,
-      icon: "/icons/icon-192.png",
-      badge: "/icons/icon-144.png",
-      tag,
-      data: { url },
-    }),
+    (async () => {
+      await self.registration.showNotification(title, {
+        body,
+        icon: "/icons/icon-192.png",
+        badge: "/icons/icon-144.png",
+        tag,
+        data: { url },
+        renotify: true,
+      });
+
+      if (payload.badge && "setAppBadge" in navigator) {
+        await navigator.setAppBadge(payload.badge);
+      }
+    })(),
   );
 });
 

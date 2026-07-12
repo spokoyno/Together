@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { CoupleContext } from "@/types/domain";
 
-export async function getCoupleContext(
+export async function loadCoupleContext(
   supabase: SupabaseClient,
   userId: string,
 ): Promise<CoupleContext | null> {
@@ -52,6 +52,13 @@ export async function getCoupleContext(
     partner,
     isComplete: members.length >= 2,
   };
+}
+
+export async function getCoupleContext(
+  supabase: SupabaseClient,
+  userId: string,
+): Promise<CoupleContext | null> {
+  return loadCoupleContext(supabase, userId);
 }
 
 export async function requireCompleteCouple(

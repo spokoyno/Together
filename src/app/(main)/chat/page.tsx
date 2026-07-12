@@ -1,11 +1,9 @@
 import { redirect } from "next/navigation";
 import { ChatPanel } from "@/components/features/chat/chat-panel";
-import { PushNotificationsSetup } from "@/components/pwa/push-notifications-setup";
 import { requireUser } from "@/lib/auth/session";
 import { getCoupleMessages } from "@/lib/chat/messages";
+import { markChatAsRead } from "@/lib/chat/unread";
 import { getCoupleContext } from "@/lib/couple/context";
-import { getPushStatus } from "@/lib/push/actions";
-import { getPushServerConfig } from "@/lib/push/config";
 
 export default async function ChatPage() {
   const { supabase, user } = await requireUser();
@@ -16,35 +14,29 @@ export default async function ChatPage() {
   }
 
   const partner = context.partner;
+  await markChatAsRead(supabase, user.id, context.coupleId);
   const messages = await getCoupleMessages(supabase, context.coupleId);
-  const pushConfig = getPushServerConfig();
-  const pushStatus = await getPushStatus();
 
   return (
-    <main className="mx-auto min-h-screen max-w-md px-5 pb-28 pt-8">
-      <h1 className="text-3xl font-bold">Чат</h1>
-      <p className="mt-2 text-sm text-[var(--muted)]">
-        Приватная переписка с {partner?.display_name ?? "партнёром"}
-      </p>
+    <main className="mx-auto flex h-[100dvh] max-w-md flex-col bg-[var(--chat-bg)]">
+      <header className="fade-up sticky top-0 z-10 border-b border-[var(--border)] bg-[var(--surface-elevated)] px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
+        <div className="flex items-center gap-3">
+          <div className="grid size-10 place-items-center rounded-full bg-[var(--accent-soft)] text-sm font-bold text-[var(--accent)]">
+            {partner?.display_name?.slice(0, 1).toUpperCase() ?? "?"}
+          </div>
+          <div>
+            <h1 className="text-lg font-semibold">{partner?.display_name ?? "Партнёр"}</h1>
+            <p className="text-xs text-[var(--muted)]">личный чат</p>
+          </div>
+        </div>
+      </header>
 
-      <div className="mt-4">
-        <PushNotificationsSetup
-          initialSubscriptionCount={pushStatus.subscriptionCount}
-          serverReady={pushConfig.serverReady}
-          serviceRoleConfigured={pushConfig.serviceRoleConfigured}
-          vapidConfigured={pushConfig.vapidConfigured}
-          vapidPublicKey={pushConfig.vapidPublicKey}
-        />
-      </div>
-
-      <div className="mt-6">
-        <ChatPanel
-          coupleId={context.coupleId}
-          initialMessages={messages}
-          partnerName={partner?.display_name ?? "Партнёр"}
-          userId={user.id}
-        />
-      </div>
+      <ChatPanel
+        coupleId={context.coupleId}
+        initialMessages={messages}
+        partnerName={partner?.display_name ?? "Партнёр"}
+        userId={user.id}
+      />
     </main>
   );
 }
