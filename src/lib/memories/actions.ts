@@ -1,8 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireUser } from "@/lib/auth/session";
-import { getCoupleContext } from "@/lib/couple/context";
+import { getAuthContext } from "@/lib/couple/context.server";
 import {
   eventSchema,
   memorySchema,
@@ -10,8 +9,7 @@ import {
 } from "@/lib/validation/forms";
 
 export async function createMemory(formData: FormData): Promise<void> {
-  const { supabase, user } = await requireUser();
-  const context = await getCoupleContext(supabase, user.id);
+  const { supabase, user, context } = await getAuthContext();
 
   if (!context?.isComplete) {
     return;
@@ -50,8 +48,7 @@ export async function createMemory(formData: FormData): Promise<void> {
 }
 
 export async function deleteMemory(memoryId: string): Promise<void> {
-  const { supabase, user } = await requireUser();
-  const context = await getCoupleContext(supabase, user.id);
+  const { supabase, context } = await getAuthContext();
 
   if (!context?.isComplete) {
     return;
@@ -72,8 +69,7 @@ export async function deleteMemory(memoryId: string): Promise<void> {
 }
 
 export async function createEvent(formData: FormData): Promise<void> {
-  const { supabase, user } = await requireUser();
-  const context = await getCoupleContext(supabase, user.id);
+  const { supabase, user, context } = await getAuthContext();
 
   if (!context?.isComplete) {
     return;
@@ -100,8 +96,7 @@ export async function createEvent(formData: FormData): Promise<void> {
 }
 
 export async function deleteEvent(eventId: string): Promise<void> {
-  const { supabase, user } = await requireUser();
-  const context = await getCoupleContext(supabase, user.id);
+  const { supabase, context } = await getAuthContext();
 
   if (!context?.isComplete) {
     return;

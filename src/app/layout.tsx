@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
-import { ThemeBootstrap } from "@/components/providers/theme-bootstrap";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { PwaInstallBanner } from "@/components/pwa/pwa-install-banner";
 import { PwaRegister } from "@/components/pwa/pwa-register";
@@ -64,7 +63,6 @@ export default function RootLayout({
       </head>
       <body>
         <ThemeProvider>
-          <ThemeBootstrap />
           <PwaInstallBanner />
           {children}
           <PwaRegister />

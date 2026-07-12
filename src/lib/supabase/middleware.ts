@@ -1,10 +1,5 @@
-import { createServerClient } from "@supabase/ssr";
-import { NextResponse, type NextRequest } from "next/server";
-import {
-  getPostAuthPath,
-  isAuthPublicPath,
-  isProtectedPath,
-} from "@/lib/auth/routes";
+import { type NextRequest, NextResponse } from "next/server";
+import { isAuthPublicPath, isProtectedPath } from "@/lib/auth/paths";
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
@@ -15,6 +10,8 @@ export async function updateSession(request: NextRequest) {
   if (!url || !key) {
     return supabaseResponse;
   }
+
+  const { createServerClient } = await import("@supabase/ssr");
 
   const supabase = createServerClient(url, key, {
     cookies: {
@@ -47,13 +44,11 @@ export async function updateSession(request: NextRequest) {
   }
 
   if (user && pathname === "/auth") {
-    const destination = await getPostAuthPath(supabase, user.id);
-    return NextResponse.redirect(new URL(destination, request.url));
+    return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
   if (user && pathname.startsWith("/auth") && !isAuthPublicPath(pathname)) {
-    const destination = await getPostAuthPath(supabase, user.id);
-    return NextResponse.redirect(new URL(destination, request.url));
+    return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
   return supabaseResponse;

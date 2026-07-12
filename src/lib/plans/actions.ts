@@ -1,13 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireUser } from "@/lib/auth/session";
-import { getCoupleContext } from "@/lib/couple/context";
+import { getAuthContext } from "@/lib/couple/context.server";
 import { parseFormData, planSchema } from "@/lib/validation/forms";
 
 export async function createPlan(formData: FormData): Promise<void> {
-  const { supabase, user } = await requireUser();
-  const context = await getCoupleContext(supabase, user.id);
+  const { supabase, user, context } = await getAuthContext();
 
   if (!context?.isComplete) {
     return;
@@ -36,8 +34,7 @@ export async function createPlan(formData: FormData): Promise<void> {
 }
 
 export async function completePlan(planId: string): Promise<void> {
-  const { supabase, user } = await requireUser();
-  const context = await getCoupleContext(supabase, user.id);
+  const { supabase, context } = await getAuthContext();
 
   if (!context?.isComplete) {
     return;
@@ -61,8 +58,7 @@ export async function completePlan(planId: string): Promise<void> {
 }
 
 export async function deletePlan(planId: string): Promise<void> {
-  const { supabase, user } = await requireUser();
-  const context = await getCoupleContext(supabase, user.id);
+  const { supabase, context } = await getAuthContext();
 
   if (!context?.isComplete) {
     return;

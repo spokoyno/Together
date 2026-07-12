@@ -1,11 +1,9 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
-import { requireUser } from "@/lib/auth/session";
 import { mapMessageSendError } from "@/lib/chat/errors";
 import { getOlderCoupleMessages } from "@/lib/chat/messages";
 import { markChatAsRead } from "@/lib/chat/unread";
-import { getCoupleContext } from "@/lib/couple/context";
+import { getAuthContext } from "@/lib/couple/context.server";
 import { previewChatMessage, sendChatPushNotification } from "@/lib/push/send-chat-push";
 import { actionError, chatNoteSchema, messageSchema } from "@/lib/validation/forms";
 import type { ActionResult, ChatMessage, ChatNote } from "@/types/domain";
@@ -13,8 +11,7 @@ import type { ActionResult, ChatMessage, ChatNote } from "@/types/domain";
 type SendMessageResult = { ok: true; message: ChatMessage } | { ok: false; error: string };
 
 export async function sendMessage(body: string): Promise<SendMessageResult> {
-  const { supabase, user } = await requireUser();
-  const context = await getCoupleContext(supabase, user.id);
+  const { supabase, user, context } = await getAuthContext();
 
   if (!context?.isComplete) {
     return actionError("Чат доступен после подключения партнёра.");
@@ -25,27 +22,18 @@ export async function sendMessage(body: string): Promise<SendMessageResult> {
     return actionError(parsed.error.issues[0]?.message ?? "Проверьте сообщение");
   }
 
-  const { error: insertError } = await supabase.from("messages").insert({
-    couple_id: context.coupleId,
-    sender_id: user.id,
-    body: parsed.data.body,
-  });
-
-  if (insertError) {
-    return actionError(mapMessageSendError(insertError));
-  }
-
-  const { data, error: selectError } = await supabase
+  const { data, error: insertError } = await supabase
     .from("messages")
+    .insert({
+      couple_id: context.coupleId,
+      sender_id: user.id,
+      body: parsed.data.body,
+    })
     .select("id, couple_id, sender_id, body, created_at")
-    .eq("couple_id", context.coupleId)
-    .eq("sender_id", user.id)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .single();
 
-  if (!data) {
-    return actionError(mapMessageSendError(selectError));
+  if (insertError || !data) {
+    return actionError(mapMessageSendError(insertError));
   }
 
   const senderName =
@@ -72,8 +60,6 @@ export async function sendMessage(body: string): Promise<SendMessageResult> {
     }
   }
 
-  revalidatePath("/chat");
-
   return {
     ok: true,
     message,
@@ -81,16 +67,13 @@ export async function sendMessage(body: string): Promise<SendMessageResult> {
 }
 
 export async function markChatRead(): Promise<void> {
-  const { supabase, user } = await requireUser();
-  const context = await getCoupleContext(supabase, user.id);
+  const { supabase, user, context } = await getAuthContext();
 
   if (!context?.isComplete) {
     return;
   }
 
   await markChatAsRead(supabase, user.id, context.coupleId);
-  revalidatePath("/chat");
-  revalidatePath("/dashboard", "layout");
 }
 
 type LoadOlderResult =
@@ -101,8 +84,7 @@ export async function loadOlderMessages(
   beforeCreatedAt: string,
   beforeId: string,
 ): Promise<LoadOlderResult> {
-  const { supabase, user } = await requireUser();
-  const context = await getCoupleContext(supabase, user.id);
+  const { supabase, context } = await getAuthContext();
 
   if (!context?.isComplete) {
     return actionError("Чат доступен после подключения партнёра.");
@@ -141,8 +123,7 @@ export async function sendMessageForm(formData: FormData): Promise<ActionResult 
 type ToggleSaveResult = { ok: true; saved: boolean } | { ok: false; error: string };
 
 export async function toggleSaveMessage(messageId: string): Promise<ToggleSaveResult> {
-  const { supabase, user } = await requireUser();
-  const context = await getCoupleContext(supabase, user.id);
+  const { supabase, user, context } = await getAuthContext();
 
   if (!context?.isComplete) {
     return actionError("Чат доступен после подключения партнёра.");
@@ -177,7 +158,6 @@ export async function toggleSaveMessage(messageId: string): Promise<ToggleSaveRe
       return actionError("Не удалось убрать из сохранённых.");
     }
 
-    revalidatePath("/chat");
     return { ok: true, saved: false };
   }
 
@@ -191,7 +171,6 @@ export async function toggleSaveMessage(messageId: string): Promise<ToggleSaveRe
     return actionError("Не удалось сохранить сообщение.");
   }
 
-  revalidatePath("/chat");
   return { ok: true, saved: true };
 }
 
@@ -201,8 +180,7 @@ export async function createChatNote(
   body: string,
   messageId?: string | null,
 ): Promise<NoteResult> {
-  const { supabase, user } = await requireUser();
-  const context = await getCoupleContext(supabase, user.id);
+  const { supabase, user, context } = await getAuthContext();
 
   if (!context?.isComplete) {
     return actionError("Чат доступен после подключения партнёра.");
@@ -241,8 +219,6 @@ export async function createChatNote(
     return actionError("Не удалось создать заметку.");
   }
 
-  revalidatePath("/chat");
-
   return {
     ok: true,
     note: {
@@ -258,7 +234,7 @@ export async function createChatNote(
 }
 
 export async function updateChatNote(noteId: string, body: string): Promise<NoteResult> {
-  const { supabase, user } = await requireUser();
+  const { supabase, user } = await getAuthContext();
   const parsed = chatNoteSchema.safeParse({ body });
 
   if (!parsed.success) {
@@ -280,8 +256,6 @@ export async function updateChatNote(noteId: string, body: string): Promise<Note
     return actionError("Не удалось обновить заметку.");
   }
 
-  revalidatePath("/chat");
-
   return {
     ok: true,
     note: {
@@ -297,7 +271,7 @@ export async function updateChatNote(noteId: string, body: string): Promise<Note
 }
 
 export async function deleteChatNote(noteId: string): Promise<ActionResult> {
-  const { supabase, user } = await requireUser();
+  const { supabase, user } = await getAuthContext();
 
   const { error } = await supabase
     .from("chat_notes")
@@ -309,6 +283,5 @@ export async function deleteChatNote(noteId: string): Promise<ActionResult> {
     return actionError("Не удалось удалить заметку.");
   }
 
-  revalidatePath("/chat");
   return { ok: true };
 }

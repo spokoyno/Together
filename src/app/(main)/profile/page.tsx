@@ -5,7 +5,7 @@ import { PushNotificationsSetup } from "@/components/pwa/push-notifications-setu
 import { PwaInstallHelp } from "@/components/pwa/pwa-install-help";
 import { LeaveCoupleButton } from "@/components/features/pair/leave-couple-button";
 import { requireUser } from "@/lib/auth/session";
-import { getCoupleContext } from "@/lib/couple/context";
+import { getCoupleContextForUser } from "@/lib/couple/context.server";
 import { daysBetween, formatDateRu } from "@/lib/dates";
 import { ThemeToggle } from "@/components/features/profile/theme-toggle";
 import { updateProfile } from "@/lib/profile/actions";
@@ -14,7 +14,7 @@ import { getPushServerConfig } from "@/lib/push/config";
 
 export default async function ProfilePage() {
   const { supabase, user } = await requireUser();
-  const context = await getCoupleContext(supabase, user.id);
+  const context = await getCoupleContextForUser(user.id);
 
   const { data: profile } = await supabase
     .from("profiles")

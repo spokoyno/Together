@@ -10,7 +10,6 @@ import {
   MessageCircle,
   UserRound,
 } from "lucide-react";
-import { markChatRead } from "@/lib/chat/actions";
 import { setAppBadgeCount } from "@/lib/pwa/app-badge";
 import { createClient } from "@/lib/supabase/client";
 
@@ -34,17 +33,11 @@ export function BottomNav({ coupleId, userId, initialUnread }: BottomNavProps) {
   const visibleUnread = isChatActive ? 0 : initialUnread + liveUnread;
 
   useEffect(() => {
-    if (isChatActive) {
-      void markChatRead();
-    }
-  }, [isChatActive]);
-
-  useEffect(() => {
     setAppBadgeCount(visibleUnread);
   }, [visibleUnread]);
 
   useEffect(() => {
-    if (!coupleId) {
+    if (!coupleId || isChatActive) {
       return;
     }
 
@@ -60,9 +53,9 @@ export function BottomNav({ coupleId, userId, initialUnread }: BottomNavProps) {
           table: "messages",
           filter: `couple_id=eq.${coupleId}`,
         },
-        (payload) => {
+        (payload: { new: Record<string, unknown> }) => {
           const row = payload.new as { sender_id: string };
-          if (row.sender_id === userId || pathname === "/chat") {
+          if (row.sender_id === userId) {
             return;
           }
 
@@ -74,7 +67,7 @@ export function BottomNav({ coupleId, userId, initialUnread }: BottomNavProps) {
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [coupleId, pathname, userId]);
+  }, [coupleId, isChatActive, userId]);
 
   return (
     <nav className="nav-shell fixed bottom-[max(0.75rem,env(safe-area-inset-bottom))] left-1/2 z-40 flex w-[calc(100%-1.5rem)] max-w-md -translate-x-1/2 items-end justify-between rounded-[28px] px-2 py-2 shadow-lg">

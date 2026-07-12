@@ -1,13 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireUser } from "@/lib/auth/session";
-import { getCoupleContext } from "@/lib/couple/context";
+import { getAuthContext } from "@/lib/couple/context.server";
 import { moodSchema, parseFormData } from "@/lib/validation/forms";
 
 export async function saveMood(formData: FormData): Promise<void> {
-  const { supabase, user } = await requireUser();
-  const context = await getCoupleContext(supabase, user.id);
+  const { supabase, user, context } = await getAuthContext();
 
   if (!context?.isComplete) {
     return;

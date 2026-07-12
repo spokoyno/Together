@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { PairWaitingPanel } from "@/components/features/pair/pair-waiting-panel";
 import { requireUser } from "@/lib/auth/session";
-import { getCoupleContext } from "@/lib/couple/context";
+import { getCoupleContextForUser } from "@/lib/couple/context.server";
 import { daysBetween, daysUntil, formatDateTimeRu, greeting, relativeTimeRu, todayIso } from "@/lib/dates";
 import { getOrCreateDailyQuestion } from "@/lib/question/actions";
 import { MOOD_EMOJI, MOOD_LABELS } from "@/lib/mood/labels";
@@ -10,7 +10,7 @@ import type { MoodLevel } from "@/types/domain";
 
 export default async function DashboardPage() {
   const { supabase, user } = await requireUser();
-  const context = await getCoupleContext(supabase, user.id);
+  const context = await getCoupleContextForUser(user.id);
 
   if (!context) {
     redirect("/pair");

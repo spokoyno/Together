@@ -69,10 +69,6 @@ export function ChatPanel({
   const oldestMessage = messages[0];
   const lastMessageId = messages.at(-1)?.id;
 
-  useEffect(() => {
-    void markChatRead();
-  }, []);
-
   useLayoutEffect(() => {
     if (hasInitialScrolledRef.current) {
       return;
@@ -187,7 +183,7 @@ export function ChatPanel({
           table: "messages",
           filter: `couple_id=eq.${coupleId}`,
         },
-        (payload) => {
+        (payload: { new: Record<string, unknown> }) => {
           const row = payload.new as {
             id: string;
             couple_id: string;

@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { saveMood } from "@/lib/mood/actions";
 import { requireUser } from "@/lib/auth/session";
-import { getCoupleContext } from "@/lib/couple/context";
+import { getCoupleContextForUser } from "@/lib/couple/context.server";
 import { relativeTimeRu } from "@/lib/dates";
 import { MOOD_EMOJI, MOOD_LABELS } from "@/lib/mood/labels";
 import type { MoodLevel } from "@/types/domain";
@@ -11,29 +11,30 @@ const moodLevels: MoodLevel[] = ["great", "good", "neutral", "low", "hard"];
 
 export default async function MoodPage() {
   const { supabase, user } = await requireUser();
-  const context = await getCoupleContext(supabase, user.id);
+  const context = await getCoupleContextForUser(user.id);
 
   if (!context?.isComplete) {
     redirect("/dashboard");
   }
 
-  const { data: myMoods } = await supabase
-    .from("moods")
-    .select("level, energy, note, created_at")
-    .eq("couple_id", context.coupleId)
-    .eq("user_id", user.id)
-    .order("created_at", { ascending: false })
-    .limit(10);
-
-  const { data: partnerMoods } = context?.partner
-    ? await supabase
-        .from("moods")
-        .select("level, energy, note, created_at")
-        .eq("couple_id", context.coupleId)
-        .eq("user_id", context.partner.id)
-        .order("created_at", { ascending: false })
-        .limit(5)
-    : { data: [] };
+  const [{ data: myMoods }, { data: partnerMoods }] = await Promise.all([
+    supabase
+      .from("moods")
+      .select("level, energy, note, created_at")
+      .eq("couple_id", context.coupleId)
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(10),
+    context.partner
+      ? supabase
+          .from("moods")
+          .select("level, energy, note, created_at")
+          .eq("couple_id", context.coupleId)
+          .eq("user_id", context.partner.id)
+          .order("created_at", { ascending: false })
+          .limit(5)
+      : Promise.resolve({ data: [] }),
+  ]);
 
   return (
     <main className="mx-auto min-h-screen max-w-md px-5 pb-28 pt-8">

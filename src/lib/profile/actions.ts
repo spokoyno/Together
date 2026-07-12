@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth/session";
-import { getCoupleContext } from "@/lib/couple/context";
+import { getAuthContext, getCoupleContextForUser } from "@/lib/couple/context.server";
 import {
   actionError,
   parseFormData,
@@ -30,7 +30,7 @@ export async function updateProfile(formData: FormData): Promise<void> {
   }
 
   if (parsed.data.relationshipStartedOn) {
-    const context = await getCoupleContext(supabase, user.id);
+    const context = await getCoupleContextForUser(user.id);
     if (context) {
       await supabase
         .from("couples")
@@ -44,8 +44,7 @@ export async function updateProfile(formData: FormData): Promise<void> {
 }
 
 export async function exportCoupleData() {
-  const { supabase, user } = await requireUser();
-  const context = await getCoupleContext(supabase, user.id);
+  const { supabase, user, context } = await getAuthContext();
 
   if (!context?.isComplete) {
     return actionError("Экспорт доступен после подключения партнёра.");

@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { AcceptInviteButton } from "@/components/features/pair/accept-invite-button";
 import { InviteConflictPanel } from "@/components/features/pair/invite-conflict-panel";
 import { requireUser } from "@/lib/auth/session";
-import { getCoupleContext } from "@/lib/couple/context";
+import { getCoupleContextForUser } from "@/lib/couple/context.server";
 import { validateInvitationToken } from "@/lib/couple/invitation";
 
 type InvitePageProps = {
@@ -20,7 +20,7 @@ const INVALID_MESSAGES = {
 export default async function InvitePage({ params }: InvitePageProps) {
   const { token } = await params;
   const { supabase, user } = await requireUser();
-  const context = await getCoupleContext(supabase, user.id);
+  const context = await getCoupleContextForUser(user.id);
   const validation = await validateInvitationToken(supabase, token);
 
   if (context?.isComplete) {

@@ -2,11 +2,11 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { saveAnswer, getOrCreateDailyQuestion } from "@/lib/question/actions";
 import { requireUser } from "@/lib/auth/session";
-import { getCoupleContext } from "@/lib/couple/context";
+import { getCoupleContextForUser } from "@/lib/couple/context.server";
 
 export default async function QuestionPage() {
   const { supabase, user } = await requireUser();
-  const context = await getCoupleContext(supabase, user.id);
+  const context = await getCoupleContextForUser(user.id);
 
   if (!context?.isComplete) {
     redirect("/dashboard");

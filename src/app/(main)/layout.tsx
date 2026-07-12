@@ -1,6 +1,6 @@
 import { BottomNav } from "@/components/layout/bottom-nav";
+import { getUnreadChatCountCached } from "@/lib/chat/unread.server";
 import { requireUser } from "@/lib/auth/session";
-import { getUnreadChatCount } from "@/lib/chat/unread";
 import { getCoupleContextForUser } from "@/lib/couple/context.server";
 
 export default async function MainLayout({
@@ -10,7 +10,7 @@ export default async function MainLayout({
   const context = await getCoupleContextForUser(user.id);
   const unread =
     context?.isComplete
-      ? await getUnreadChatCount(supabase, user.id, context.coupleId)
+      ? await getUnreadChatCountCached(supabase, user.id, context.coupleId)
       : 0;
 
   return (

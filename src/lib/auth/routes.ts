@@ -1,18 +1,17 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { getCoupleContext } from "@/lib/couple/context";
-
-export { getAppUrl } from "@/lib/config/app-url";
-export { isAuthPublicPath, isProtectedPath } from "@/lib/auth/paths";
 
 export async function getPostAuthPath(
   supabase: SupabaseClient,
   userId: string,
 ): Promise<string> {
-  const context = await getCoupleContext(supabase, userId);
+  const { data } = await supabase
+    .from("couple_members")
+    .select("couple_id")
+    .eq("user_id", userId)
+    .maybeSingle();
 
-  if (!context) {
-    return "/pair";
-  }
-
-  return "/dashboard";
+  return data ? "/dashboard" : "/pair";
 }
+
+export { getAppUrl } from "@/lib/config/app-url";
+export { isAuthPublicPath, isProtectedPath } from "@/lib/auth/paths";

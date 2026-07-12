@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth/session";
 import { getAppUrl } from "@/lib/config/app-url";
-import { getCoupleContext } from "@/lib/couple/context";
+import { getAuthContext } from "@/lib/couple/context.server";
 import {
   actionError,
   createCoupleSchema,
@@ -76,8 +76,7 @@ export async function createCouple(formData: FormData): Promise<CreateCoupleResu
 export async function createInvitation(): Promise<
   { ok: true; inviteUrl: string } | { ok: false; error: string }
 > {
-  const { supabase, user } = await requireUser();
-  const context = await getCoupleContext(supabase, user.id);
+  const { supabase, context } = await getAuthContext();
 
   if (!context) {
     return actionError("Сначала создайте пару.");
@@ -167,8 +166,7 @@ export async function leaveCouple(): Promise<ActionResult | void> {
 }
 
 export async function updateRelationshipDate(formData: FormData): Promise<void> {
-  const { supabase, user } = await requireUser();
-  const context = await getCoupleContext(supabase, user.id);
+  const { supabase, context } = await getAuthContext();
 
   if (!context) {
     return;

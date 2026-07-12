@@ -2,8 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { requireUser } from "@/lib/auth/session";
-import { getCoupleContext } from "@/lib/couple/context";
+import { getAuthContext } from "@/lib/couple/context.server";
 import { todayIso } from "@/lib/dates";
 import {
   answerSchema,
@@ -44,7 +43,8 @@ export async function getOrCreateDailyQuestion(
   const { data: questions } = await supabase
     .from("questions")
     .select("id")
-    .eq("is_active", true);
+    .eq("is_active", true)
+    .limit(100);
 
   if (!questions?.length) {
     return null;
@@ -70,8 +70,7 @@ export async function getOrCreateDailyQuestion(
 }
 
 export async function saveAnswer(formData: FormData): Promise<void> {
-  const { supabase, user } = await requireUser();
-  const context = await getCoupleContext(supabase, user.id);
+  const { supabase, user, context } = await getAuthContext();
 
   if (!context?.isComplete) {
     return;

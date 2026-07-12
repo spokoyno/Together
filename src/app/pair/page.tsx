@@ -3,12 +3,12 @@ import { redirect } from "next/navigation";
 import { CreateCoupleForm } from "@/components/features/pair/create-couple-form";
 import { PairWaitingPanel } from "@/components/features/pair/pair-waiting-panel";
 import { requireUser } from "@/lib/auth/session";
-import { getCoupleContext } from "@/lib/couple/context";
+import { getCoupleContextForUser } from "@/lib/couple/context.server";
 import { createInvitationUrl } from "@/lib/couple/invitation";
 
 export default async function PairPage() {
   const { supabase, user } = await requireUser();
-  const context = await getCoupleContext(supabase, user.id);
+  const context = await getCoupleContextForUser(user.id);
 
   if (context?.isComplete) {
     redirect("/dashboard");

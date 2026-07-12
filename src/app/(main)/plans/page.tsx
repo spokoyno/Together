@@ -1,13 +1,13 @@
 import { redirect } from "next/navigation";
 import { createPlan, completePlan, deletePlan } from "@/lib/plans/actions";
 import { requireUser } from "@/lib/auth/session";
-import { getCoupleContext } from "@/lib/couple/context";
+import { getCoupleContextForUser } from "@/lib/couple/context.server";
 import { formatDateTimeRu } from "@/lib/dates";
 import { EmptyState } from "@/components/ui/empty-state";
 
 export default async function PlansPage() {
   const { supabase, user } = await requireUser();
-  const context = await getCoupleContext(supabase, user.id);
+  const context = await getCoupleContextForUser(user.id);
 
   if (!context?.isComplete) {
     redirect("/dashboard");

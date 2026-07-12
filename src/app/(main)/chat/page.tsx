@@ -2,15 +2,15 @@ import { redirect } from "next/navigation";
 import { ChatShell } from "@/components/features/chat/chat-shell";
 import { requireUser } from "@/lib/auth/session";
 import { getRecentCoupleMessages } from "@/lib/chat/messages";
-import { getChatNotes, getSavedMessageIds, getSavedMessages } from "@/lib/chat/private";
+import { getChatNotes, getSavedMessages } from "@/lib/chat/private";
 import { markChatAsRead } from "@/lib/chat/unread";
-import { getCoupleContext } from "@/lib/couple/context";
+import { getCoupleContextForUser } from "@/lib/couple/context.server";
 
 export const dynamic = "force-dynamic";
 
 export default async function ChatPage() {
   const { supabase, user } = await requireUser();
-  const context = await getCoupleContext(supabase, user.id);
+  const context = await getCoupleContextForUser(user.id);
 
   if (!context?.isComplete) {
     redirect("/dashboard");
@@ -23,12 +23,13 @@ export default async function ChatPage() {
 
   await markChatAsRead(supabase, user.id, context.coupleId);
 
-  const [messagesPage, savedIds, savedMessages, notes] = await Promise.all([
+  const [messagesPage, savedMessages, notes] = await Promise.all([
     getRecentCoupleMessages(supabase, context.coupleId, memberNames),
-    getSavedMessageIds(supabase, user.id, context.coupleId),
     getSavedMessages(supabase, user.id, context.coupleId, memberNames),
     getChatNotes(supabase, user.id, context.coupleId, memberNames),
   ]);
+
+  const savedIds = savedMessages.map((message) => message.id);
 
   return (
     <main className="mx-auto flex h-[100dvh] max-w-md flex-col bg-[var(--chat-bg)]">
