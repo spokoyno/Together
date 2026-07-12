@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth/session";
-import { mapMessageRow } from "@/lib/chat/messages";
+import { mapMessageSendError } from "@/lib/chat/errors";
 import { markChatAsRead } from "@/lib/chat/unread";
 import { getCoupleContext } from "@/lib/couple/context";
 import { previewChatMessage, sendChatPushNotification } from "@/lib/push/send-chat-push";
@@ -24,23 +24,40 @@ export async function sendMessage(body: string): Promise<SendMessageResult> {
     return actionError(parsed.error.issues[0]?.message ?? "Проверьте сообщение");
   }
 
-  const { data, error } = await supabase
-    .from("messages")
-    .insert({
-      couple_id: context.coupleId,
-      sender_id: user.id,
-      body: parsed.data.body,
-    })
-    .select("id, couple_id, sender_id, body, created_at, profiles(display_name)")
-    .single();
+  const { error: insertError } = await supabase.from("messages").insert({
+    couple_id: context.coupleId,
+    sender_id: user.id,
+    body: parsed.data.body,
+  });
 
-  if (error || !data) {
-    return actionError("Не удалось отправить сообщение.");
+  if (insertError) {
+    return actionError(mapMessageSendError(insertError));
   }
 
-  const message = mapMessageRow(data);
+  const { data, error: selectError } = await supabase
+    .from("messages")
+    .select("id, couple_id, sender_id, body, created_at")
+    .eq("couple_id", context.coupleId)
+    .eq("sender_id", user.id)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!data) {
+    return actionError(mapMessageSendError(selectError));
+  }
+
   const senderName =
-    context.members.find((member) => member.id === user.id)?.display_name ?? "Партнёр";
+    context.members.find((member) => member.id === user.id)?.display_name ?? "Вы";
+
+  const message: ChatMessage = {
+    id: data.id,
+    coupleId: data.couple_id,
+    senderId: data.sender_id,
+    senderName,
+    body: data.body,
+    createdAt: data.created_at,
+  };
 
   if (context.partner) {
     try {
