@@ -412,7 +412,7 @@ export async function loadHubBooks(ctx: HubContext) {
 export async function loadHubPolls(ctx: HubContext) {
   const { data: rows } = await ctx.supabase
     .from("partner_polls")
-    .select("id, title, status, creator_id, target_user_id, created_at")
+    .select("id, title, status, creator_id, target_user_id, created_at, completed_at, score_correct, score_total")
     .eq("couple_id", ctx.coupleId)
     .order("created_at", { ascending: false });
 
@@ -431,49 +431,95 @@ export async function loadHubPolls(ctx: HubContext) {
   const { data: options } = questionIds.length
     ? await ctx.supabase
         .from("poll_options")
-        .select("id, question_id, label, sort_order")
+        .select("id, question_id, label, sort_order, is_correct")
         .in("question_id", questionIds)
         .order("sort_order", { ascending: true })
-    : { data: [] as Array<{ id: string; question_id: string; label: string; sort_order: number }> };
+    : { data: [] as Array<{ id: string; question_id: string; label: string; sort_order: number; is_correct: boolean }> };
 
-  const profileMap = await loadProfileMap(
-    ctx.supabase,
-    [...new Set(rows.map((row) => row.creator_id))],
-  );
+  const completedPollIds = rows.filter((row) => row.status === "completed").map((row) => row.id);
+  const { data: answers } = completedPollIds.length
+    ? await ctx.supabase
+        .from("poll_answers")
+        .select("poll_id, question_id, respondent_id, option_id, text_answer")
+        .in("poll_id", completedPollIds)
+    : { data: [] as Array<{ poll_id: string; question_id: string; respondent_id: string; option_id: string | null; text_answer: string | null }> };
 
-  const optionsByQuestion = new Map<string, typeof options>();
+  const profileIds = [
+    ...new Set([
+      ...rows.map((row) => row.creator_id),
+      ...rows.map((row) => row.target_user_id),
+      ...(answers ?? []).map((row) => row.respondent_id),
+    ]),
+  ];
+  const profileMap = await loadProfileMap(ctx.supabase, profileIds);
+
+  const optionsByQuestion = new Map<string, NonNullable<typeof options>>();
   for (const option of options ?? []) {
     const list = optionsByQuestion.get(option.question_id) ?? [];
     list.push(option);
     optionsByQuestion.set(option.question_id, list);
   }
 
-  const questionsByPoll = new Map<string, typeof questions>();
+  const answersByPollQuestion = new Map<string, NonNullable<typeof answers>[number]>();
+  for (const answer of answers ?? []) {
+    answersByPollQuestion.set(`${answer.poll_id}:${answer.question_id}`, answer);
+  }
+
+  const questionsByPoll = new Map<string, NonNullable<typeof questions>>();
   for (const question of questions ?? []) {
     const list = questionsByPoll.get(question.poll_id) ?? [];
     list.push(question);
     questionsByPoll.set(question.poll_id, list);
   }
 
-  return rows.map((row) => ({
-    id: row.id,
-    title: row.title,
-    status: row.status as "pending" | "completed",
-    creator_name: profileMap.get(row.creator_id) ?? "Партнёр",
-    target_user_id: row.target_user_id,
-    created_at: row.created_at,
-    questions:
-      questionsByPoll.get(row.id)?.map((question) => ({
-        id: question.id,
-        prompt: question.prompt,
-        allows_text: question.allows_text,
-        options:
-          optionsByQuestion.get(question.id)?.map((option) => ({
-            id: option.id,
-            label: option.label,
-          })) ?? [],
-      })) ?? [],
-  }));
+  return rows.map((row) => {
+    const hideCorrectAnswers = row.status === "pending" && row.target_user_id === ctx.userId;
+    const respondentId =
+      row.status === "completed"
+        ? (answers ?? []).find((answer) => answer.poll_id === row.id)?.respondent_id ?? row.target_user_id
+        : null;
+
+    return {
+      id: row.id,
+      title: row.title,
+      status: row.status as "pending" | "completed",
+      creator_id: row.creator_id,
+      creator_name: profileMap.get(row.creator_id) ?? "Партнёр",
+      target_user_id: row.target_user_id,
+      respondent_name: respondentId ? (profileMap.get(respondentId) ?? "Партнёр") : null,
+      created_at: row.created_at,
+      completed_at: row.completed_at,
+      score_correct: row.score_correct,
+      score_total: row.score_total,
+      questions:
+        questionsByPoll.get(row.id)?.map((question) => {
+          const questionOptions = optionsByQuestion.get(question.id) ?? [];
+          const savedAnswer = answersByPollQuestion.get(`${row.id}:${question.id}`);
+          const isTextOnly = question.allows_text || questionOptions.length === 0;
+          const chosenOption = savedAnswer?.option_id
+            ? questionOptions.find((option) => option.id === savedAnswer.option_id)
+            : null;
+
+          return {
+            id: question.id,
+            prompt: question.prompt,
+            allows_text: question.allows_text,
+            options: questionOptions.map((option) => ({
+              id: option.id,
+              label: option.label,
+              ...(hideCorrectAnswers ? {} : { is_correct: option.is_correct }),
+            })),
+            chosen_option_id: savedAnswer?.option_id ?? null,
+            chosen_text_answer: savedAnswer?.text_answer ?? null,
+            is_correct: isTextOnly
+              ? null
+              : chosenOption
+                ? chosenOption.is_correct
+                : null,
+          };
+        }) ?? [],
+    };
+  });
 }
 
 export async function loadPartnerFacts(ctx: HubContext, targetUserId: string) {

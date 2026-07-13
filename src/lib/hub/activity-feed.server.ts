@@ -11,7 +11,8 @@ export type ActivityFeedItem = {
     | "cooking"
     | "wish_fulfilled"
     | "tier_completed"
-    | "book_read";
+    | "book_read"
+    | "poll_completed";
   title: string;
   subtitle: string | null;
   actor_name: string;
@@ -21,7 +22,7 @@ export type ActivityFeedItem = {
 };
 
 export async function loadActivityFeed(ctx: HubContext): Promise<ActivityFeedItem[]> {
-  const [memories, movies, cooking, wishes, tiers, books] = await Promise.all([
+  const [memories, movies, cooking, wishes, tiers, books, polls] = await Promise.all([
     ctx.supabase
       .from("memories")
       .select("id, title, body, media_path, created_at, created_by, moment_type")
@@ -64,6 +65,13 @@ export async function loadActivityFeed(ctx: HubContext): Promise<ActivityFeedIte
       .eq("status", "read")
       .order("read_at", { ascending: false, nullsFirst: false })
       .limit(30),
+    ctx.supabase
+      .from("partner_polls")
+      .select("id, title, completed_at, created_at, target_user_id, score_correct, score_total")
+      .eq("couple_id", ctx.coupleId)
+      .eq("status", "completed")
+      .order("completed_at", { ascending: false, nullsFirst: false })
+      .limit(30),
   ]);
 
   const userIds = [
@@ -73,6 +81,7 @@ export async function loadActivityFeed(ctx: HubContext): Promise<ActivityFeedIte
     ...(wishes.data ?? []).flatMap((row) => [row.created_by, row.fulfilled_by].filter(Boolean) as string[]),
     ...(tiers.data ?? []).map((row) => row.target_user_id),
     ...(books.data ?? []).map((row) => row.added_by),
+    ...(polls.data ?? []).map((row) => row.target_user_id),
   ];
 
   const uniqueUserIds = [...new Set(userIds)];
@@ -168,6 +177,23 @@ export async function loadActivityFeed(ctx: HubContext): Promise<ActivityFeedIte
       media_url: null,
       link_path: "/memories/books",
       happened_at: row.read_at ?? row.created_at,
+    });
+  }
+
+  for (const row of polls.data ?? []) {
+    const subtitle =
+      row.score_total != null && row.score_correct != null
+        ? `${row.score_correct}/${row.score_total} правильных`
+        : "Пройден опрос";
+    items.push({
+      id: `poll-${row.id}`,
+      kind: "poll_completed",
+      title: row.title,
+      subtitle,
+      actor_name: nameMap.get(row.target_user_id) ?? "Партнёр",
+      media_url: null,
+      link_path: "/memories/polls",
+      happened_at: row.completed_at ?? row.created_at,
     });
   }
 

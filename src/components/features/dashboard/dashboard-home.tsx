@@ -1,11 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { Timer } from "lucide-react";
+import { Heart, Timer } from "lucide-react";
 import { useTransition } from "react";
-import { HeartArrowIcon } from "@/components/icons/heart-arrow-icon";
 import { useLanguage } from "@/components/providers/language-provider";
 import { UserAvatar } from "@/components/ui/user-avatar";
+import { CustomMoodButton } from "@/components/features/mood/custom-mood-button";
 import { DashboardPanels } from "@/components/features/dashboard/dashboard-panels";
 import { saveMood } from "@/lib/mood/actions";
 import { DASHBOARD_MOODS, MOOD_EMOJI } from "@/lib/mood/labels";
@@ -20,14 +20,20 @@ type NearestCountdown = {
   target_date: string;
 };
 
+type MoodSnapshot = {
+  level: MoodLevel | null;
+  customLabel?: string | null;
+  customEmoji?: string | null;
+};
+
 type DashboardHomeProps = {
   myName: string;
   myAvatarUrl: string | null;
   partnerName: string;
   partnerAvatarUrl: string | null;
   daysTogether: number | null;
-  myMood: MoodLevel | null;
-  partnerMood: MoodLevel | null;
+  myMood: MoodSnapshot;
+  partnerMood: MoodSnapshot;
   dailyQuestionPrompt: string;
   panelPreferences: DashboardPanelPreference[];
   nearestCountdown: NearestCountdown | null;
@@ -60,6 +66,20 @@ export function DashboardHome({
     return t(MOOD_LABEL_KEYS[level]);
   }
 
+  function formatMood(snapshot: MoodSnapshot) {
+    if (snapshot.customLabel) {
+      return `${snapshot.customEmoji ?? "✨"} ${snapshot.customLabel}`;
+    }
+    if (snapshot.level) {
+      return `${MOOD_EMOJI[snapshot.level]} ${moodLabel(snapshot.level)}`;
+    }
+    return "—";
+  }
+
+  function isSelectedMood(level: MoodLevel) {
+    return myMood.level === level && !myMood.customLabel;
+  }
+
   return (
     <>
       <header className="mt-1 rounded-[1.75rem] surface-panel p-5">
@@ -69,7 +89,7 @@ export function DashboardHome({
             <p className="max-w-[6.5rem] truncate text-xs font-medium">{myName || t("commonYou")}</p>
           </div>
           <div className="grid size-11 place-items-center rounded-full bg-[var(--accent-soft)] text-[var(--accent)]">
-            <HeartArrowIcon className="size-6" />
+            <Heart aria-hidden className="size-6 fill-current" />
           </div>
           <div className="flex flex-col items-center gap-2">
             <UserAvatar imageUrl={partnerAvatarUrl} name={partnerName} size="md" />
@@ -93,9 +113,7 @@ export function DashboardHome({
             <p className="text-xs text-[var(--muted)]">
               {t("dashboardPartnerMood", { name: partnerName })}
             </p>
-            <p className="mt-0.5 text-sm font-medium">
-              {partnerMood ? `${MOOD_EMOJI[partnerMood]} ${moodLabel(partnerMood)}` : "—"}
-            </p>
+            <p className="mt-0.5 text-sm font-medium">{formatMood(partnerMood)}</p>
           </div>
         </div>
       </header>
@@ -106,7 +124,7 @@ export function DashboardHome({
           {DASHBOARD_MOODS.map((level) => (
             <button
               className={`rounded-full px-3 py-2 text-xs font-medium transition-colors disabled:opacity-60 ${
-                myMood === level
+                isSelectedMood(level)
                   ? "bg-[var(--accent-soft)] text-[var(--accent)] ring-1 ring-[var(--accent)]/30"
                   : "bg-[var(--input-bg)] text-[var(--muted)]"
               }`}
@@ -118,7 +136,11 @@ export function DashboardHome({
               {MOOD_EMOJI[level]} {moodLabel(level)}
             </button>
           ))}
+          <CustomMoodButton />
         </div>
+        {myMood.customLabel ? (
+          <p className="mt-2 text-sm text-[var(--accent)]">{formatMood(myMood)}</p>
+        ) : null}
       </section>
 
       {nearestCountdown ? (

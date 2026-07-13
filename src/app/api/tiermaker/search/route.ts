@@ -17,8 +17,9 @@ function parseTierMakerSearch(html: string): TierMakerResult[] {
   const seen = new Set<string>();
 
   const patterns = [
-    /<a[^>]+href="(https?:\/\/tiermaker\.com\/create\/[^"]+)"[^>]*>([^<]+)<\/a>/gi,
+    /<a[^>]+href="(https?:\/\/(?:www\.)?tiermaker\.com\/create\/[^"]+)"[^>]*>([^<]+)<\/a>/gi,
     /<a[^>]+href="(\/create\/[^"]+)"[^>]*>([^<]+)<\/a>/gi,
+    /href="(https?:\/\/(?:www\.)?tiermaker\.com\/create\/[^"]+)"[^>]*title="([^"]+)"/gi,
   ];
 
   for (const regex of patterns) {
@@ -46,6 +47,36 @@ function parseTierMakerSearch(html: string): TierMakerResult[] {
   return results;
 }
 
+async function fetchTierMakerHtml(query: string): Promise<string | null> {
+  const urls = [
+    `https://tiermaker.com/search/?q=${encodeURIComponent(query)}`,
+    `https://www.tiermaker.com/search/?q=${encodeURIComponent(query)}`,
+    `https://tiermaker.com/search?q=${encodeURIComponent(query)}`,
+  ];
+
+  for (const url of urls) {
+    try {
+      const response = await fetch(url, {
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+          Accept: "text/html,application/xhtml+xml",
+          "Accept-Language": "en-US,en;q=0.9",
+        },
+        cache: "no-store",
+      });
+
+      if (response.ok) {
+        return await response.text();
+      }
+    } catch {
+      // try next URL
+    }
+  }
+
+  return null;
+}
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const query = searchParams.get("q")?.trim() ?? "";
@@ -55,23 +86,18 @@ export async function GET(request: Request) {
   }
 
   try {
-    const response = await fetch(`https://tiermaker.com/search/?q=${encodeURIComponent(query)}`, {
-      headers: {
-        "User-Agent": "couple-pre-mvp/1.0",
-        Accept: "text/html",
-      },
-      next: { revalidate: 3600 },
-    });
+    const html = await fetchTierMakerHtml(query);
 
-    if (!response.ok) {
-      return NextResponse.json({ results: [], error: "TierMaker недоступен" }, { status: 502 });
+    if (!html) {
+      return NextResponse.json(
+        { results: [], error: "TierMaker unavailable — paste a link manually" },
+        { status: 502 },
+      );
     }
 
-    const html = await response.text();
     const results = parseTierMakerSearch(html);
-
     return NextResponse.json({ results });
   } catch {
-    return NextResponse.json({ results: [], error: "Не удалось выполнить поиск" }, { status: 502 });
+    return NextResponse.json({ results: [], error: "Search failed" }, { status: 502 });
   }
 }

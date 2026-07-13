@@ -14,6 +14,7 @@ const KIND_KEYS: Record<ActivityFeedItem["kind"], MessageKey> = {
   wish_fulfilled: "feedKindWishlist",
   tier_completed: "feedKindTier",
   book_read: "feedKindBook",
+  poll_completed: "feedKindPoll",
 };
 
 type ActivityFeedProps = {
@@ -40,7 +41,7 @@ export function ActivityFeed({ items }: ActivityFeedProps) {
                   <img alt="" className="size-14 shrink-0 rounded-2xl object-cover" src={item.media_url} />
                 ) : (
                   <div className="grid size-14 shrink-0 place-items-center rounded-2xl bg-[var(--input-bg)] text-lg">
-                    {item.kind === "book_read" ? "📚" : item.kind === "movie_watched" ? "🎬" : "✨"}
+                    {item.kind === "book_read" ? "📚" : item.kind === "movie_watched" ? "🎬" : item.kind === "poll_completed" ? "📋" : "✨"}
                   </div>
                 )}
                 <div className="min-w-0 flex-1">

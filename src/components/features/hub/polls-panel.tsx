@@ -1,12 +1,17 @@
 "use client";
 
-import { ListChecks, Plus, Trash2, X } from "lucide-react";
+import { Check, ListChecks, Plus, Trash2, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { useLanguage } from "@/components/providers/language-provider";
 import { EmptyState } from "@/components/ui/empty-state";
 import type { HubPoll } from "@/components/features/hub/types";
-import { createPartnerPoll, submitPollAnswers, type PollQuestionInput } from "@/lib/polls/actions";
+import {
+  createPartnerPoll,
+  submitPollAnswers,
+  type PollQuestionInput,
+  type PollQuestionResult,
+} from "@/lib/polls/actions";
 import { formatDateLocalized } from "@/lib/dates";
 
 type PollsPanelProps = {
@@ -16,23 +21,113 @@ type PollsPanelProps = {
   partnerName: string;
 };
 
+type PollsTab = "pending" | "completed";
+
+type DraftOption = {
+  label: string;
+  isCorrect: boolean;
+};
+
 type DraftQuestion = {
   prompt: string;
   allowsText: boolean;
-  options: string[];
+  options: DraftOption[];
 };
 
 type AnswerDraft = Record<string, { optionId?: string; textAnswer?: string }>;
 
+type SubmitResult = {
+  pollTitle: string;
+  scoreCorrect: number;
+  scoreTotal: number;
+  results: PollQuestionResult[];
+};
+
 function emptyQuestion(): DraftQuestion {
-  return { prompt: "", allowsText: false, options: ["", ""] };
+  return {
+    prompt: "",
+    allowsText: false,
+    options: [
+      { label: "", isCorrect: false },
+      { label: "", isCorrect: false },
+    ],
+  };
+}
+
+function PollResultsBody({
+  scoreCorrect,
+  scoreTotal,
+  results,
+  onClose,
+}: Omit<SubmitResult, "pollTitle"> & { onClose: () => void }) {
+  const { t } = useLanguage();
+
+  return (
+    <div className="grid gap-4">
+      {scoreTotal > 0 ? (
+        <p className="rounded-2xl bg-[var(--accent-soft)] px-4 py-3 text-center text-sm font-semibold text-[var(--accent)]">
+          {t("hubPollsScore", { correct: scoreCorrect, total: scoreTotal })}
+        </p>
+      ) : null}
+
+      {results.map((result) => (
+        <div className="rounded-2xl surface-input p-4" key={result.questionId}>
+          <div className="flex items-start justify-between gap-2">
+            <p className="font-semibold">{result.prompt}</p>
+            {result.isCorrect === true ? (
+              <span className="shrink-0 rounded-full bg-emerald-500/15 px-2 py-0.5 text-xs font-semibold text-emerald-400">
+                {t("hubPollsCorrect")}
+              </span>
+            ) : null}
+            {result.isCorrect === false ? (
+              <span className="shrink-0 rounded-full bg-rose-500/15 px-2 py-0.5 text-xs font-semibold text-rose-400">
+                {t("hubPollsIncorrect")}
+              </span>
+            ) : null}
+          </div>
+
+          {result.chosenTextAnswer ? (
+            <p className="mt-3 text-sm">
+              <span className="text-[var(--muted)]">{t("hubPollsYourChoice")}: </span>
+              {result.chosenTextAnswer}
+            </p>
+          ) : null}
+
+          {result.chosenOptionLabel ? (
+            <p className="mt-3 text-sm">
+              <span className="text-[var(--muted)]">{t("hubPollsYourChoice")}: </span>
+              {result.chosenOptionLabel}
+            </p>
+          ) : null}
+
+          {result.correctOptionLabels.length ? (
+            <p className="mt-2 text-sm">
+              <span className="text-[var(--muted)]">{t("hubPollsCorrectAnswer")}: </span>
+              {result.correctOptionLabels.join(", ")}
+            </p>
+          ) : null}
+        </div>
+      ))}
+
+      <button
+        className="rounded-2xl bg-[var(--accent)] py-3 font-semibold text-white"
+        onClick={onClose}
+        type="button"
+      >
+        {t("commonClose")}
+      </button>
+    </div>
+  );
 }
 
 export function PollsPanel({ polls, userId, partnerId, partnerName }: PollsPanelProps) {
+  const [tab, setTab] = useState<PollsTab>("pending");
   const [showCreate, setShowCreate] = useState(false);
   const [title, setTitle] = useState("");
   const [questions, setQuestions] = useState<DraftQuestion[]>([emptyQuestion()]);
   const [answerPollId, setAnswerPollId] = useState<string | null>(null);
+  const [detailPollId, setDetailPollId] = useState<string | null>(null);
+  const [submitResult, setSubmitResult] = useState<SubmitResult | null>(null);
   const [answerDrafts, setAnswerDrafts] = useState<AnswerDraft>({});
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
@@ -40,7 +135,9 @@ export function PollsPanel({ polls, userId, partnerId, partnerName }: PollsPanel
   const { locale, t } = useLanguage();
 
   const pendingForMe = polls.filter((poll) => poll.target_user_id === userId && poll.status === "pending");
+  const completed = polls.filter((poll) => poll.status === "completed");
   const answerPoll = pendingForMe.find((poll) => poll.id === answerPollId) ?? null;
+  const detailPoll = completed.find((poll) => poll.id === detailPollId) ?? null;
 
   function resetCreate() {
     setShowCreate(false);
@@ -57,14 +154,15 @@ export function PollsPanel({ polls, userId, partnerId, partnerName }: PollsPanel
     );
   }
 
-  function updateOption(questionIndex: number, optionIndex: number, value: string) {
+  function updateOption(questionIndex: number, optionIndex: number, patch: Partial<DraftOption>) {
     setQuestions((current) =>
       current.map((question, qIndex) => {
         if (qIndex !== questionIndex) {
           return question;
         }
-        const options = [...question.options];
-        options[optionIndex] = value;
+        const options = question.options.map((option, oIndex) =>
+          oIndex === optionIndex ? { ...option, ...patch } : option,
+        );
         return { ...question, options };
       }),
     );
@@ -73,7 +171,9 @@ export function PollsPanel({ polls, userId, partnerId, partnerName }: PollsPanel
   function addOption(questionIndex: number) {
     setQuestions((current) =>
       current.map((question, qIndex) =>
-        qIndex === questionIndex ? { ...question, options: [...question.options, ""] } : question,
+        qIndex === questionIndex
+          ? { ...question, options: [...question.options, { label: "", isCorrect: false }] }
+          : question,
       ),
     );
   }
@@ -91,12 +191,26 @@ export function PollsPanel({ polls, userId, partnerId, partnerName }: PollsPanel
       .map((question) => ({
         prompt: question.prompt.trim(),
         allowsText: question.allowsText,
-        options: question.allowsText ? [] : question.options.map((option) => option.trim()).filter(Boolean),
+        options: question.allowsText
+          ? []
+          : question.options
+              .filter((option) => option.label.trim())
+              .map((option) => ({
+                label: option.label.trim(),
+                isCorrect: option.isCorrect,
+              })),
       }));
 
     if (!payload.length) {
       setError(t("hubPollsErrorNoQuestions"));
       return;
+    }
+
+    for (const question of payload) {
+      if (!question.allowsText && question.options.length >= 2 && !question.options.some((option) => option.isCorrect)) {
+        setError(t("hubPollsErrorNoCorrect"));
+        return;
+      }
     }
 
     startTransition(async () => {
@@ -142,55 +256,117 @@ export function PollsPanel({ polls, userId, partnerId, partnerName }: PollsPanel
       }
       setAnswerPollId(null);
       setAnswerDrafts({});
+      setSubmitResult({
+        pollTitle: answerPoll.title,
+        scoreCorrect: result.scoreCorrect,
+        scoreTotal: result.scoreTotal,
+        results: result.results,
+      });
+      setTab("completed");
       router.refresh();
     });
   }
 
   return (
     <>
-      <section className="grid gap-3">
-        {pendingForMe.length ? (
-          pendingForMe.map((poll) => (
-            <article className="rounded-3xl surface-panel p-4" key={poll.id}>
-              <div className="flex items-start gap-3">
-                <div className="grid size-12 shrink-0 place-items-center rounded-2xl bg-[var(--accent-soft)] text-[var(--accent)]">
-                  <ListChecks aria-hidden className="size-6" />
+      <div className="mb-5 flex gap-2 overflow-x-auto">
+        <button
+          className={`shrink-0 rounded-2xl px-4 py-2 text-sm font-semibold ${tab === "pending" ? "bg-[var(--accent)] text-white" : "surface-input"}`}
+          onClick={() => setTab("pending")}
+          type="button"
+        >
+          {t("hubPollsTabPending")}
+        </button>
+        <button
+          className={`shrink-0 rounded-2xl px-4 py-2 text-sm font-semibold ${tab === "completed" ? "bg-[var(--accent)] text-white" : "surface-input"}`}
+          onClick={() => setTab("completed")}
+          type="button"
+        >
+          {t("hubPollsTabCompleted")}
+        </button>
+      </div>
+
+      {tab === "pending" ? (
+        <section className="grid gap-3">
+          {pendingForMe.length ? (
+            pendingForMe.map((poll) => (
+              <article className="rounded-3xl surface-panel p-4" key={poll.id}>
+                <div className="flex items-start gap-3">
+                  <div className="grid size-12 shrink-0 place-items-center rounded-2xl bg-[var(--accent-soft)] text-[var(--accent)]">
+                    <ListChecks aria-hidden className="size-6" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-bold">{poll.title}</p>
+                    <p className="mt-1 text-sm text-[var(--muted)]">
+                      {t("hubPollsFrom", {
+                        name: poll.creator_name,
+                        date: formatDateLocalized(locale, poll.created_at.slice(0, 10)),
+                      })}
+                    </p>
+                    <p className="mt-1 text-xs text-[var(--muted)]">
+                      {poll.questions.length === 1
+                        ? t("hubPollsQuestionOne")
+                        : t("hubPollsQuestionCount", { count: poll.questions.length })}
+                    </p>
+                    <button
+                      className="mt-3 rounded-xl bg-[var(--accent)] px-3 py-2.5 text-xs font-semibold text-white"
+                      onClick={() => {
+                        setAnswerPollId(poll.id);
+                        setAnswerDrafts({});
+                        setError("");
+                      }}
+                      type="button"
+                    >
+                      {t("hubPollsAnswer")}
+                    </button>
+                  </div>
                 </div>
-                <div className="min-w-0 flex-1">
-                  <p className="font-bold">{poll.title}</p>
-                  <p className="mt-1 text-sm text-[var(--muted)]">
-                    {t("hubPollsFrom", {
-                      name: poll.creator_name,
-                      date: formatDateLocalized(locale, poll.created_at.slice(0, 10)),
-                    })}
-                  </p>
-                  <p className="mt-1 text-xs text-[var(--muted)]">
-                    {poll.questions.length === 1
-                      ? t("hubPollsQuestionOne")
-                      : t("hubPollsQuestionCount", { count: poll.questions.length })}
-                  </p>
-                  <button
-                    className="mt-3 rounded-xl bg-[var(--accent)] px-3 py-2.5 text-xs font-semibold text-white"
-                    onClick={() => {
-                      setAnswerPollId(poll.id);
-                      setAnswerDrafts({});
-                      setError("");
-                    }}
-                    type="button"
-                  >
-                    {t("hubPollsAnswer")}
-                  </button>
-                </div>
-              </div>
-            </article>
-          ))
-        ) : (
-          <EmptyState
-            description={t("hubPollsEmptyDesc", { name: partnerName })}
-            title={t("hubPollsEmpty")}
-          />
-        )}
-      </section>
+              </article>
+            ))
+          ) : (
+            <EmptyState
+              description={t("hubPollsEmptyDesc", { name: partnerName })}
+              title={t("hubPollsEmpty")}
+            />
+          )}
+        </section>
+      ) : (
+        <section className="grid gap-2">
+          {completed.length ? (
+            completed.map((poll) => (
+              <button
+                className="flex w-full items-center gap-3 rounded-2xl surface-panel px-4 py-3 text-left active:scale-[0.99]"
+                key={poll.id}
+                onClick={() => setDetailPollId(poll.id)}
+                type="button"
+              >
+                <span className="h-8 w-1 shrink-0 rounded-full bg-[var(--accent)]" />
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate font-semibold">{poll.title}</span>
+                  <span className="mt-0.5 block text-xs text-[var(--muted)]">
+                    {poll.respondent_name
+                      ? t("hubPollsRespondedBy", { name: poll.respondent_name })
+                      : poll.creator_name}
+                    {poll.score_total != null && poll.score_correct != null
+                      ? ` · ${t("hubPollsScoreShort", { correct: poll.score_correct, total: poll.score_total })}`
+                      : ""}
+                  </span>
+                </span>
+                {poll.completed_at ? (
+                  <time className="shrink-0 text-xs text-[var(--muted)]">
+                    {formatDateLocalized(locale, poll.completed_at.slice(0, 10))}
+                  </time>
+                ) : null}
+              </button>
+            ))
+          ) : (
+            <EmptyState
+              description={t("hubPollsCompletedEmptyDesc")}
+              title={t("hubPollsCompletedEmpty")}
+            />
+          )}
+        </section>
+      )}
 
       <button
         aria-label={t("hubPollsCreate")}
@@ -269,13 +445,32 @@ export function PollsPanel({ polls, userId, partnerId, partnerName }: PollsPanel
                   {!question.allowsText ? (
                     <div className="mt-3 grid gap-2">
                       {question.options.map((option, optionIndex) => (
-                        <input
-                          className="rounded-xl bg-[var(--surface)] px-3 py-2.5 text-sm"
-                          key={optionIndex}
-                          onChange={(event) => updateOption(questionIndex, optionIndex, event.target.value)}
-                          placeholder={t("hubPollsOptionN", { n: optionIndex + 1 })}
-                          value={option}
-                        />
+                        <div className="flex items-center gap-2" key={optionIndex}>
+                          <input
+                            className="min-w-0 flex-1 rounded-xl bg-[var(--surface)] px-3 py-2.5 text-sm"
+                            onChange={(event) =>
+                              updateOption(questionIndex, optionIndex, { label: event.target.value })
+                            }
+                            placeholder={t("hubPollsOptionN", { n: optionIndex + 1 })}
+                            value={option.label}
+                          />
+                          <button
+                            aria-label={t("hubPollsMarkCorrect")}
+                            aria-pressed={option.isCorrect}
+                            className={`grid size-11 shrink-0 place-items-center rounded-xl ${
+                              option.isCorrect
+                                ? "bg-emerald-500/20 text-emerald-400"
+                                : "surface-input text-[var(--muted)]"
+                            }`}
+                            onClick={() =>
+                              updateOption(questionIndex, optionIndex, { isCorrect: !option.isCorrect })
+                            }
+                            title={t("hubPollsMarkCorrect")}
+                            type="button"
+                          >
+                            <Check aria-hidden className="size-5" />
+                          </button>
+                        </div>
                       ))}
                       <button
                         className="rounded-xl px-2 py-2 text-left text-xs font-semibold text-[var(--accent)]"
@@ -284,6 +479,7 @@ export function PollsPanel({ polls, userId, partnerId, partnerName }: PollsPanel
                       >
                         {t("hubPollsAddOption")}
                       </button>
+                      <p className="text-xs text-[var(--muted)]">{t("hubPollsMarkCorrectHint")}</p>
                     </div>
                   ) : null}
                 </div>
@@ -385,6 +581,111 @@ export function PollsPanel({ polls, userId, partnerId, partnerName }: PollsPanel
               </button>
             </div>
           </form>
+        </div>
+      ) : null}
+
+      {submitResult ? (
+        <div className="fixed inset-0 z-50 flex items-end bg-black/40 p-4 pb-[calc(max(0.75rem,env(safe-area-inset-bottom))+5rem)]">
+          <div className="max-h-[90vh] w-full overflow-y-auto rounded-3xl surface-panel p-5 shadow-xl">
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <p className="text-lg font-bold">{t("hubPollsResultsTitle")}</p>
+              <button
+                aria-label={t("commonClose")}
+                className="grid size-9 shrink-0 place-items-center rounded-full surface-input"
+                onClick={() => setSubmitResult(null)}
+                type="button"
+              >
+                <X aria-hidden className="size-5" />
+              </button>
+            </div>
+            <p className="mb-4 text-sm font-semibold">{submitResult.pollTitle}</p>
+            <PollResultsBody {...submitResult} onClose={() => setSubmitResult(null)} />
+          </div>
+        </div>
+      ) : null}
+
+      {detailPoll ? (
+        <div className="fixed inset-0 z-50 flex items-end bg-black/40 p-4 pb-[calc(max(0.75rem,env(safe-area-inset-bottom))+5rem)]">
+          <div className="max-h-[90vh] w-full overflow-y-auto rounded-3xl surface-panel p-5 shadow-xl">
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <p className="text-lg font-bold">{detailPoll.title}</p>
+              <button
+                aria-label={t("commonClose")}
+                className="grid size-9 shrink-0 place-items-center rounded-full surface-input"
+                onClick={() => setDetailPollId(null)}
+                type="button"
+              >
+                <X aria-hidden className="size-5" />
+              </button>
+            </div>
+
+            <p className="mb-4 text-sm text-[var(--muted)]">
+              {t("hubPollsFrom", {
+                name: detailPoll.creator_name,
+                date: formatDateLocalized(locale, detailPoll.created_at.slice(0, 10)),
+              })}
+              {detailPoll.respondent_name
+                ? ` · ${t("hubPollsRespondedBy", { name: detailPoll.respondent_name })}`
+                : ""}
+            </p>
+
+            {detailPoll.score_total != null && detailPoll.score_correct != null ? (
+              <p className="mb-4 rounded-2xl bg-[var(--accent-soft)] px-4 py-3 text-center text-sm font-semibold text-[var(--accent)]">
+                {t("hubPollsScore", {
+                  correct: detailPoll.score_correct,
+                  total: detailPoll.score_total,
+                })}
+              </p>
+            ) : null}
+
+            <div className="grid gap-4">
+              {detailPoll.questions.map((question) => {
+                const chosenLabel =
+                  question.chosen_text_answer ??
+                  question.options.find((option) => option.id === question.chosen_option_id)?.label ??
+                  null;
+                const correctLabels = question.options
+                  .filter((option) => option.is_correct)
+                  .map((option) => option.label);
+
+                return (
+                  <div className="rounded-2xl surface-input p-4" key={question.id}>
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="font-semibold">{question.prompt}</p>
+                      {question.is_correct === true ? (
+                        <span className="shrink-0 rounded-full bg-emerald-500/15 px-2 py-0.5 text-xs font-semibold text-emerald-400">
+                          {t("hubPollsCorrect")}
+                        </span>
+                      ) : null}
+                      {question.is_correct === false ? (
+                        <span className="shrink-0 rounded-full bg-rose-500/15 px-2 py-0.5 text-xs font-semibold text-rose-400">
+                          {t("hubPollsIncorrect")}
+                        </span>
+                      ) : null}
+                    </div>
+
+                    {chosenLabel ? (
+                      <p className="mt-3 text-sm">
+                        <span className="text-[var(--muted)]">{t("hubPollsYourChoice")}: </span>
+                        {chosenLabel}
+                      </p>
+                    ) : null}
+
+                    {correctLabels.length ? (
+                      <p className="mt-2 text-sm">
+                        <span className="text-[var(--muted)]">{t("hubPollsCorrectAnswer")}: </span>
+                        {correctLabels.join(", ")}
+                      </p>
+                    ) : null}
+
+                    {question.allows_text && question.chosen_text_answer ? (
+                      <p className="mt-2 text-xs text-[var(--muted)]">{t("hubPollsTextAnswer")}</p>
+                    ) : null}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </div>
       ) : null}
     </>

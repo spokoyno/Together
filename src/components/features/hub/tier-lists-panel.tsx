@@ -55,7 +55,9 @@ export function TierListsPanel({
     const response = await fetch(`/api/tiermaker/search?q=${encodeURIComponent(value.trim())}`);
     const payload = (await response.json()) as { results?: TierMakerSearchResult[]; error?: string };
     if (payload.error) {
-      setError(payload.error);
+      setError(t("hubTiersSearchError"));
+    } else {
+      setError("");
     }
     setSearchResults(payload.results ?? []);
   }
@@ -123,6 +125,9 @@ export function TierListsPanel({
             value={searchQuery}
           />
         </div>
+        {error && searchQuery.trim().length >= 2 && !searchResults.length ? (
+          <p className="mt-2 text-xs text-[var(--danger-text)]">{error}</p>
+        ) : null}
         {searchResults.length ? (
           <div className="mt-3 grid max-h-48 gap-2 overflow-y-auto">
             {searchResults.map((result) => (

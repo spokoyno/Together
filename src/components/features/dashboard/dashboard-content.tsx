@@ -40,7 +40,7 @@ export async function DashboardContent({
       supabase.from("profiles").select("id, avatar_path, birthday").in("id", profileIds),
       supabase
         .from("moods")
-        .select("level")
+        .select("level, custom_label, custom_emoji")
         .eq("couple_id", context.coupleId)
         .eq("user_id", userId)
         .gte("created_at", `${today}T00:00:00`)
@@ -49,7 +49,7 @@ export async function DashboardContent({
         .maybeSingle(),
       supabase
         .from("moods")
-        .select("level")
+        .select("level, custom_label, custom_emoji")
         .eq("couple_id", context.coupleId)
         .eq("user_id", partner.id)
         .gte("created_at", `${today}T00:00:00`)
@@ -82,14 +82,22 @@ export async function DashboardContent({
       dailyQuestionPrompt={dailyQuestion?.questions?.prompt ?? ""}
       daysTogether={daysTogether}
       myAvatarUrl={myProfile?.avatar_path ? signed[myProfile.avatar_path] ?? null : null}
-      myMood={(myMoodResult.data?.level as MoodLevel | undefined) ?? null}
+      myMood={{
+        level: (myMoodResult.data?.level as MoodLevel | undefined) ?? null,
+        customLabel: myMoodResult.data?.custom_label ?? null,
+        customEmoji: myMoodResult.data?.custom_emoji ?? null,
+      }}
       myName={me?.display_name ?? ""}
       nearestCountdown={nearestCountdown}
       panelPreferences={panels}
       partnerAvatarUrl={
         partnerProfile?.avatar_path ? signed[partnerProfile.avatar_path] ?? null : null
       }
-      partnerMood={(partnerMoodResult.data?.level as MoodLevel | undefined) ?? null}
+      partnerMood={{
+        level: (partnerMoodResult.data?.level as MoodLevel | undefined) ?? null,
+        customLabel: partnerMoodResult.data?.custom_label ?? null,
+        customEmoji: partnerMoodResult.data?.custom_emoji ?? null,
+      }}
       partnerName={partner.display_name}
     />
   );

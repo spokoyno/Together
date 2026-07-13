@@ -34,6 +34,8 @@ export async function saveMood(formData: FormData): Promise<void> {
     level: parsed.data.level,
     energy: parsed.data.energy ?? null,
     note: parsed.data.note || null,
+    custom_label: parsed.data.customLabel ?? null,
+    custom_emoji: parsed.data.customEmoji ?? null,
   });
 
   if (error) {
@@ -43,6 +45,9 @@ export async function saveMood(formData: FormData): Promise<void> {
   const partnerId = context.partner?.id;
   if (partnerId) {
     const level = parsed.data.level as MoodLevel;
+    const moodText = parsed.data.customLabel
+      ? `${parsed.data.customEmoji ?? "✨"} ${parsed.data.customLabel}`
+      : MOOD_LABELS[level];
     const { data: profile } = await supabase
       .from("profiles")
       .select("display_name")
@@ -55,7 +60,7 @@ export async function saveMood(formData: FormData): Promise<void> {
       userId: partnerId,
       type: "mood_change",
       title: "Настроение партнёра",
-      body: `${profile?.display_name ?? "Партнёр"}: ${MOOD_LABELS[level]}`,
+      body: `${profile?.display_name ?? "Партнёр"}: ${moodText}`,
       linkPath: "/dashboard",
     });
   }

@@ -51,6 +51,10 @@ function BookCover({ size = "card" }: { size?: "card" | "thumb" }) {
 export function BooksPanel({ books, userId, partnerId, partnerName }: BooksPanelProps) {
   const [tab, setTab] = useState<BooksTab>("want");
   const [showForm, setShowForm] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<
+    { id: string; title: string; author: string | null; coverUrl: string | null }[]
+  >([]);
   const [title, setTitle] = useState("");
   const [author, setAuthor] = useState("");
   const [readModal, setReadModal] = useState<ReadModalState | null>(null);
@@ -72,9 +76,32 @@ export function BooksPanel({ books, userId, partnerId, partnerName }: BooksPanel
 
   function resetForm() {
     setShowForm(false);
+    setSearchQuery("");
+    setSearchResults([]);
     setTitle("");
     setAuthor("");
     setError("");
+  }
+
+  async function searchBooks(value: string) {
+    setSearchQuery(value);
+    if (value.trim().length < 2) {
+      setSearchResults([]);
+      return;
+    }
+
+    const response = await fetch(`/api/books/search?q=${encodeURIComponent(value.trim())}`);
+    const payload = (await response.json()) as {
+      results?: { id: string; title: string; author: string | null; coverUrl: string | null }[];
+    };
+    setSearchResults(payload.results ?? []);
+  }
+
+  function pickBook(result: { title: string; author: string | null }) {
+    setTitle(result.title);
+    setAuthor(result.author ?? "");
+    setSearchResults([]);
+    setSearchQuery("");
   }
 
   function submitBook(event: React.FormEvent<HTMLFormElement>) {
@@ -332,6 +359,40 @@ export function BooksPanel({ books, userId, partnerId, partnerName }: BooksPanel
             </div>
 
             <div className="grid gap-3">
+              <input
+                className="rounded-2xl surface-input px-4 py-3"
+                onChange={(event) => void searchBooks(event.target.value)}
+                placeholder={t("hubBooksSearchPlaceholder")}
+                value={searchQuery}
+              />
+              {searchResults.length ? (
+                <div className="max-h-48 space-y-2 overflow-y-auto">
+                  {searchResults.map((result) => (
+                    <button
+                      className="flex w-full items-center gap-3 rounded-xl surface-input px-3 py-2 text-left"
+                      key={result.id}
+                      onClick={() => pickBook(result)}
+                      type="button"
+                    >
+                      {result.coverUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img alt="" className="size-10 rounded-lg object-cover" src={result.coverUrl} />
+                      ) : (
+                        <BookCover size="thumb" />
+                      )}
+                      <span className="min-w-0">
+                        <span className="block truncate text-sm font-semibold">{result.title}</span>
+                        {result.author ? (
+                          <span className="block truncate text-xs text-[var(--muted)]">{result.author}</span>
+                        ) : null}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              ) : searchQuery.trim().length >= 2 ? (
+                <p className="text-center text-sm text-[var(--muted)]">{t("hubBooksSearchEmpty")}</p>
+              ) : null}
+
               <input
                 className="rounded-2xl surface-input px-4 py-3"
                 onChange={(event) => setTitle(event.target.value)}

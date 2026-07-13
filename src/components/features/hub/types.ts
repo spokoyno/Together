@@ -104,9 +104,14 @@ export type HubPoll = {
   id: string;
   title: string;
   status: "pending" | "completed";
+  creator_id: string;
   creator_name: string;
   target_user_id: string;
+  respondent_name: string | null;
   created_at: string;
+  completed_at: string | null;
+  score_correct: number | null;
+  score_total: number | null;
   questions: HubPollQuestion[];
 };
 
@@ -114,7 +119,10 @@ export type HubPollQuestion = {
   id: string;
   prompt: string;
   allows_text: boolean;
-  options: Array<{ id: string; label: string }>;
+  options: Array<{ id: string; label: string; is_correct?: boolean }>;
+  chosen_option_id: string | null;
+  chosen_text_answer: string | null;
+  is_correct: boolean | null;
 };
 
 export type HubPartnerFact = {

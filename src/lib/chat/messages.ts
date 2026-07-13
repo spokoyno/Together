@@ -1,59 +1,38 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { signMediaPaths } from "@/lib/media/actions";
 import type { ChatMessage } from "@/types/domain";
+import {
+  enrichChatMessages,
+  MESSAGE_SELECT,
+  type MessageRow,
+} from "@/lib/chat/message-meta";
 
 export const CHAT_PAGE_SIZE = 40;
-
-type MessageRow = {
-  id: string;
-  couple_id: string;
-  sender_id: string;
-  body: string | null;
-  image_path: string | null;
-  created_at: string;
-};
 
 export type ChatMessagesPage = {
   messages: ChatMessage[];
   hasMore: boolean;
 };
 
-export function mapMessageRow(
-  row: MessageRow,
-  memberNames: Record<string, string>,
-  signedUrls: Record<string, string>,
-): ChatMessage {
-  return {
-    id: row.id,
-    coupleId: row.couple_id,
-    senderId: row.sender_id,
-    senderName: memberNames[row.sender_id] ?? "Пользователь",
-    body: row.body,
-    imagePath: row.image_path,
-    imageUrl: row.image_path ? signedUrls[row.image_path] ?? null : null,
-    createdAt: row.created_at,
-  };
-}
-
 async function mapPage(
   supabase: SupabaseClient,
   rows: MessageRow[],
   memberNames: Record<string, string>,
+  userId: string,
   pageSize: number,
 ): Promise<ChatMessagesPage> {
   const hasMore = rows.length > pageSize;
   const slice = hasMore ? rows.slice(0, pageSize) : rows;
-  const signedUrls = await signMediaPaths(
+
+  const messages = await enrichChatMessages(
     supabase,
-    slice.map((row) => row.image_path).filter((path): path is string => Boolean(path)),
+    slice.slice().reverse(),
+    memberNames,
+    userId,
   );
 
   return {
     hasMore,
-    messages: slice
-      .slice()
-      .reverse()
-      .map((row) => mapMessageRow(row, memberNames, signedUrls)),
+    messages,
   };
 }
 
@@ -61,11 +40,12 @@ export async function getRecentCoupleMessages(
   supabase: SupabaseClient,
   coupleId: string,
   memberNames: Record<string, string>,
+  userId: string,
   pageSize = CHAT_PAGE_SIZE,
 ): Promise<ChatMessagesPage> {
   const { data, error } = await supabase
     .from("messages")
-    .select("id, couple_id, sender_id, body, image_path, created_at")
+    .select(MESSAGE_SELECT)
     .eq("couple_id", coupleId)
     .order("created_at", { ascending: false })
     .order("id", { ascending: false })
@@ -75,19 +55,20 @@ export async function getRecentCoupleMessages(
     return { messages: [], hasMore: false };
   }
 
-  return mapPage(supabase, data, memberNames, pageSize);
+  return mapPage(supabase, data as MessageRow[], memberNames, userId, pageSize);
 }
 
 export async function getOlderCoupleMessages(
   supabase: SupabaseClient,
   coupleId: string,
   memberNames: Record<string, string>,
+  userId: string,
   before: { createdAt: string; id: string },
   pageSize = CHAT_PAGE_SIZE,
 ): Promise<ChatMessagesPage> {
   const { data, error } = await supabase
     .from("messages")
-    .select("id, couple_id, sender_id, body, image_path, created_at")
+    .select(MESSAGE_SELECT)
     .eq("couple_id", coupleId)
     .or(
       `created_at.lt."${before.createdAt}",and(created_at.eq."${before.createdAt}",id.lt.${before.id})`,
@@ -100,7 +81,7 @@ export async function getOlderCoupleMessages(
     return { messages: [], hasMore: false };
   }
 
-  return mapPage(supabase, data, memberNames, pageSize);
+  return mapPage(supabase, data as MessageRow[], memberNames, userId, pageSize);
 }
 
 /** @deprecated Use getRecentCoupleMessages */
@@ -108,8 +89,9 @@ export async function getCoupleMessages(
   supabase: SupabaseClient,
   coupleId: string,
   memberNames: Record<string, string>,
+  userId: string,
 ): Promise<ChatMessage[]> {
-  const page = await getRecentCoupleMessages(supabase, coupleId, memberNames);
+  const page = await getRecentCoupleMessages(supabase, coupleId, memberNames, userId);
   return page.messages;
 }
 
@@ -133,6 +115,18 @@ export function prependMessages(
   );
 }
 
+function pendingMatchesIncoming(pending: ChatMessage, incoming: ChatMessage): boolean {
+  const bodyMatch = (pending.body ?? "") === (incoming.body ?? "");
+  const imageMatch =
+    Boolean(pending.imagePath && incoming.imagePath && pending.imagePath === incoming.imagePath) ||
+    (!pending.imagePath && !incoming.imagePath);
+  const audioMatch =
+    Boolean(pending.audioPath && incoming.audioPath && pending.audioPath === incoming.audioPath) ||
+    (!pending.audioPath && !incoming.audioPath);
+
+  return bodyMatch && imageMatch && audioMatch;
+}
+
 export function mergeMessages(current: ChatMessage[], incoming: ChatMessage): ChatMessage[] {
   if (current.some((message) => message.id === incoming.id)) {
     return current;
@@ -143,13 +137,7 @@ export function mergeMessages(current: ChatMessage[], incoming: ChatMessage): Ch
         if (message.sendStatus !== "sending" || message.senderId !== incoming.senderId) {
           return true;
         }
-
-        const bodyMatch = (message.body ?? "") === (incoming.body ?? "");
-        const imageMatch =
-          Boolean(message.imagePath && incoming.imagePath && message.imagePath === incoming.imagePath) ||
-          (!message.imagePath && !incoming.imagePath);
-
-        return !(bodyMatch && imageMatch);
+        return !pendingMatchesIncoming(message, incoming);
       })
     : current;
 
@@ -176,4 +164,15 @@ export function replaceOptimisticMessage(
       return next as ChatMessage;
     })
     .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+}
+
+export function updateMessageLike(
+  current: ChatMessage[],
+  messageId: string,
+  likedByMe: boolean,
+  likeCount: number,
+): ChatMessage[] {
+  return current.map((message) =>
+    message.id === messageId ? { ...message, likedByMe, likeCount } : message,
+  );
 }

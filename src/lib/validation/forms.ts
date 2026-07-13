@@ -14,6 +14,8 @@ export const moodSchema = z.object({
   level: z.enum(moodLevels),
   energy: z.coerce.number().int().min(1).max(5).optional(),
   note: z.string().trim().max(500).optional(),
+  customLabel: z.string().trim().min(1).max(40).optional(),
+  customEmoji: z.string().trim().min(1).max(8).optional(),
 });
 
 export const planSchema = z.object({
@@ -71,10 +73,15 @@ export const messageSchema = z
   .object({
     body: z.string().trim().max(2000).optional(),
     imagePath: z.string().trim().optional(),
+    audioPath: z.string().trim().optional(),
+    replyToId: z.string().uuid().optional(),
   })
   .refine(
-    (value) => Boolean(value.body && value.body.length > 0) || Boolean(value.imagePath),
-    { message: "Напишите сообщение или прикрепите фото" },
+    (value) =>
+      Boolean(value.body && value.body.length > 0) ||
+      Boolean(value.imagePath) ||
+      Boolean(value.audioPath),
+    { message: "Напишите сообщение или прикрепите медиа" },
   );
 
 export const chatNoteSchema = z.object({

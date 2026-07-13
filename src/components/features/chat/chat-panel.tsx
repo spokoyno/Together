@@ -11,16 +11,22 @@ import {
 } from "react";
 import { ImagePlus, Loader2, Send, X } from "lucide-react";
 import { useLanguage } from "@/components/providers/language-provider";
-import { MessageContextMenu } from "@/components/features/chat/message-context-menu";
+import { ChatMessageRow } from "@/components/features/chat/chat-message-row";
+import { VoiceRecordButton } from "@/components/features/chat/voice-record-button";
 import {
-  createChatNote,
   deleteMessage,
   loadOlderMessages,
   markChatRead,
+  saveMessageWithNote,
   sendMessage,
-  toggleSaveMessage,
 } from "@/lib/chat/actions";
-import { mergeMessages, prependMessages, replaceOptimisticMessage } from "@/lib/chat/messages";
+import {
+  mergeMessages,
+  prependMessages,
+  replaceOptimisticMessage,
+  updateMessageLike,
+} from "@/lib/chat/messages";
+import { useChatTyping } from "@/lib/chat/typing.client";
 import { formatChatDayHeader, getChatDayKey } from "@/lib/dates";
 import { compressImageFile } from "@/lib/media/compress-image.client";
 import { signMediaPath } from "@/lib/media/actions";
@@ -59,15 +65,17 @@ export function ChatPanel({
   const [hasMore, setHasMore] = useState(initialHasMore);
   const [isLoadingOlder, setIsLoadingOlder] = useState(false);
   const [draft, setDraft] = useState("");
+  const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
   const [pendingImagePath, setPendingImagePath] = useState<string | null>(null);
   const [pendingImagePreview, setPendingImagePreview] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState("");
-  const [noteTargetId, setNoteTargetId] = useState<string | null>(null);
-  const [noteDraft, setNoteDraft] = useState("");
+  const [saveNoteTarget, setSaveNoteTarget] = useState<ChatMessage | null>(null);
+  const [saveNoteDraft, setSaveNoteDraft] = useState("");
   const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const { t } = useLanguage();
+  const { partnerTyping, broadcastTyping } = useChatTyping(coupleId, userId);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const topSentinelRef = useRef<HTMLDivElement>(null);
@@ -80,12 +88,12 @@ export function ChatPanel({
 
   const oldestMessage = messages[0];
   const lastMessageId = messages.at(-1)?.id;
+  const canSend = Boolean(draft.trim() || pendingImagePath);
 
   useLayoutEffect(() => {
     if (hasInitialScrolledRef.current) {
       return;
     }
-
     hasInitialScrolledRef.current = true;
     bottomRef.current?.scrollIntoView({ behavior: "auto" });
   }, []);
@@ -117,7 +125,6 @@ export function ChatPanel({
     if (!container) {
       return;
     }
-
     stickToBottomRef.current =
       container.scrollHeight - container.scrollTop - container.clientHeight < 96;
   }, []);
@@ -157,7 +164,6 @@ export function ChatPanel({
   useEffect(() => {
     const root = scrollRef.current;
     const sentinel = topSentinelRef.current;
-
     if (!root || !sentinel || !hasMore) {
       return;
     }
@@ -168,18 +174,11 @@ export function ChatPanel({
           void fetchOlderMessages();
         }
       },
-      {
-        root,
-        rootMargin: "120px 0px 0px 0px",
-        threshold: 0,
-      },
+      { root, rootMargin: "120px 0px 0px 0px", threshold: 0 },
     );
 
     observer.observe(sentinel);
-
-    return () => {
-      observer.disconnect();
-    };
+    return () => observer.disconnect();
   }, [fetchOlderMessages, hasMore]);
 
   useEffect(() => {
@@ -202,11 +201,16 @@ export function ChatPanel({
             sender_id: string;
             body: string | null;
             image_path: string | null;
+            audio_path: string | null;
+            reply_to_id: string | null;
             created_at: string;
           };
 
           void (async () => {
-            const imageUrl = row.image_path ? await signMediaPath(row.image_path) : null;
+            const [imageUrl, audioUrl] = await Promise.all([
+              row.image_path ? signMediaPath(row.image_path) : Promise.resolve(null),
+              row.audio_path ? signMediaPath(row.audio_path) : Promise.resolve(null),
+            ]);
 
             setMessages((current) => {
               const incoming: ChatMessage = {
@@ -217,7 +221,12 @@ export function ChatPanel({
                 body: row.body,
                 imagePath: row.image_path,
                 imageUrl,
+                audioPath: row.audio_path,
+                audioUrl,
+                replyToId: row.reply_to_id,
                 createdAt: row.created_at,
+                likeCount: 0,
+                likedByMe: false,
               };
 
               if (row.sender_id === userId) {
@@ -226,7 +235,8 @@ export function ChatPanel({
                     message.sendStatus === "sending" &&
                     message.senderId === userId &&
                     (message.body ?? "") === (row.body ?? "") &&
-                    (message.imagePath ?? null) === (row.image_path ?? null),
+                    (message.imagePath ?? null) === (row.image_path ?? null) &&
+                    (message.audioPath ?? null) === (row.audio_path ?? null),
                 );
                 if (pending?.imageUrl?.startsWith("blob:")) {
                   URL.revokeObjectURL(pending.imageUrl);
@@ -261,15 +271,12 @@ export function ChatPanel({
     setError("");
     setIsUploading(true);
 
-    let preview: string | null = null;
-
     try {
       const prepared = await compressImageFile(file);
-      preview = URL.createObjectURL(prepared);
+      const preview = URL.createObjectURL(prepared);
       setPendingImagePreview(preview);
 
       const result = await uploadCoupleMediaClient(coupleId, userId, prepared);
-
       if (!result.ok) {
         setError(result.error);
         clearPendingImage();
@@ -294,8 +301,14 @@ export function ChatPanel({
     clientId: string,
     text: string,
     imagePath: string | null,
+    audioPath: string | null,
+    replyToId: string | null,
   ) {
-    const result = await sendMessage(text, imagePath);
+    const result = await sendMessage(text, {
+      imagePath,
+      audioPath,
+      replyToId,
+    });
 
     if (!result.ok) {
       setMessages((current) => replaceOptimisticMessage(current, clientId, { sendStatus: "failed" }));
@@ -310,6 +323,48 @@ export function ChatPanel({
       }
       return replaceOptimisticMessage(current, clientId, result.message);
     });
+  }
+
+  function pushOptimisticMessage(
+    text: string,
+    imagePath: string | null,
+    imagePreview: string | null,
+    audioPath: string | null,
+    audioPreview: string | null,
+    replyToMessage: ChatMessage | null,
+  ) {
+    const clientId = crypto.randomUUID();
+    const now = new Date().toISOString();
+
+    const optimistic: ChatMessage = {
+      id: `pending-${clientId}`,
+      clientId,
+      coupleId,
+      senderId: userId,
+      senderName: t("commonYou"),
+      body: text || null,
+      imagePath,
+      imageUrl: imagePreview,
+      audioPath,
+      audioUrl: audioPreview,
+      replyToId: replyToMessage?.id ?? null,
+      replyTo: replyToMessage
+        ? {
+            id: replyToMessage.id,
+            body: replyToMessage.body,
+            imagePath: replyToMessage.imagePath,
+            senderName: replyToMessage.senderName,
+          }
+        : null,
+      createdAt: now,
+      sendStatus: "sending",
+      likeCount: 0,
+      likedByMe: false,
+    };
+
+    setMessages((current) => mergeMessages(current, optimistic));
+    stickToBottomRef.current = true;
+    void deliverMessage(clientId, text, imagePath, audioPath, replyToMessage?.id ?? null);
   }
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -327,28 +382,35 @@ export function ChatPanel({
     setError("");
     const imagePath = pendingImagePath;
     const imagePreview = pendingImagePreview;
-    const clientId = crypto.randomUUID();
-    const now = new Date().toISOString();
+    const currentReply = replyTo;
 
-    const optimistic: ChatMessage = {
-      id: `pending-${clientId}`,
-      clientId,
-      coupleId,
-      senderId: userId,
-      senderName: t("commonYou"),
-      body: text || null,
-      imagePath,
-      imageUrl: imagePreview,
-      createdAt: now,
-      sendStatus: "sending",
-    };
-
-    setMessages((current) => mergeMessages(current, optimistic));
     setDraft("");
+    setReplyTo(null);
     detachPendingImage();
-    stickToBottomRef.current = true;
 
-    void deliverMessage(clientId, text, imagePath);
+    pushOptimisticMessage(text, imagePath, imagePreview, null, null, currentReply);
+  }
+
+  async function handleVoiceRecorded(file: File) {
+    setError("");
+    setIsUploading(true);
+
+    try {
+      const result = await uploadCoupleMediaClient(coupleId, userId, file);
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+
+      const preview = URL.createObjectURL(file);
+      const currentReply = replyTo;
+      setReplyTo(null);
+      pushOptimisticMessage("", null, null, result.path, preview, currentReply);
+    } catch {
+      setError(t("chatVoiceUploadError"));
+    } finally {
+      setIsUploading(false);
+    }
   }
 
   function handleRetry(message: ChatMessage) {
@@ -363,71 +425,64 @@ export function ChatPanel({
       ),
     );
 
-    void deliverMessage(message.clientId, message.body ?? "", message.imagePath);
+    void deliverMessage(
+      message.clientId,
+      message.body ?? "",
+      message.imagePath ?? null,
+      message.audioPath ?? null,
+      message.replyToId ?? null,
+    );
   }
 
-  function handleToggleSave(message: ChatMessage) {
-    startTransition(async () => {
-      const result = await toggleSaveMessage(message.id);
-      if (!result.ok) {
-        setError(result.error);
-        return;
-      }
-
-      onSavedChange(message.id, result.saved, message);
-    });
+  function handleSaveWithNote(message: ChatMessage) {
+    setSaveNoteTarget(message);
+    setSaveNoteDraft("");
   }
 
-  function handleCreateNote(event: React.FormEvent<HTMLFormElement>) {
+  function submitSaveWithNote(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const text = noteDraft.trim();
-    if (!text || !noteTargetId || isPending) {
+    const text = saveNoteDraft.trim();
+    if (!text || !saveNoteTarget) {
       return;
     }
 
-    const targetId = noteTargetId;
-    const targetMessage = messages.find((message) => message.id === targetId) ?? null;
-
+    const target = saveNoteTarget;
     setError("");
     startTransition(async () => {
-      const result = await createChatNote(text, targetId);
+      const result = await saveMessageWithNote(target.id, text);
       if (!result.ok) {
-        setError(result.error);
+        setError(result.error ?? t("chatActionError"));
         return;
       }
 
-      onNoteCreated({
-        ...result.note,
-        linkedMessage: targetMessage,
-      });
-      setNoteDraft("");
-      setNoteTargetId(null);
+      onSavedChange(target.id, true, target);
+      onNoteCreated({ ...result.note, linkedMessage: target });
+      setSaveNoteTarget(null);
+      setSaveNoteDraft("");
     });
   }
 
   function handleDeleteMessage(message: ChatMessage) {
-    if (!message.id.startsWith("pending-")) {
-      startTransition(async () => {
-        const result = await deleteMessage(message.id);
-        if (!result.ok) {
-          setError(result.error ?? t("chatErrorDelete"));
-          return;
-        }
-        setMessages((current) => current.filter((item) => item.id !== message.id));
-      });
-    }
+    startTransition(async () => {
+      const result = await deleteMessage(message.id);
+      if (!result.ok) {
+        setError(result.error ?? t("chatErrorDelete"));
+        return;
+      }
+      setMessages((current) => current.filter((item) => item.id !== message.id));
+    });
+  }
+
+  function handleLikeChange(messageId: string, liked: boolean, likeCount: number) {
+    setMessages((current) => updateMessageLike(current, messageId, liked, likeCount));
   }
 
   const renderedMessages = useMemo(
     () =>
       messages.map((message, index) => {
         const dayKey = getChatDayKey(message.createdAt);
-        const previousDayKey =
-          index > 0 ? getChatDayKey(messages[index - 1]!.createdAt) : "";
-        return {
-          message,
-          showDay: dayKey !== previousDayKey,
-        };
+        const previousDayKey = index > 0 ? getChatDayKey(messages[index - 1]!.createdAt) : "";
+        return { message, showDay: dayKey !== previousDayKey };
       }),
     [messages],
   );
@@ -443,144 +498,48 @@ export function ChatPanel({
 
         {isLoadingOlder ? (
           <div className="mb-3 flex justify-center">
-            <Loader2
-              aria-hidden
-              className="size-5 animate-spin text-[var(--muted)]"
-            />
+            <Loader2 aria-hidden className="size-5 animate-spin text-[var(--muted)]" />
           </div>
         ) : hasMore ? (
-          <p className="mb-3 text-center text-xs text-[var(--muted)]">
-            {t("chatScrollUp")}
-          </p>
+          <p className="mb-3 text-center text-xs text-[var(--muted)]">{t("chatScrollUp")}</p>
         ) : messages.length > 0 ? (
           <p className="mb-3 text-center text-xs text-[var(--muted)]">{t("chatConversationStart")}</p>
         ) : null}
 
         {messages.length ? (
           <div className="space-y-2">
-            {renderedMessages.map(({ message, showDay }) => {
-              const isMine = message.senderId === userId;
-              const isSaved = savedIds.has(message.id);
-              const isNoteOpen = noteTargetId === message.id;
-              const isSending = message.sendStatus === "sending";
-              const isFailed = message.sendStatus === "failed";
-
-              return (
-                <div key={message.id}>
-                  {showDay ? (
-                    <p className="my-4 text-center text-xs font-medium text-[var(--muted)]">
-                      {formatChatDayHeader(message.createdAt)}
-                    </p>
-                  ) : null}
-                  <article
-                    className={`message-enter flex items-end gap-1 ${isMine ? "justify-end" : "justify-start"}`}
-                  >
-                    {!isSending && !isFailed && !message.id.startsWith("pending-") ? (
-                      <MessageContextMenu
-                        disabled={isPending}
-                        isMine={isMine}
-                        isSaved={isSaved}
-                        message={message}
-                        onDelete={
-                          isMine ? () => handleDeleteMessage(message) : undefined
-                        }
-                        onError={setError}
-                        onOpenNote={() => {
-                          setNoteTargetId(isNoteOpen ? null : message.id);
-                          setNoteDraft("");
-                        }}
-                        onToggleSave={() => handleToggleSave(message)}
-                      />
-                    ) : null}
-
-                    <div className="max-w-[72%] min-w-0">
-                      {message.imageUrl ? (
-                        <button
-                          className="block w-full"
-                          onClick={() => setFullscreenImage(message.imageUrl)}
-                          type="button"
-                        >
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            alt=""
-                            className={`max-h-72 w-full object-cover ${
-                              message.body ? "mb-1 rounded-t-2xl" : "rounded-2xl"
-                            }`}
-                            src={message.imageUrl}
-                          />
-                        </button>
-                      ) : null}
-
-                      {message.body ? (
-                        <div
-                          className={`px-3 py-2 shadow-sm ${
-                            isMine
-                              ? `rounded-[18px] rounded-br-[6px] bg-[var(--chat-outgoing)] text-white${isFailed ? " opacity-80" : ""}`
-                              : "rounded-[18px] rounded-bl-[6px] bg-[var(--chat-incoming)] text-[var(--foreground)]"
-                          } ${message.imageUrl ? "rounded-t-none" : ""}`}
-                        >
-                          <p className="whitespace-pre-wrap break-words text-[15px] leading-6">
-                            {message.body}
-                          </p>
-                        </div>
-                      ) : null}
-
-                      {isSending ? (
-                        <div className={`mt-1 flex ${isMine ? "justify-end" : "justify-start"}`}>
-                          <Loader2
-                            aria-label={t("chatSending")}
-                            className="size-4 animate-spin text-[var(--muted)]"
-                          />
-                        </div>
-                      ) : isFailed ? (
-                        <div className={`mt-1 flex ${isMine ? "justify-end" : "justify-start"}`}>
-                          <button
-                            className="text-xs font-semibold text-[var(--accent)] underline"
-                            onClick={() => handleRetry(message)}
-                            type="button"
-                          >
-                            {t("chatRetry")}
-                          </button>
-                        </div>
-                      ) : null}
-
-                      {isNoteOpen ? (
-                        <form className="mt-2 grid gap-2" onSubmit={handleCreateNote}>
-                          <textarea
-                            autoFocus
-                            className="min-h-20 rounded-2xl surface-input px-3 py-2 text-sm"
-                            disabled={isPending}
-                            maxLength={2000}
-                            onChange={(event) => setNoteDraft(event.target.value)}
-                            placeholder={t("chatNotePlaceholder")}
-                            value={noteDraft}
-                          />
-                          <div className="flex gap-2">
-                            <button
-                              className="rounded-xl bg-[var(--accent)] px-3 py-2 text-xs font-semibold text-white disabled:opacity-60"
-                              disabled={isPending || !noteDraft.trim()}
-                              type="submit"
-                            >
-                              {t("chatSaveNote")}
-                            </button>
-                            <button
-                              className="rounded-xl surface-input px-3 py-2 text-xs font-semibold"
-                              onClick={() => {
-                                setNoteTargetId(null);
-                                setNoteDraft("");
-                              }}
-                              type="button"
-                            >
-                              {t("commonCancel")}
-                            </button>
-                          </div>
-                        </form>
-                      ) : null}
-                    </div>
-                  </article>
-                </div>
-              );
-            })}
+            {renderedMessages.map(({ message, showDay }) => (
+              <div key={message.id}>
+                {showDay ? (
+                  <p className="my-4 text-center text-xs font-medium text-[var(--muted)]">
+                    {formatChatDayHeader(message.createdAt)}
+                  </p>
+                ) : null}
+                <ChatMessageRow
+                  isMine={message.senderId === userId}
+                  isPending={isPending}
+                  isSaved={savedIds.has(message.id)}
+                  message={message}
+                  onDelete={() => handleDeleteMessage(message)}
+                  onError={setError}
+                  onImageOpen={setFullscreenImage}
+                  onLikeChange={handleLikeChange}
+                  onReply={setReplyTo}
+                  onToggleSaveWithNote={handleSaveWithNote}
+                />
+                {message.sendStatus === "failed" ? (
+                  <div className={`mt-1 flex ${message.senderId === userId ? "justify-end" : "justify-start"}`}>
+                    <button
+                      className="text-xs font-semibold text-[var(--accent)] underline"
+                      onClick={() => handleRetry(message)}
+                      type="button"
+                    >
+                      {t("chatRetry")}
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+            ))}
           </div>
         ) : (
           <div className="grid h-full place-items-center px-6 text-center">
@@ -595,18 +554,43 @@ export function ChatPanel({
         <div ref={bottomRef} />
       </div>
 
+      {partnerTyping ? (
+        <div className="px-4 pb-1">
+          <p className="chat-typing-indicator text-xs text-[var(--muted)]">
+            {t("chatTyping", { name: partnerName })}
+          </p>
+        </div>
+      ) : null}
+
       <form
         className="fixed bottom-[calc(max(0.75rem,env(safe-area-inset-bottom))+5.25rem)] left-1/2 z-30 w-[calc(100%-1.5rem)] max-w-md -translate-x-1/2 px-1"
         onSubmit={handleSubmit}
       >
+        {replyTo ? (
+          <div className="mb-2 flex items-center gap-2 rounded-2xl surface-panel px-3 py-2">
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-medium text-[var(--accent)]">
+                {t("chatReplyTo", { name: replyTo.senderName })}
+              </p>
+              <p className="truncate text-xs text-[var(--muted)]">
+                {replyTo.body ?? t("chatPhotoLabel")}
+              </p>
+            </div>
+            <button
+              aria-label={t("commonClose")}
+              className="grid size-8 place-items-center rounded-full surface-input"
+              onClick={() => setReplyTo(null)}
+              type="button"
+            >
+              <X aria-hidden className="size-4" />
+            </button>
+          </div>
+        ) : null}
+
         {pendingImagePreview ? (
           <div className="mb-2 flex items-center gap-2">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              alt=""
-              className="size-16 rounded-2xl object-cover shadow-md"
-              src={pendingImagePreview}
-            />
+            <img alt="" className="size-16 rounded-2xl object-cover shadow-md" src={pendingImagePreview} />
             {isUploading ? (
               <Loader2 aria-hidden className="size-5 animate-spin text-[var(--muted)]" />
             ) : (
@@ -642,7 +626,12 @@ export function ChatPanel({
             className="max-h-28 min-h-11 flex-1 resize-none rounded-[22px] bg-[var(--surface)] px-4 py-2.5 text-[15px] shadow-md transition-colors focus:border-[var(--accent)] focus:outline-none"
             disabled={isUploading}
             maxLength={2000}
-            onChange={(event) => setDraft(event.target.value)}
+            onChange={(event) => {
+              setDraft(event.target.value);
+              if (event.target.value.trim()) {
+                broadcastTyping();
+              }
+            }}
             onKeyDown={(event) => {
               if (event.key === "Enter" && !event.shiftKey) {
                 event.preventDefault();
@@ -653,19 +642,64 @@ export function ChatPanel({
             rows={1}
             value={draft}
           />
-          <button
-            aria-label={t("chatSend")}
-            className="grid size-11 shrink-0 place-items-center rounded-full bg-[var(--accent)] text-white shadow-md transition-transform active:scale-95 disabled:opacity-50"
-            disabled={isUploading || (!draft.trim() && !pendingImagePath)}
-            type="submit"
-          >
-            <Send aria-hidden className="size-5" />
-          </button>
+          {canSend ? (
+            <button
+              aria-label={t("chatSend")}
+              className="grid size-11 shrink-0 place-items-center rounded-full bg-[var(--accent)] text-white shadow-md transition-transform active:scale-95 disabled:opacity-50"
+              disabled={isUploading}
+              type="submit"
+            >
+              <Send aria-hidden className="size-5" />
+            </button>
+          ) : (
+            <VoiceRecordButton
+              disabled={isPending || isUploading}
+              onError={setError}
+              onRecorded={(file) => void handleVoiceRecorded(file)}
+            />
+          )}
         </div>
         {error ? (
           <p className="mt-2 alert-error rounded-xl px-3 py-2 text-sm shadow-md">{error}</p>
         ) : null}
       </form>
+
+      {saveNoteTarget ? (
+        <div className="fixed inset-0 z-50 flex items-end bg-black/40 p-4 pb-[calc(max(0.75rem,env(safe-area-inset-bottom))+5rem)]">
+          <form
+            className="w-full max-w-md rounded-3xl surface-panel p-5 shadow-xl"
+            onSubmit={submitSaveWithNote}
+          >
+            <p className="text-lg font-semibold">{t("chatSaveWithNote")}</p>
+            <p className="mt-1 text-sm text-[var(--muted)]">{t("chatSaveWithNoteHint")}</p>
+            <textarea
+              autoFocus
+              className="mt-4 min-h-24 w-full rounded-2xl surface-input px-4 py-3 text-sm"
+              disabled={isPending}
+              maxLength={2000}
+              onChange={(event) => setSaveNoteDraft(event.target.value)}
+              placeholder={t("chatNotePlaceholder")}
+              value={saveNoteDraft}
+            />
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <button
+                className="rounded-2xl surface-input py-3 font-semibold"
+                onClick={() => setSaveNoteTarget(null)}
+                type="button"
+              >
+                {t("commonCancel")}
+              </button>
+              <button
+                className="rounded-2xl bg-[var(--accent)] py-3 font-semibold text-white disabled:opacity-60"
+                disabled={isPending || !saveNoteDraft.trim()}
+                type="submit"
+              >
+                {t("commonSave")}
+              </button>
+            </div>
+          </form>
+        </div>
+      ) : null}
 
       {fullscreenImage ? (
         <div className="fixed inset-0 z-[100] flex flex-col bg-black">

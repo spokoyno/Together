@@ -22,6 +22,13 @@ export type ActionResult = {
 
 export type ChatSendStatus = "sending" | "failed";
 
+export type ChatMessageReply = {
+  id: string;
+  body: string | null;
+  imagePath: string | null;
+  senderName: string;
+};
+
 export type ChatMessage = {
   id: string;
   coupleId: string;
@@ -30,6 +37,12 @@ export type ChatMessage = {
   body: string | null;
   imagePath: string | null;
   imageUrl: string | null;
+  audioPath?: string | null;
+  audioUrl?: string | null;
+  replyToId?: string | null;
+  replyTo?: ChatMessageReply | null;
+  likeCount?: number;
+  likedByMe?: boolean;
   createdAt: string;
   clientId?: string;
   sendStatus?: ChatSendStatus;

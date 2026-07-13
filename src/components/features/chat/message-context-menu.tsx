@@ -1,6 +1,6 @@
 "use client";
 
-import { Bookmark, BookmarkCheck, ChefHat, Clapperboard, ListTodo, MoreVertical, Sparkles, StickyNote, Trash2, X } from "lucide-react";
+import { Bookmark, BookmarkCheck, ChefHat, Clapperboard, ListTodo, MoreVertical, Sparkles, Trash2, X } from "lucide-react";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useLanguage } from "@/components/providers/language-provider";
 import {
@@ -16,8 +16,7 @@ type MessageContextMenuProps = {
   isMine: boolean;
   isSaved: boolean;
   disabled?: boolean;
-  onToggleSave: () => void;
-  onOpenNote: () => void;
+  onSaveWithNote: () => void;
   onError: (message: string) => void;
   onDelete?: () => void;
 };
@@ -27,8 +26,7 @@ export function MessageContextMenu({
   isMine,
   isSaved,
   disabled,
-  onToggleSave,
-  onOpenNote,
+  onSaveWithNote,
   onError,
   onDelete,
 }: MessageContextMenuProps) {
@@ -94,20 +92,11 @@ export function MessageContextMenu({
     },
     {
       id: "save",
-      label: isSaved ? t("chatUnsave") : t("chatSaveMessage"),
+      label: isSaved ? t("chatEditSavedNote") : t("chatSaveWithNote"),
       icon: isSaved ? BookmarkCheck : Bookmark,
       onClick: () => {
         setOpen(false);
-        onToggleSave();
-      },
-    },
-    {
-      id: "note",
-      label: t("chatNoteAction"),
-      icon: StickyNote,
-      onClick: () => {
-        setOpen(false);
-        onOpenNote();
+        onSaveWithNote();
       },
     },
     ...(isMine && onDelete

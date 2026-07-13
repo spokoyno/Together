@@ -17,6 +17,7 @@ type ChatShellProps = {
   initialSavedIds: string[];
   initialSavedMessages: ChatSavedMessage[];
   initialNotes: ChatNote[];
+  initialMediaMessages: ChatMessage[];
 };
 
 export function ChatShell({
@@ -28,6 +29,7 @@ export function ChatShell({
   initialSavedIds,
   initialSavedMessages,
   initialNotes,
+  initialMediaMessages,
 }: ChatShellProps) {
   const [tab, setTab] = useState<ChatTab>("chat");
   const [savedIds, setSavedIds] = useState(() => new Set(initialSavedIds));
@@ -101,6 +103,7 @@ export function ChatShell({
         />
       ) : (
         <ChatPersonalPanel
+          mediaMessages={initialMediaMessages}
           notes={notes}
           onNotesChange={setNotes}
           onSavedChange={handleSavedChange}

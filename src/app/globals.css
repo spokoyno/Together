@@ -282,3 +282,25 @@ select option {
 .dashboard-panel-card:hover {
   border-color: color-mix(in srgb, var(--accent) 28%, var(--border));
 }
+
+.chat-typing-indicator::after {
+  content: "…";
+  display: inline-block;
+  width: 1.2em;
+  animation: chat-typing-dots 1.2s steps(4, end) infinite;
+}
+
+@keyframes chat-typing-dots {
+  0% {
+    content: "";
+  }
+  25% {
+    content: ".";
+  }
+  50% {
+    content: "..";
+  }
+  75% {
+    content: "...";
+  }
+}

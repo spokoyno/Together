@@ -3,6 +3,7 @@ import { ChatPageHeader } from "@/components/features/chat/chat-page-header";
 import { ChatShell } from "@/components/features/chat/chat-shell";
 import { requireUser } from "@/lib/auth/session";
 import { getRecentCoupleMessages } from "@/lib/chat/messages";
+import { getChatMediaMessages } from "@/lib/chat/media-gallery.server";
 import { getChatNotes, getSavedMessages } from "@/lib/chat/private";
 import { markChatAsRead } from "@/lib/chat/unread";
 import { getCoupleContextForUser } from "@/lib/couple/context.server";
@@ -46,10 +47,11 @@ export default async function ChatPage() {
     ? (signed[partnerProfile.data.avatar_path] ?? null)
     : null;
 
-  const [messagesPage, savedMessages, notes] = await Promise.all([
-    getRecentCoupleMessages(supabase, context.coupleId, memberNames),
+  const [messagesPage, savedMessages, notes, mediaMessages] = await Promise.all([
+    getRecentCoupleMessages(supabase, context.coupleId, memberNames, user.id),
     getSavedMessages(supabase, user.id, context.coupleId, memberNames),
     getChatNotes(supabase, user.id, context.coupleId, memberNames),
+    getChatMediaMessages(supabase, context.coupleId, memberNames, user.id),
   ]);
 
   const savedIds = savedMessages.map((message) => message.id);
@@ -61,6 +63,7 @@ export default async function ChatPage() {
       <ChatShell
         coupleId={context.coupleId}
         initialHasMore={messagesPage.hasMore}
+        initialMediaMessages={mediaMessages}
         initialMessages={messagesPage.messages}
         initialNotes={notes}
         initialSavedIds={savedIds}
