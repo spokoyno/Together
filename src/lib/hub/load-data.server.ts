@@ -328,19 +328,36 @@ export async function loadHubWishlist(ctx: HubContext) {
 export async function loadHubTierChallenges(ctx: HubContext) {
   const { data: rows } = await ctx.supabase
     .from("tier_list_challenges")
-    .select("id, tier_list_url, tier_list_title, status, challenger_id, target_user_id, result_image_path, created_at")
+    .select("id, tier_list_url, tier_list_title, status, challenger_id, target_user_id, result_image_path, created_at, completed_at")
     .eq("couple_id", ctx.coupleId)
     .order("created_at", { ascending: false });
 
-  const profileMap = await loadProfileMap(
-    ctx.supabase,
-    [...new Set((rows ?? []).map((row) => row.challenger_id))],
-  );
+  const challengeIds = (rows ?? []).map((row) => row.id);
+  const { data: commentRows } = challengeIds.length
+    ? await ctx.supabase
+        .from("tier_list_comments")
+        .select("id, challenge_id, body, author_id, created_at")
+        .in("challenge_id", challengeIds)
+        .order("created_at", { ascending: true })
+    : { data: [] as Array<{ id: string; challenge_id: string; body: string; author_id: string; created_at: string }> };
+
+  const profileMap = await loadProfileMap(ctx.supabase, [
+    ...(rows ?? []).map((row) => row.challenger_id),
+    ...(rows ?? []).map((row) => row.target_user_id),
+    ...(commentRows ?? []).map((row) => row.author_id),
+  ]);
 
   const signed = await signMediaPaths(
     ctx.supabase,
     (rows ?? []).map((row) => row.result_image_path).filter((path): path is string => Boolean(path)),
   );
+
+  const commentsByChallenge = new Map<string, typeof commentRows>();
+  for (const comment of commentRows ?? []) {
+    const list = commentsByChallenge.get(comment.challenge_id) ?? [];
+    list.push(comment);
+    commentsByChallenge.set(comment.challenge_id, list);
+  }
 
   return (
     rows?.map((row) => ({
@@ -351,9 +368,109 @@ export async function loadHubTierChallenges(ctx: HubContext) {
       challenger_name: profileMap.get(row.challenger_id) ?? "Партнёр",
       target_user_id: row.target_user_id,
       result_image_url: row.result_image_path ? signed[row.result_image_path] ?? null : null,
+      created_at: row.completed_at ?? row.created_at,
+      comments:
+        commentsByChallenge.get(row.id)?.map((comment) => ({
+          id: comment.id,
+          body: comment.body,
+          author_name: profileMap.get(comment.author_id) ?? "Пользователь",
+          created_at: comment.created_at,
+        })) ?? [],
+    })) ?? []
+  );
+}
+
+export async function loadHubBooks(ctx: HubContext) {
+  const { data: rows } = await ctx.supabase
+    .from("book_entries")
+    .select("id, title, author, rating, review, finished_on, added_by, created_at")
+    .eq("couple_id", ctx.coupleId)
+    .order("created_at", { ascending: false });
+
+  const profileMap = await loadProfileMap(
+    ctx.supabase,
+    [...new Set((rows ?? []).map((row) => row.added_by))],
+  );
+
+  return (
+    rows?.map((row) => ({
+      id: row.id,
+      title: row.title,
+      author: row.author,
+      rating: row.rating,
+      review: row.review,
+      finished_on: row.finished_on,
+      author_name: profileMap.get(row.added_by) ?? "Пользователь",
       created_at: row.created_at,
     })) ?? []
   );
+}
+
+export async function loadHubPolls(ctx: HubContext) {
+  const { data: rows } = await ctx.supabase
+    .from("partner_polls")
+    .select("id, title, status, creator_id, target_user_id, created_at")
+    .eq("couple_id", ctx.coupleId)
+    .order("created_at", { ascending: false });
+
+  if (!rows?.length) {
+    return [];
+  }
+
+  const pollIds = rows.map((row) => row.id);
+  const { data: questions } = await ctx.supabase
+    .from("poll_questions")
+    .select("id, poll_id, prompt, allows_text, sort_order")
+    .in("poll_id", pollIds)
+    .order("sort_order", { ascending: true });
+
+  const questionIds = (questions ?? []).map((row) => row.id);
+  const { data: options } = questionIds.length
+    ? await ctx.supabase
+        .from("poll_options")
+        .select("id, question_id, label, sort_order")
+        .in("question_id", questionIds)
+        .order("sort_order", { ascending: true })
+    : { data: [] as Array<{ id: string; question_id: string; label: string; sort_order: number }> };
+
+  const profileMap = await loadProfileMap(
+    ctx.supabase,
+    [...new Set(rows.map((row) => row.creator_id))],
+  );
+
+  const optionsByQuestion = new Map<string, typeof options>();
+  for (const option of options ?? []) {
+    const list = optionsByQuestion.get(option.question_id) ?? [];
+    list.push(option);
+    optionsByQuestion.set(option.question_id, list);
+  }
+
+  const questionsByPoll = new Map<string, typeof questions>();
+  for (const question of questions ?? []) {
+    const list = questionsByPoll.get(question.poll_id) ?? [];
+    list.push(question);
+    questionsByPoll.set(question.poll_id, list);
+  }
+
+  return rows.map((row) => ({
+    id: row.id,
+    title: row.title,
+    status: row.status as "pending" | "completed",
+    creator_name: profileMap.get(row.creator_id) ?? "Партнёр",
+    target_user_id: row.target_user_id,
+    created_at: row.created_at,
+    questions:
+      questionsByPoll.get(row.id)?.map((question) => ({
+        id: question.id,
+        prompt: question.prompt,
+        allows_text: question.allows_text,
+        options:
+          optionsByQuestion.get(question.id)?.map((option) => ({
+            id: option.id,
+            label: option.label,
+          })) ?? [],
+      })) ?? [],
+  }));
 }
 
 export async function loadPartnerFacts(ctx: HubContext, targetUserId: string) {

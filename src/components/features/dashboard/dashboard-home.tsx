@@ -3,8 +3,10 @@
 import Link from "next/link";
 import { useTransition } from "react";
 import { UserAvatar } from "@/components/ui/user-avatar";
+import { DashboardPanels } from "@/components/features/dashboard/dashboard-panels";
 import { saveMood } from "@/lib/mood/actions";
 import { DASHBOARD_MOODS, MOOD_EMOJI, MOOD_LABELS } from "@/lib/mood/labels";
+import type { DashboardPanelConfig, DashboardPanelPreference } from "@/lib/hub/panels";
 import type { MoodLevel } from "@/types/domain";
 
 type DashboardHomeProps = {
@@ -16,6 +18,8 @@ type DashboardHomeProps = {
   myMood: MoodLevel | null;
   partnerMood: MoodLevel | null;
   dailyQuestionPrompt: string;
+  panels: DashboardPanelConfig[];
+  panelPreferences: DashboardPanelPreference[];
 };
 
 export function DashboardHome({
@@ -27,6 +31,8 @@ export function DashboardHome({
   myMood,
   partnerMood,
   dailyQuestionPrompt,
+  panels,
+  panelPreferences,
 }: DashboardHomeProps) {
   const [isPending, startTransition] = useTransition();
 
@@ -95,6 +101,8 @@ export function DashboardHome({
           </div>
         </div>
       </section>
+
+      <DashboardPanels panels={panels} preferences={panelPreferences} />
 
       <section className="mt-5 rounded-3xl surface-panel p-5">
         <p className="text-sm font-semibold text-[var(--accent)]">Вопрос дня</p>

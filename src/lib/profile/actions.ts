@@ -145,3 +145,24 @@ export async function saveBirthday(birthday: string) {
   revalidatePath("/onboarding/birthday");
   return { ok: true as const };
 }
+
+export async function saveDashboardPanels(
+  panels: Array<{ id: string; visible: boolean }>,
+) {
+  const { supabase, user } = await requireUser();
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({
+      dashboard_panels: panels,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", user.id);
+
+  if (error) {
+    return actionError("Не удалось сохранить настройки.");
+  }
+
+  revalidatePath("/dashboard");
+  return { ok: true as const };
+}

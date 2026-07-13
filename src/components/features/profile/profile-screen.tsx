@@ -2,9 +2,10 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
-import { Heart, Pencil, Settings, Shield, LogOut } from "lucide-react";
+import { Heart, Pencil, Settings, Shield, LogOut, Bell } from "lucide-react";
 import { signOut } from "@/app/auth/actions";
 import { ExportDataButton } from "@/components/features/profile/export-data-button";
+import { NotificationsPanel, type InAppNotification } from "@/components/features/profile/notifications-panel";
 import { ThemeToggle } from "@/components/features/profile/theme-toggle";
 import { PushNotificationsSetup } from "@/components/pwa/push-notifications-setup";
 import { PwaInstallHelp } from "@/components/pwa/pwa-install-help";
@@ -33,9 +34,10 @@ type ProfileScreenProps = {
     vapidPublicKey: string | null;
     initialSubscriptionCount: number;
   };
+  notifications: InAppNotification[];
 };
 
-type Tab = "settings" | "account";
+type Tab = "settings" | "notifications" | "account";
 
 export function ProfileScreen({
   userId,
@@ -51,6 +53,7 @@ export function ProfileScreen({
   isComplete,
   hasCouple,
   pushConfig,
+  notifications,
 }: ProfileScreenProps) {
   const [tab, setTab] = useState<Tab>("settings");
   const [showEdit, setShowEdit] = useState(false);
@@ -71,6 +74,21 @@ export function ProfileScreen({
       setShowEdit(false);
     });
   }
+
+  const unreadCount = notifications.filter((item) => !item.read_at).length;
+
+  const tabButtons: { id: Tab; label: string; icon: typeof Settings; badge?: number }[] =
+    unreadCount > 0
+      ? [
+          { id: "notifications", label: "Уведомления", icon: Bell, badge: unreadCount },
+          { id: "settings", label: "Настройки", icon: Settings },
+          { id: "account", label: "Аккаунт", icon: Shield },
+        ]
+      : [
+          { id: "settings", label: "Настройки", icon: Settings },
+          { id: "notifications", label: "Уведомления", icon: Bell },
+          { id: "account", label: "Аккаунт", icon: Shield },
+        ];
 
   return (
     <main className="mx-auto min-h-screen max-w-md px-5 pb-32 pt-8">
@@ -104,26 +122,24 @@ export function ProfileScreen({
       ) : null}
 
       <div className="mt-8 flex gap-1 rounded-full bg-[var(--input-bg)] p-1">
-        <button
-          className={`flex flex-1 items-center justify-center gap-2 rounded-full px-3 py-2 text-sm font-semibold ${
-            tab === "settings" ? "bg-[var(--surface)] shadow-sm" : "text-[var(--muted)]"
-          }`}
-          onClick={() => setTab("settings")}
-          type="button"
-        >
-          <Settings aria-hidden className="size-4" />
-          Настройки
-        </button>
-        <button
-          className={`flex flex-1 items-center justify-center gap-2 rounded-full px-3 py-2 text-sm font-semibold ${
-            tab === "account" ? "bg-[var(--surface)] shadow-sm" : "text-[var(--muted)]"
-          }`}
-          onClick={() => setTab("account")}
-          type="button"
-        >
-          <Shield aria-hidden className="size-4" />
-          Аккаунт
-        </button>
+        {tabButtons.map(({ id, label, icon: Icon, badge }) => (
+          <button
+            className={`flex flex-1 items-center justify-center gap-1.5 rounded-full px-2 py-2 text-sm font-semibold ${
+              tab === id ? "bg-[var(--surface)] shadow-sm" : "text-[var(--muted)]"
+            }`}
+            key={id}
+            onClick={() => setTab(id)}
+            type="button"
+          >
+            <Icon aria-hidden className="size-4 shrink-0" />
+            <span className="truncate">{label}</span>
+            {badge ? (
+              <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-[var(--accent)] px-1.5 text-xs font-bold text-white">
+                {badge}
+              </span>
+            ) : null}
+          </button>
+        ))}
       </div>
 
       {tab === "settings" ? (
@@ -171,6 +187,10 @@ export function ProfileScreen({
             </div>
           ) : null}
         </section>
+      ) : tab === "notifications" ? (
+        <div className="mt-5">
+          <NotificationsPanel notifications={notifications} />
+        </div>
       ) : (
         <section className="mt-5 grid gap-4">
           <ExportDataButton />

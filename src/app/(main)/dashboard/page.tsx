@@ -10,6 +10,7 @@ import { getOrCreateDailyQuestion } from "@/lib/question/actions";
 import { getPushStatus } from "@/lib/push/actions";
 import { getPushServerConfig } from "@/lib/push/config";
 import { signMediaPaths } from "@/lib/media/actions";
+import { resolveDashboardPanels, type DashboardPanelPreference } from "@/lib/hub/panels";
 import type { MoodLevel } from "@/types/domain";
 
 export default async function DashboardPage() {
@@ -21,7 +22,7 @@ export default async function DashboardPage() {
 
   const { data: profileSettings } = await supabase
     .from("profiles")
-    .select("notifications_enabled, birthday")
+    .select("notifications_enabled, birthday, dashboard_panels")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -112,6 +113,9 @@ export default async function DashboardPage() {
     ? profilesResult.data?.find((row) => row.id === partner.id)
     : null;
 
+  const panelPreferences = (profileSettings?.dashboard_panels as DashboardPanelPreference[] | null) ?? null;
+  const panels = resolveDashboardPanels(panelPreferences);
+
   return (
     <main className="mx-auto min-h-screen max-w-md px-5 pb-28 pt-7">
       <DashboardTopBanners
@@ -127,6 +131,8 @@ export default async function DashboardPage() {
           myAvatarUrl={myProfile?.avatar_path ? signed[myProfile.avatar_path] ?? null : null}
           myMood={(myMoodResult.data?.level as MoodLevel | undefined) ?? null}
           myName={me?.display_name ?? "Вы"}
+          panelPreferences={panelPreferences ?? []}
+          panels={panels}
           partnerAvatarUrl={
             partnerProfile?.avatar_path ? signed[partnerProfile.avatar_path] ?? null : null
           }

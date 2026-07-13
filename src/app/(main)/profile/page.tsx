@@ -3,6 +3,7 @@ import { requireUser } from "@/lib/auth/session";
 import { getCoupleContextForUser } from "@/lib/couple/context.server";
 import { daysBetween } from "@/lib/dates";
 import { signMediaPaths } from "@/lib/media/actions";
+import { loadNotifications } from "@/lib/notifications/actions";
 import { getPushStatus } from "@/lib/push/actions";
 import { getPushServerConfig } from "@/lib/push/config";
 
@@ -58,6 +59,7 @@ export default async function ProfilePage() {
     context?.relationshipStartedOn ? daysBetween(context.relationshipStartedOn) : null;
   const pushConfig = getPushServerConfig();
   const pushStatus = await getPushStatus();
+  const notifications = await loadNotifications(supabase, user.id);
 
   return (
     <ProfileScreen
@@ -88,6 +90,7 @@ export default async function ProfilePage() {
             }
           : null
       }
+      notifications={notifications}
       userId={user.id}
     />
   );

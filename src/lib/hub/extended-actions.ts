@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getAuthContext } from "@/lib/couple/context.server";
+import { createInAppNotification } from "@/lib/notifications/actions";
 import { actionError } from "@/lib/validation/forms";
 
 export async function addShoppingNote(body: string) {
@@ -212,19 +213,35 @@ export async function sendTierChallenge(targetUserId: string, url: string, title
     return actionError("Укажите ссылку и название.");
   }
 
-  const { error } = await supabase.from("tier_list_challenges").insert({
-    couple_id: context.coupleId,
-    challenger_id: user.id,
-    target_user_id: targetUserId,
-    tier_list_url: url.trim(),
-    tier_list_title: title.trim(),
-  });
+  const { data: challenge, error } = await supabase
+    .from("tier_list_challenges")
+    .insert({
+      couple_id: context.coupleId,
+      challenger_id: user.id,
+      target_user_id: targetUserId,
+      tier_list_url: url.trim(),
+      tier_list_title: title.trim(),
+    })
+    .select("id")
+    .single();
 
-  if (error) {
+  if (error || !challenge) {
     return actionError("Не удалось отправить вызов.");
   }
 
-  revalidatePath("/memories");
+  await createInAppNotification({
+    supabase,
+    coupleId: context.coupleId,
+    userId: targetUserId,
+    type: "tier_challenge",
+    title: "Вызов на тир-лист",
+    body: title.trim(),
+    linkPath: "/memories/tiers",
+    referenceId: challenge.id,
+  });
+
+  revalidatePath("/memories/tiers");
+  revalidatePath("/profile");
   return { ok: true as const };
 }
 
@@ -254,7 +271,33 @@ export async function completeTierChallenge(challengeId: string, formData: FormD
     return actionError("Не удалось сохранить результат.");
   }
 
+  revalidatePath("/memories/tiers");
   revalidatePath("/memories");
+  return { ok: true as const };
+}
+
+export async function addTierListComment(challengeId: string, body: string) {
+  const { supabase, user, context } = await getAuthContext();
+  if (!context?.isComplete) {
+    return actionError("Пара не подключена.");
+  }
+
+  const text = body.trim();
+  if (!text) {
+    return actionError("Напишите комментарий.");
+  }
+
+  const { error } = await supabase.from("tier_list_comments").insert({
+    challenge_id: challengeId,
+    author_id: user.id,
+    body: text,
+  });
+
+  if (error) {
+    return actionError("Не удалось сохранить комментарий.");
+  }
+
+  revalidatePath("/memories/tiers");
   return { ok: true as const };
 }
 
@@ -296,6 +339,7 @@ export async function markMovieWatched(movieId: string, rating: number, review: 
       status: "watched",
       ratings,
       reviews,
+      watched_at: new Date().toISOString(),
     })
     .eq("id", movieId);
 
@@ -304,6 +348,7 @@ export async function markMovieWatched(movieId: string, rating: number, review: 
   }
 
   revalidatePath("/memories/movies");
+  revalidatePath("/memories");
   return { ok: true as const };
 }
 
@@ -399,20 +444,48 @@ export async function addMovieToCollection(collectionId: string, movieEntryId: s
   return { ok: true as const };
 }
 
-export async function createMovieCollection(title: string) {
+export async function createMovieCollection(title: string, movieEntryIds: string[] = []) {
   const { supabase, user, context } = await getAuthContext();
   if (!context?.isComplete) {
     return actionError("Пара не подключена.");
   }
 
-  const { error } = await supabase.from("movie_collections").insert({
-    couple_id: context.coupleId,
-    created_by: user.id,
-    title: title.trim(),
-  });
+  const trimmed = title.trim();
+  if (!trimmed) {
+    return actionError("Укажите название подборки.");
+  }
 
-  if (error) {
+  const { data: collection, error } = await supabase
+    .from("movie_collections")
+    .insert({
+      couple_id: context.coupleId,
+      created_by: user.id,
+      title: trimmed,
+    })
+    .select("id")
+    .single();
+
+  if (error || !collection) {
     return actionError("Не удалось создать подборку.");
+  }
+
+  if (movieEntryIds.length) {
+    const { data: movies } = await supabase
+      .from("movie_entries")
+      .select("id, title, tmdb_id, poster_path")
+      .eq("couple_id", context.coupleId)
+      .in("id", movieEntryIds);
+
+    for (const [index, movie] of (movies ?? []).entries()) {
+      await supabase.from("movie_collection_items").insert({
+        collection_id: collection.id,
+        movie_entry_id: movie.id,
+        title: movie.title,
+        tmdb_id: movie.tmdb_id,
+        poster_path: movie.poster_path,
+        sort_order: index,
+      });
+    }
   }
 
   revalidatePath("/memories/movies");

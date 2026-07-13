@@ -2,6 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { getAuthContext } from "@/lib/couple/context.server";
+import { createInAppNotification } from "@/lib/notifications/actions";
+import { MOOD_LABELS } from "@/lib/mood/labels";
+import type { MoodLevel } from "@/types/domain";
 import { moodSchema, parseFormData } from "@/lib/validation/forms";
 
 export async function saveMood(formData: FormData): Promise<void> {
@@ -37,6 +40,27 @@ export async function saveMood(formData: FormData): Promise<void> {
     return;
   }
 
+  const partnerId = context.partner?.id;
+  if (partnerId) {
+    const level = parsed.data.level as MoodLevel;
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("display_name")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    await createInAppNotification({
+      supabase,
+      coupleId: context.coupleId,
+      userId: partnerId,
+      type: "mood_change",
+      title: "Настроение партнёра",
+      body: `${profile?.display_name ?? "Партнёр"}: ${MOOD_LABELS[level]}`,
+      linkPath: "/dashboard",
+    });
+  }
+
   revalidatePath("/mood");
   revalidatePath("/dashboard");
+  revalidatePath("/profile");
 }

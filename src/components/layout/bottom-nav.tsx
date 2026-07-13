@@ -16,6 +16,7 @@ type BottomNavProps = {
   coupleId: string | null;
   userId: string;
   initialUnread: number;
+  initialUnreadNotifications: number;
 };
 
 const navLinks = [
@@ -35,11 +36,13 @@ const tabRoutes = [
   "/memories/shopping",
   "/memories/wishlist",
   "/memories/tiers",
+  "/memories/books",
+  "/memories/polls",
   "/profile",
   "/chat",
 ] as const;
 
-export function BottomNav({ coupleId, userId, initialUnread }: BottomNavProps) {
+export function BottomNav({ coupleId, userId, initialUnread, initialUnreadNotifications }: BottomNavProps) {
   const router = useRouter();
   const pathname = usePathname();
   const [pendingPath, setPendingPath] = useState<string | null>(null);
@@ -162,12 +165,13 @@ export function BottomNav({ coupleId, userId, initialUnread }: BottomNavProps) {
         {navLinks.slice(2).map((link) => {
           const Icon = link.icon;
           const active = isActive(link.href);
+          const showNotificationBadge = link.href === "/profile" && initialUnreadNotifications > 0;
 
           return (
             <button
               aria-current={active ? "page" : undefined}
               aria-label={link.label}
-              className={`grid min-h-12 min-w-12 flex-1 place-items-center rounded-2xl transition-all duration-200 ${
+              className={`relative grid min-h-12 min-w-12 flex-1 place-items-center rounded-2xl transition-all duration-200 ${
                 active ? "scale-105 text-[var(--accent)]" : "text-[var(--muted)]"
               }`}
               key={link.href}
@@ -175,6 +179,11 @@ export function BottomNav({ coupleId, userId, initialUnread }: BottomNavProps) {
               type="button"
             >
               <Icon aria-hidden className="size-6" strokeWidth={active ? 2.4 : 2} />
+              {showNotificationBadge ? (
+                <span className="absolute right-2 top-1 grid min-w-4 place-items-center rounded-full bg-[var(--badge-bg)] px-1 py-0.5 text-[10px] font-bold leading-none text-[var(--badge-text)]">
+                  {initialUnreadNotifications > 9 ? "9+" : initialUnreadNotifications}
+                </span>
+              ) : null}
             </button>
           );
         })}

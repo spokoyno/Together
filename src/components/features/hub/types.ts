@@ -77,6 +77,42 @@ export type HubTierChallenge = {
   target_user_id: string;
   result_image_url: string | null;
   created_at: string;
+  comments: HubTierComment[];
+};
+
+export type HubTierComment = {
+  id: string;
+  body: string;
+  author_name: string;
+  created_at: string;
+};
+
+export type HubBook = {
+  id: string;
+  title: string;
+  author: string | null;
+  rating: number | null;
+  review: string | null;
+  finished_on: string | null;
+  author_name: string;
+  created_at: string;
+};
+
+export type HubPoll = {
+  id: string;
+  title: string;
+  status: "pending" | "completed";
+  creator_name: string;
+  target_user_id: string;
+  created_at: string;
+  questions: HubPollQuestion[];
+};
+
+export type HubPollQuestion = {
+  id: string;
+  prompt: string;
+  allows_text: boolean;
+  options: Array<{ id: string; label: string }>;
 };
 
 export type HubPartnerFact = {
