@@ -2,6 +2,7 @@
 
 import { Bell, Share, X } from "lucide-react";
 import { useEffect, useState, useTransition } from "react";
+import { setNotificationsEnabled } from "@/lib/partner/actions";
 import { getPushStatus, savePushSubscription } from "@/lib/push/actions";
 import {
   getPushPermission,
@@ -9,7 +10,9 @@ import {
   urlBase64ToUint8Array,
 } from "@/lib/push/client";
 import {
+  isInAppBrowser,
   isIosDevice,
+  isMobileDevice,
   isStandaloneMode,
   PWA_INSTALL_DISMISS_KEY,
   PWA_NOTIFICATIONS_DISMISS_KEY,
@@ -23,14 +26,18 @@ type BeforeInstallPromptEvent = Event & {
 type DashboardTopBannersProps = {
   vapidPublicKey: string | null;
   initialSubscriptionCount: number;
+  profileNotificationsEnabled: boolean;
 };
 
 type ClientBannerState = {
   permission: NotificationPermission | "unsupported";
   installDismissed: boolean;
   notifDismissed: boolean;
-  notificationsEnabled: boolean;
+  profileNotificationsEnabled: boolean;
+  pushActive: boolean;
+  pushChecked: boolean;
   standalone: boolean;
+  mobile: boolean;
 };
 
 function subscriptionToPayload(subscription: PushSubscription) {
@@ -50,7 +57,7 @@ function readDismissed(key: string) {
   return localStorage.getItem(key) === "1";
 }
 
-async function detectNotificationsEnabled(initialSubscriptionCount: number) {
+async function detectPushActive(initialSubscriptionCount: number) {
   const permission = getPushPermission();
   if (permission !== "granted") {
     return false;
@@ -116,6 +123,7 @@ function BannerShell({
 export function DashboardTopBanners({
   vapidPublicKey,
   initialSubscriptionCount,
+  profileNotificationsEnabled,
 }: DashboardTopBannersProps) {
   const [clientState, setClientState] = useState<ClientBannerState | null>(null);
   const [installEvent, setInstallEvent] = useState<BeforeInstallPromptEvent | null>(null);
@@ -126,25 +134,49 @@ export function DashboardTopBanners({
 
   useEffect(() => {
     let cancelled = false;
+    const standalone = isStandaloneMode();
+    const mobile = isMobileDevice();
+    const permission = getPushPermission();
 
-    void (async () => {
-      const notificationsEnabled = await detectNotificationsEnabled(initialSubscriptionCount);
+    queueMicrotask(() => {
       if (cancelled) {
         return;
       }
 
       setClientState({
-        permission: getPushPermission(),
+        permission,
         installDismissed: readDismissed(PWA_INSTALL_DISMISS_KEY),
         notifDismissed: readDismissed(PWA_NOTIFICATIONS_DISMISS_KEY),
-        notificationsEnabled,
-        standalone: isStandaloneMode(),
+        profileNotificationsEnabled,
+        pushActive:
+          profileNotificationsEnabled &&
+          permission === "granted" &&
+          initialSubscriptionCount > 0,
+        pushChecked: false,
+        standalone,
+        mobile,
       });
+
+      if (mobile && !standalone) {
+        setShowInstallHint(true);
+      }
+    });
+
+    void (async () => {
+      const pushActive =
+        profileNotificationsEnabled && (await detectPushActive(initialSubscriptionCount));
+      if (cancelled) {
+        return;
+      }
+      setClientState((current) =>
+        current ? { ...current, pushActive, pushChecked: true } : current,
+      );
     })();
 
     function handleBeforeInstall(event: Event) {
       event.preventDefault();
       setInstallEvent(event as BeforeInstallPromptEvent);
+      setShowInstallHint(false);
     }
 
     window.addEventListener("beforeinstallprompt", handleBeforeInstall);
@@ -152,7 +184,7 @@ export function DashboardTopBanners({
       cancelled = true;
       window.removeEventListener("beforeinstallprompt", handleBeforeInstall);
     };
-  }, [initialSubscriptionCount]);
+  }, [initialSubscriptionCount, profileNotificationsEnabled]);
 
   if (!clientState) {
     return null;
@@ -160,11 +192,20 @@ export function DashboardTopBanners({
 
   const showInstall = !clientState.standalone && !clientState.installDismissed;
 
-  const showNotifications =
+  const showNotificationsBecauseSettings =
     Boolean(vapidPublicKey) &&
-    clientState.permission !== "unsupported" &&
-    !clientState.notificationsEnabled &&
+    !clientState.profileNotificationsEnabled &&
     !clientState.notifDismissed;
+
+  const showNotificationsBecausePush =
+    Boolean(vapidPublicKey) &&
+    clientState.profileNotificationsEnabled &&
+    clientState.pushChecked &&
+    !clientState.pushActive &&
+    !clientState.notifDismissed &&
+    clientState.permission !== "unsupported";
+
+  const showNotifications = showNotificationsBecauseSettings || showNotificationsBecausePush;
 
   if (!showInstall && !showNotifications) {
     return null;
@@ -197,27 +238,39 @@ export function DashboardTopBanners({
   }
 
   function handleInstallAction() {
-    if (isIosDevice() || !installEvent) {
-      setShowInstallHint((current) => !current);
+    if (installEvent) {
+      void handleNativeInstall();
       return;
     }
 
-    void handleNativeInstall();
+    setShowInstallHint((current) => !current);
   }
 
   function enableNotifications() {
-    if (!vapidPublicKey) {
+    if (!vapidPublicKey || !clientState) {
       return;
     }
+
+    const settingsWereDisabled = !clientState.profileNotificationsEnabled;
 
     setNotifError("");
     startTransition(async () => {
       try {
+        if (settingsWereDisabled) {
+          const settingsResult = await setNotificationsEnabled(true);
+          if (!settingsResult.ok) {
+            setNotifError(settingsResult.error ?? "Не удалось включить в настройках.");
+            return;
+          }
+        }
+
         const result = await Notification.requestPermission();
         if (result !== "granted") {
           setNotifError("Разрешите уведомления в настройках браузера.");
           setClientState((current) =>
-            current ? { ...current, permission: result } : current,
+            current
+              ? { ...current, permission: result, profileNotificationsEnabled: true }
+              : current,
           );
           return;
         }
@@ -250,7 +303,13 @@ export function DashboardTopBanners({
 
         setClientState((current) =>
           current
-            ? { ...current, notificationsEnabled: true, permission: "granted" }
+            ? {
+                ...current,
+                pushActive: true,
+                pushChecked: true,
+                profileNotificationsEnabled: true,
+                permission: "granted",
+              }
             : current,
         );
       } catch {
@@ -259,12 +318,15 @@ export function DashboardTopBanners({
     });
   }
 
-  const installActionLabel =
-    isIosDevice() || !installEvent
-      ? showInstallHint
-        ? "Скрыть"
-        : "Как?"
+  const installActionLabel = installEvent
+    ? "Установить"
+    : showInstallHint
+      ? "Скрыть"
       : "Установить";
+
+  const notificationsLabel = showNotificationsBecauseSettings
+    ? "Уведомления выключены в настройках"
+    : "Включите уведомления";
 
   return (
     <div className="sticky top-0 z-30 -mx-5 space-y-2 px-3 pb-3 pt-[max(0.25rem,env(safe-area-inset-top))]">
@@ -274,21 +336,23 @@ export function DashboardTopBanners({
           actionLabel={installing ? "..." : installActionLabel}
           hint={
             showInstallHint ? (
-              isIosDevice() ? (
+              isInAppBrowser() ? (
+                <p className="text-xs leading-5 text-[var(--muted)]">
+                  Откройте сайт во внешнем браузере (Safari или Chrome), затем добавьте на главный
+                  экран.
+                </p>
+              ) : isIosDevice() ? (
                 <ol className="list-decimal space-y-1 pl-4 text-xs leading-5 text-[var(--muted)]">
+                  <li>Откройте в Safari (не во встроенном браузере).</li>
                   <li>
                     Нажмите{" "}
                     <Share aria-hidden className="inline size-3.5 align-text-bottom" /> «Поделиться»
-                    в Safari
                   </li>
-                  <li>Выберите «На экран Домой»</li>
-                  <li>Нажмите «Добавить»</li>
+                  <li>Выберите «На экран Домой» → «Добавить»</li>
                 </ol>
               ) : (
                 <p className="text-xs leading-5 text-[var(--muted)]">
-                  {installEvent
-                    ? "Нажмите «Установить» или используйте меню браузера."
-                    : "Меню браузера → «Установить приложение» или «Добавить на главный экран»."}
+                  Меню браузера (⋮) → «Установить приложение» или «Добавить на главный экран».
                 </p>
               )
             ) : null
@@ -306,6 +370,11 @@ export function DashboardTopBanners({
           hint={
             notifError ? (
               <p className="text-xs text-red-600">{notifError}</p>
+            ) : showNotificationsBecauseSettings ? (
+              <p className="text-xs leading-5 text-[var(--muted)]">
+                Вы отключили уведомления в профиле партнёра. Включите снова, чтобы получать
+                сообщения.
+              </p>
             ) : clientState.permission === "denied" ? (
               <p className="text-xs leading-5 text-[var(--muted)]">
                 Разрешите уведомления в настройках браузера или телефона.
@@ -317,7 +386,7 @@ export function DashboardTopBanners({
               </p>
             )
           }
-          label="Включите уведомления"
+          label={notificationsLabel}
           onAction={enableNotifications}
           onDismiss={dismissNotifications}
         />

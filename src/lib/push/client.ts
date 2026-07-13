@@ -19,10 +19,23 @@ export function getPushPermission(): NotificationPermission | "unsupported" {
   return Notification.permission;
 }
 
-export async function getServiceWorkerRegistration(): Promise<ServiceWorkerRegistration | null> {
+export async function getServiceWorkerRegistration(
+  timeoutMs = 4000,
+): Promise<ServiceWorkerRegistration | null> {
   if (!("serviceWorker" in navigator)) {
     return null;
   }
 
-  return navigator.serviceWorker.ready;
+  try {
+    const registration = await Promise.race([
+      navigator.serviceWorker.ready,
+      new Promise<null>((resolve) => {
+        window.setTimeout(() => resolve(null), timeoutMs);
+      }),
+    ]);
+
+    return registration ?? null;
+  } catch {
+    return null;
+  }
 }

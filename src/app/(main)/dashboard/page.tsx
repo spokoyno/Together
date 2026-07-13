@@ -18,6 +18,14 @@ export default async function DashboardPage() {
   const pushConfig = getPushServerConfig();
   const pushStatus = await getPushStatus();
 
+  const { data: profileSettings } = await supabase
+    .from("profiles")
+    .select("notifications_enabled")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  const profileNotificationsEnabled = profileSettings?.notifications_enabled ?? true;
+
   if (!context) {
     redirect("/pair");
   }
@@ -29,6 +37,7 @@ export default async function DashboardPage() {
       <main className="mx-auto min-h-screen max-w-md px-5 pb-28 pt-7">
         <DashboardTopBanners
           initialSubscriptionCount={pushStatus.subscriptionCount}
+          profileNotificationsEnabled={profileNotificationsEnabled}
           vapidPublicKey={pushConfig.vapidPublicKey}
         />
         <header>
@@ -117,6 +126,7 @@ export default async function DashboardPage() {
     <main className="mx-auto min-h-screen max-w-md px-5 pb-28 pt-7">
       <DashboardTopBanners
         initialSubscriptionCount={pushStatus.subscriptionCount}
+        profileNotificationsEnabled={profileNotificationsEnabled}
         vapidPublicKey={pushConfig.vapidPublicKey}
       />
       <header className="flex items-center justify-between">

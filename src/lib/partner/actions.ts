@@ -49,5 +49,6 @@ export async function setNotificationsEnabled(enabled: boolean) {
 
   revalidatePath("/profile");
   revalidatePath("/profile/partner");
+  revalidatePath("/dashboard");
   return { ok: true as const };
 }

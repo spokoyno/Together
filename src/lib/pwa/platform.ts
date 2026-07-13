@@ -19,7 +19,12 @@ export function isIosDevice(): boolean {
     return false;
   }
 
-  return /iphone|ipad|ipod/i.test(window.navigator.userAgent);
+  const ua = window.navigator.userAgent;
+  const isClassicIos = /iphone|ipad|ipod/i.test(ua);
+  const isIpadDesktopUa =
+    window.navigator.platform === "MacIntel" && window.navigator.maxTouchPoints > 1;
+
+  return isClassicIos || isIpadDesktopUa;
 }
 
 export function isAndroidDevice(): boolean {
@@ -36,6 +41,14 @@ export function isMobileDevice(): boolean {
   }
 
   return isIosDevice() || isAndroidDevice();
+}
+
+export function isInAppBrowser(): boolean {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  return /telegram|instagram|fbav|fban|line\//i.test(window.navigator.userAgent);
 }
 
 export const PWA_INSTALL_DISMISS_KEY = "together-pwa-install-dismissed";
