@@ -11,8 +11,9 @@ import {
   Trash2,
   X,
 } from "lucide-react";
+import { useLanguage } from "@/components/providers/language-provider";
 import { createMoment, deleteMemory, rateMoment } from "@/lib/memories/actions";
-import { formatDateRu } from "@/lib/dates";
+import { formatDateLocalized } from "@/lib/dates";
 import { compressImageFile } from "@/lib/media/compress-image.client";
 import { uploadCoupleMediaClient } from "@/lib/media/upload.client";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -46,13 +47,6 @@ type MemoriesFeedProps = {
   partnerName: string;
 };
 
-const momentTypes: { id: MomentType; label: string; icon: typeof Sparkles }[] = [
-  { id: "memory", label: "Воспоминание", icon: Sparkles },
-  { id: "movie", label: "Фильм", icon: Clapperboard },
-  { id: "cooking", label: "Кулинария", icon: ChefHat },
-  { id: "photo", label: "Фото", icon: Camera },
-];
-
 export function MemoriesFeed({
   memories,
   userId,
@@ -60,6 +54,7 @@ export function MemoriesFeed({
   partnerId,
   partnerName,
 }: MemoriesFeedProps) {
+  const { locale, t } = useLanguage();
   const [dateFilter, setDateFilter] = useState("");
   const [showCreate, setShowCreate] = useState(false);
   const [momentType, setMomentType] = useState<MomentType>("memory");
@@ -74,6 +69,17 @@ export function MemoriesFeed({
   const [error, setError] = useState("");
   const [isPreparingPhoto, setIsPreparingPhoto] = useState(false);
   const [isPending, startTransition] = useTransition();
+
+  const momentTypes = useMemo(
+    () =>
+      [
+        { id: "memory" as const, label: t("memoriesMemory"), icon: Sparkles },
+        { id: "movie" as const, label: t("memoriesMovie"), icon: Clapperboard },
+        { id: "cooking" as const, label: t("memoriesCooking"), icon: ChefHat },
+        { id: "photo" as const, label: t("memoriesPhoto"), icon: Camera },
+      ] satisfies { id: MomentType; label: string; icon: typeof Sparkles }[],
+    [t],
+  );
 
   const filtered = useMemo(() => {
     if (!dateFilter) {
@@ -108,7 +114,7 @@ export function MemoriesFeed({
       setMediaFile(prepared);
       setPreviewUrl(URL.createObjectURL(prepared));
     } catch {
-      setError("Не удалось обработать фото. Попробуйте другое изображение.");
+      setError(t("memoriesErrorPhoto"));
     } finally {
       setIsPreparingPhoto(false);
     }
@@ -168,7 +174,7 @@ export function MemoriesFeed({
 
       const result = await createMoment(formData);
       if (!result.ok) {
-        setError(result.error ?? "Не удалось создать момент.");
+        setError(result.error ?? t("memoriesErrorCreate"));
         return;
       }
       resetCreateForm();
@@ -179,7 +185,7 @@ export function MemoriesFeed({
     startTransition(async () => {
       const result = await rateMoment(memoryId, value);
       if (!result.ok) {
-        setError(result.error ?? "Не удалось сохранить рейтинг.");
+        setError(result.error ?? t("memoriesErrorRating"));
       }
     });
   }
@@ -199,7 +205,7 @@ export function MemoriesFeed({
             onClick={() => setDateFilter("")}
             type="button"
           >
-            Сброс
+            {t("memoriesReset")}
           </button>
         ) : null}
       </div>
@@ -239,13 +245,16 @@ export function MemoriesFeed({
                         <p className="mt-1 leading-7 text-[var(--muted)]">{memory.body}</p>
                       ) : null}
                       <p className="mt-2 text-xs text-[var(--muted)]">
-                        {formatDateRu(memory.happened_on ?? memory.created_at.slice(0, 10))} ·{" "}
-                        {memory.author_name}
+                        {formatDateLocalized(
+                          locale,
+                          memory.happened_on ?? memory.created_at.slice(0, 10),
+                        )}{" "}
+                        · {memory.author_name}
                       </p>
                     </div>
                     <form action={deleteMemory.bind(null, memory.id)}>
                       <button
-                        aria-label="Удалить"
+                        aria-label={t("commonDelete")}
                         className="grid size-9 place-items-center rounded-full text-[var(--muted)]"
                         type="submit"
                       >
@@ -257,11 +266,11 @@ export function MemoriesFeed({
                   {memory.moment_type === "movie" || memory.moment_type === "cooking" ? (
                     <div className="mt-4 rounded-2xl bg-[var(--input-bg)] p-3">
                       <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
-                        Оценки
+                        {t("memoriesRatings")}
                       </p>
                       <div className="mt-2 grid gap-2 text-sm">
                         <p>
-                          Вы: {myRating ?? "—"}
+                          {t("memoriesYouRating", { rating: myRating ?? "—" })}
                           <span className="ml-2 inline-flex gap-1">
                             {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((value) => (
                               <button
@@ -297,15 +306,12 @@ export function MemoriesFeed({
             );
           })
         ) : (
-          <EmptyState
-            description="Создайте первый момент — фото, фильм или воспоминание."
-            title="Лента пуста"
-          />
+          <EmptyState description={t("memoriesEmptyDesc")} title={t("memoriesEmpty")} />
         )}
       </section>
 
       <button
-        aria-label="Новый момент"
+        aria-label={t("memoriesNewMoment")}
         className="fixed bottom-[calc(max(0.75rem,env(safe-area-inset-bottom))+5.25rem)] right-5 z-30 grid size-14 place-items-center rounded-full bg-[var(--accent)] text-white shadow-lg transition-transform active:scale-95"
         onClick={() => setShowCreate(true)}
         type="button"
@@ -320,9 +326,9 @@ export function MemoriesFeed({
             onSubmit={handleCreate}
           >
             <div className="mb-4 flex items-center justify-between">
-              <p className="text-lg font-bold">Новый момент</p>
+              <p className="text-lg font-bold">{t("memoriesNewMoment")}</p>
               <button
-                aria-label="Закрыть"
+                aria-label={t("commonClose")}
                 className="grid size-9 place-items-center rounded-full surface-input"
                 onClick={resetCreateForm}
                 type="button"
@@ -356,7 +362,7 @@ export function MemoriesFeed({
                 <input
                   className="rounded-2xl surface-input px-4 py-3"
                   onChange={(event) => void searchMovies(event.target.value)}
-                  placeholder="Поиск фильма"
+                  placeholder={t("memoriesSearchMovie")}
                   value={movieQuery}
                 />
                 {movieResults.length ? (
@@ -384,7 +390,7 @@ export function MemoriesFeed({
 
             <div className="mt-4 grid gap-3">
               <div className="grid gap-2">
-                <span className="text-sm font-semibold">Фото</span>
+                <span className="text-sm font-semibold">{t("memoriesPhoto")}</span>
                 <PhotoSourcePicker
                   accept="image/jpeg,image/png,image/webp,image/gif"
                   disabled={isPending || isPreparingPhoto}
@@ -397,10 +403,10 @@ export function MemoriesFeed({
                       type="button"
                     >
                       {isPreparingPhoto
-                        ? "Обрабатываем фото..."
+                        ? t("commonLoading")
                         : previewUrl
-                          ? "Заменить фото"
-                          : "Добавить фото"}
+                          ? t("memoriesReplacePhoto")
+                          : t("photoAdd")}
                     </button>
                   )}
                 />
@@ -420,10 +426,10 @@ export function MemoriesFeed({
                 onChange={(event) => setCaption(event.target.value)}
                 placeholder={
                   momentType === "cooking"
-                    ? "Что приготовили?"
+                    ? t("memoriesWhatCooked")
                     : momentType === "movie"
-                      ? "Впечатления о фильме"
-                      : "Описание"
+                      ? t("memoriesMovieImpressions")
+                      : t("memoriesDescription")
                 }
                 value={caption}
               />
@@ -437,7 +443,9 @@ export function MemoriesFeed({
 
               {momentType === "movie" || momentType === "cooking" ? (
                 <label className="grid gap-2">
-                  <span className="text-sm font-semibold">Ваша оценка: {rating}</span>
+                  <span className="text-sm font-semibold">
+                    {t("memoriesYourRating", { rating })}
+                  </span>
                   <input
                     className="accent-[var(--accent)]"
                     max={10}
@@ -456,7 +464,7 @@ export function MemoriesFeed({
                 disabled={isPending}
                 type="submit"
               >
-                {isPending ? "Публикуем..." : "Опубликовать"}
+                {isPending ? t("memoriesPublishing") : t("hubMomentsPublish")}
               </button>
             </div>
           </form>

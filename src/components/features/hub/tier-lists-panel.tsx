@@ -4,11 +4,12 @@ import { Download, Plus, Search, Send, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { useLanguage } from "@/components/providers/language-provider";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PhotoSourcePicker } from "@/components/ui/photo-source-picker";
 import type { HubTierChallenge, TierMakerSearchResult } from "@/components/features/hub/types";
 import { addTierListComment, completeTierChallenge, sendTierChallenge } from "@/lib/hub/extended-actions";
-import { formatDateRu } from "@/lib/dates";
+import { formatDateLocalized } from "@/lib/dates";
 import { compressImageFile } from "@/lib/media/compress-image.client";
 import { uploadCoupleMediaClient } from "@/lib/media/upload.client";
 
@@ -38,6 +39,7 @@ export function TierListsPanel({
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
+  const { locale, t } = useLanguage();
 
   const inbox = challenges.filter((c) => c.target_user_id === userId && c.status === "pending");
   const done = challenges.filter((c) => c.status === "completed");
@@ -72,7 +74,7 @@ export function TierListsPanel({
     startTransition(async () => {
       const result = await sendTierChallenge(partnerId, url, title);
       if (!result.ok) {
-        setError(result.error ?? "Не удалось отправить.");
+        setError(result.error ?? t("hubTiersErrorSend"));
         return;
       }
       setShowSend(false);
@@ -97,7 +99,7 @@ export function TierListsPanel({
     startTransition(async () => {
       const result = await addTierListComment(detailChallenge.id, body);
       if (!result.ok) {
-        setError(result.error ?? "Не удалось отправить комментарий.");
+        setError(result.error ?? t("hubTiersErrorComment"));
         return;
       }
       setCommentDraft("");
@@ -108,7 +110,7 @@ export function TierListsPanel({
   return (
     <>
       <section className="mb-6 rounded-3xl surface-panel p-4">
-        <p className="text-sm font-semibold">Поиск тир-листов</p>
+        <p className="text-sm font-semibold">{t("hubTiersSearch")}</p>
         <div className="relative mt-3">
           <Search
             aria-hidden
@@ -117,7 +119,7 @@ export function TierListsPanel({
           <input
             className="w-full rounded-2xl surface-input py-3 pl-11 pr-4 text-sm"
             onChange={(event) => void searchTierLists(event.target.value)}
-            placeholder="Например: anime, marvel, games…"
+            placeholder={t("hubTiersSearchPlaceholder")}
             value={searchQuery}
           />
         </div>
@@ -136,48 +138,48 @@ export function TierListsPanel({
           </div>
         ) : null}
         <p className="mt-3 text-xs leading-5 text-[var(--muted)]">
-          Или найдите на{" "}
+          {t("hubTiersOrFindOn")}{" "}
           <a className="font-semibold text-[var(--accent)]" href="https://tiermaker.com" rel="noreferrer" target="_blank">
             tiermaker.com
           </a>{" "}
-          и вставьте ссылку вручную.
+          {t("hubTiersPasteLink")}
         </p>
       </section>
 
       {inbox.length ? (
         <section className="mb-6">
-          <p className="mb-2 font-semibold">Входящие</p>
+          <p className="mb-2 font-semibold">{t("hubTiersIncoming")}</p>
           <div className="grid gap-3">
             {inbox.map((item) => (
               <article className="rounded-3xl surface-panel p-4" key={item.id}>
                 <p className="font-bold">{item.tier_list_title}</p>
-                <p className="mt-1 text-sm text-[var(--muted)]">От {item.challenger_name}</p>
+                <p className="mt-1 text-sm text-[var(--muted)]">{t("hubFrom", { name: item.challenger_name })}</p>
                 <Link
                   className="mt-2 inline-block text-sm font-semibold text-[var(--accent)]"
                   href={item.tier_list_url}
                   rel="noreferrer"
                   target="_blank"
                 >
-                  Открыть тир-лист
+                  {t("hubTiersOpenTierList")}
                 </Link>
                 <button
                   className="mt-3 rounded-xl bg-[var(--accent)] px-3 py-2.5 text-xs font-semibold text-white"
                   onClick={() => setCompleteId(item.id)}
                   type="button"
                 >
-                  Прикрепить результат
+                  {t("hubTiersAttachResult")}
                 </button>
               </article>
             ))}
           </div>
         </section>
       ) : (
-        <EmptyState description="Пока нет входящих вызовов." title="Входящие пусты" />
+        <EmptyState description={t("hubTiersIncomingEmptyDesc")} title={t("hubTiersIncomingEmpty")} />
       )}
 
       {done.length ? (
         <section className="mt-6">
-          <p className="mb-2 font-semibold">Пройденные</p>
+          <p className="mb-2 font-semibold">{t("hubTiersCompleted")}</p>
           <div className="grid gap-2">
             {done.map((item) => (
               <button
@@ -196,7 +198,7 @@ export function TierListsPanel({
       ) : null}
 
       <button
-        aria-label="Отправить вызов"
+        aria-label={t("hubTiersSendChallenge")}
         className="fixed bottom-[calc(max(0.75rem,env(safe-area-inset-bottom))+5.25rem)] right-5 z-30 grid size-14 place-items-center rounded-full bg-[var(--accent)] text-white shadow-lg active:scale-95"
         onClick={() => setShowSend(true)}
         type="button"
@@ -208,9 +210,9 @@ export function TierListsPanel({
         <div className="fixed inset-0 z-50 flex items-end bg-black/40 p-4 pb-24">
           <form className="w-full rounded-3xl surface-panel p-5" onSubmit={sendChallenge}>
             <div className="mb-3 flex items-center justify-between">
-              <p className="text-lg font-bold">Вызов для {partnerName}</p>
+              <p className="text-lg font-bold">{t("hubTiersChallengeFor", { name: partnerName })}</p>
               <button
-                aria-label="Закрыть"
+                aria-label={t("commonClose")}
                 className="grid size-9 place-items-center rounded-full surface-input"
                 onClick={() => setShowSend(false)}
                 type="button"
@@ -222,14 +224,14 @@ export function TierListsPanel({
               <input
                 className="rounded-2xl surface-input px-4 py-3"
                 onChange={(event) => setTitle(event.target.value)}
-                placeholder="Название тир-листа"
+                placeholder={t("hubTiersTitlePlaceholder")}
                 required
                 value={title}
               />
               <input
                 className="rounded-2xl surface-input px-4 py-3"
                 onChange={(event) => setUrl(event.target.value)}
-                placeholder="Ссылка TierMaker"
+                placeholder={t("hubTiersLinkPlaceholder")}
                 required
                 type="url"
                 value={url}
@@ -240,7 +242,7 @@ export function TierListsPanel({
                 disabled={isPending}
                 type="submit"
               >
-                Отправить
+                {t("commonSend")}
               </button>
             </div>
           </form>
@@ -250,7 +252,7 @@ export function TierListsPanel({
       {completeId ? (
         <div className="fixed inset-0 z-50 flex items-end bg-black/40 p-4 pb-24">
           <div className="w-full rounded-3xl surface-panel p-5">
-            <p className="font-bold">Скриншот результата</p>
+            <p className="font-bold">{t("hubTiersScreenshotResult")}</p>
             {error ? <p className="mt-2 alert-error rounded-xl px-3 py-2 text-sm">{error}</p> : null}
             <PhotoSourcePicker
               onSelect={(file) =>
@@ -265,7 +267,7 @@ export function TierListsPanel({
                   formData.set("mediaPath", uploaded.path);
                   const result = await completeTierChallenge(completeId, formData);
                   if (!result.ok) {
-                    setError(result.error ?? "Ошибка");
+                    setError(result.error ?? t("commonError"));
                     return;
                   }
                   setCompleteId(null);
@@ -275,7 +277,7 @@ export function TierListsPanel({
               }
               renderTrigger={({ open }) => (
                 <button className="mt-3 w-full rounded-2xl surface-input py-3" onClick={open} type="button">
-                  Выбрать фото
+                  {t("hubTiersSelectPhoto")}
                 </button>
               )}
             />
@@ -289,7 +291,7 @@ export function TierListsPanel({
             <div className="mb-4 flex items-center justify-between gap-3">
               <p className="text-lg font-bold">{detailChallenge.tier_list_title}</p>
               <button
-                aria-label="Закрыть"
+                aria-label={t("commonClose")}
                 className="grid size-9 shrink-0 place-items-center rounded-full surface-input"
                 onClick={() => {
                   setDetailId(null);
@@ -308,7 +310,7 @@ export function TierListsPanel({
               rel="noreferrer"
               target="_blank"
             >
-              Открыть на TierMaker
+              {t("hubTiersOpenOnTierMaker")}
             </Link>
 
             {detailChallenge.result_image_url ? (
@@ -325,36 +327,38 @@ export function TierListsPanel({
                   href={detailChallenge.result_image_url}
                 >
                   <Download aria-hidden className="size-4" />
-                  Сохранить изображение
+                  {t("hubTiersSaveImage")}
                 </a>
               </div>
             ) : null}
 
             <section className="mt-6">
-              <p className="mb-2 font-semibold">Комментарии</p>
+              <p className="mb-2 font-semibold">{t("hubTiersComments")}</p>
               {detailChallenge.comments.length ? (
                 <ul className="grid gap-2">
                   {detailChallenge.comments.map((comment) => (
                     <li className="rounded-2xl surface-input px-3 py-2.5 text-sm" key={comment.id}>
                       <p className="font-semibold">{comment.author_name}</p>
                       <p className="mt-1">{comment.body}</p>
-                      <p className="mt-1 text-xs text-[var(--muted)]">{formatDateRu(comment.created_at)}</p>
+                      <p className="mt-1 text-xs text-[var(--muted)]">
+                        {formatDateLocalized(locale, comment.created_at.slice(0, 10))}
+                      </p>
                     </li>
                   ))}
                 </ul>
               ) : (
-                <p className="text-sm text-[var(--muted)]">Пока нет комментариев.</p>
+                <p className="text-sm text-[var(--muted)]">{t("hubTiersNoComments")}</p>
               )}
 
               <form className="mt-3 flex gap-2" onSubmit={submitComment}>
                 <input
                   className="min-h-11 flex-1 rounded-2xl surface-input px-4 py-2.5 text-sm"
                   onChange={(event) => setCommentDraft(event.target.value)}
-                  placeholder="Написать комментарий…"
+                  placeholder={t("hubTiersCommentPlaceholder")}
                   value={commentDraft}
                 />
                 <button
-                  aria-label="Отправить"
+                  aria-label={t("commonSend")}
                   className="grid size-11 shrink-0 place-items-center rounded-2xl bg-[var(--accent)] text-white disabled:opacity-60"
                   disabled={!commentDraft.trim() || isPending}
                   type="submit"

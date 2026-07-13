@@ -2,6 +2,7 @@
 
 import { Share, X } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useLanguage } from "@/components/providers/language-provider";
 import {
   isAndroidDevice,
   isIosDevice,
@@ -45,6 +46,7 @@ function readBannerState(): BannerState {
 }
 
 export function PwaInstallBanner() {
+  const { t } = useLanguage();
   const [banner, setBanner] = useState<BannerState>(readBannerState);
   const [installEvent, setInstallEvent] = useState<BeforeInstallPromptEvent | null>(null);
   const [installing, setInstalling] = useState(false);
@@ -92,18 +94,19 @@ export function PwaInstallBanner() {
         </div>
 
         <div className="min-w-0 flex-1">
-          <p className="font-semibold">Установите Together</p>
+          <p className="font-semibold">{t("pwaInstallTitle")}</p>
           {banner.platform === "ios" ? (
             <ol className="mt-2 list-decimal space-y-1 pl-4 text-sm leading-6 text-[var(--muted)]">
               <li>
-                Нажмите <Share aria-hidden className="inline size-4 align-text-bottom" /> «Поделиться» в Safari
+                {t("pwaInstallIosShareSafari")}{" "}
+                <Share aria-hidden className="inline size-4 align-text-bottom" />
               </li>
-              <li>Выберите «На экран Домой»</li>
-              <li>Нажмите «Добавить»</li>
+              <li>{t("pwaInstallIosHomeScreen")}</li>
+              <li>{t("pwaInstallIosAddBtn")}</li>
             </ol>
           ) : (
             <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-              Добавьте приложение на главный экран — оно откроется без адресной строки.
+              {t("pwaInstallAndroidNoBar")}
             </p>
           )}
 
@@ -114,19 +117,19 @@ export function PwaInstallBanner() {
               onClick={handleAndroidInstall}
               type="button"
             >
-              {installing ? "Устанавливаем..." : "Установить приложение"}
+              {installing ? t("pwaInstalling") : t("pwaInstallAppBtn")}
             </button>
           ) : null}
 
           {banner.platform === "android" && !installEvent ? (
             <p className="mt-2 text-xs leading-5 text-[var(--muted)]">
-              Меню Chrome (⋮) → «Установить приложение» или «Добавить на главный экран».
+              {t("pwaInstallChromeMenu")}
             </p>
           ) : null}
         </div>
 
         <button
-          aria-label="Закрыть подсказку"
+          aria-label={t("pwaCloseHint")}
           className="grid size-10 shrink-0 place-items-center rounded-full border border-[var(--border)]"
           onClick={dismiss}
           type="button"

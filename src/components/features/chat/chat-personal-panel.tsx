@@ -2,8 +2,9 @@
 
 import { Trash2 } from "lucide-react";
 import { useState, useTransition } from "react";
+import { useLanguage } from "@/components/providers/language-provider";
 import { createChatNote, deleteChatNote, toggleSaveMessage } from "@/lib/chat/actions";
-import { formatMessageTime } from "@/lib/dates";
+import { formatDateLocalized } from "@/lib/dates";
 import type { ChatNote, ChatSavedMessage } from "@/types/domain";
 
 type ChatPersonalPanelProps = {
@@ -23,6 +24,7 @@ export function ChatPersonalPanel({
   onSavedChange,
   onNotesChange,
 }: ChatPersonalPanelProps) {
+  const { locale, t } = useLanguage();
   const [draft, setDraft] = useState("");
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
@@ -38,7 +40,7 @@ export function ChatPersonalPanel({
     startTransition(async () => {
       const result = await createChatNote(text);
       if (!result.ok) {
-        setError(result.error ?? "Не удалось убрать из сохранённых.");
+        setError(result.error ?? t("chatActionError"));
         return;
       }
 
@@ -51,7 +53,7 @@ export function ChatPersonalPanel({
     startTransition(async () => {
       const result = await toggleSaveMessage(messageId);
       if (!result.ok) {
-        setError(result.error ?? "Не удалось убрать из сохранённых.");
+        setError(result.error ?? t("chatActionError"));
         return;
       }
 
@@ -63,7 +65,7 @@ export function ChatPersonalPanel({
     startTransition(async () => {
       const result = await deleteChatNote(noteId);
       if (!result.ok) {
-        setError(result.error ?? "Не удалось убрать из сохранённых.");
+        setError(result.error ?? t("chatActionError"));
         return;
       }
 
@@ -75,11 +77,9 @@ export function ChatPersonalPanel({
     <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4 py-4 pb-[calc(4.75rem+env(safe-area-inset-bottom))]">
       <section>
         <h2 className="text-sm font-semibold uppercase tracking-wide text-[var(--muted)]">
-          Сохранённые сообщения
+          {t("chatSavedMessages")}
         </h2>
-        <p className="mt-1 text-xs text-[var(--muted)]">
-          Только вы видите эту подборку — партнёр не узнает.
-        </p>
+        <p className="mt-1 text-xs text-[var(--muted)]">{t("chatSavedHint")}</p>
 
         {savedMessages.length ? (
           <ul className="mt-4 space-y-3">
@@ -91,7 +91,8 @@ export function ChatPersonalPanel({
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
                       <p className="text-xs font-medium text-[var(--muted)]">
-                        {isMine ? "Вы" : partnerName} · {formatMessageTime(message.createdAt)}
+                        {isMine ? t("commonYou") : partnerName} ·{" "}
+                        {formatDateLocalized(locale, message.createdAt.slice(0, 10))}
                       </p>
                       {message.imageUrl ? (
                         // eslint-disable-next-line @next/next/no-img-element
@@ -108,7 +109,7 @@ export function ChatPersonalPanel({
                       ) : null}
                     </div>
                     <button
-                      aria-label="Убрать из сохранённых"
+                      aria-label={t("chatUnsave")}
                       className="grid size-9 shrink-0 place-items-center rounded-full text-[var(--muted)] transition-colors hover:bg-[var(--input-bg)] hover:text-[var(--accent)]"
                       disabled={isPending}
                       onClick={() => handleRemoveSaved(message.id)}
@@ -123,18 +124,16 @@ export function ChatPersonalPanel({
           </ul>
         ) : (
           <p className="mt-4 rounded-2xl surface-panel border-dashed px-4 py-6 text-center text-sm text-[var(--muted)]">
-            Нажмите закладку на сообщении в чате, чтобы сохранить его сюда.
+            {t("chatBookmarkHint")}
           </p>
         )}
       </section>
 
       <section className="mt-8">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-[var(--muted)]">
-          Мои заметки
+          {t("chatMyNotes")}
         </h2>
-        <p className="mt-1 text-xs text-[var(--muted)]">
-          Личные мысли по переписке — видны только вам.
-        </p>
+        <p className="mt-1 text-xs text-[var(--muted)]">{t("chatNotesHint")}</p>
 
         <form className="mt-4 grid gap-2" onSubmit={handleCreateNote}>
           <textarea
@@ -142,7 +141,7 @@ export function ChatPersonalPanel({
             disabled={isPending}
             maxLength={2000}
             onChange={(event) => setDraft(event.target.value)}
-            placeholder="Новая заметка..."
+            placeholder={t("chatNewNotePlaceholder")}
             value={draft}
           />
           <button
@@ -150,7 +149,7 @@ export function ChatPersonalPanel({
             disabled={isPending || !draft.trim()}
             type="submit"
           >
-            {isPending ? "Сохраняем..." : "Добавить заметку"}
+            {isPending ? t("commonSaving") : t("chatAddNote")}
           </button>
         </form>
 
@@ -162,18 +161,18 @@ export function ChatPersonalPanel({
                   <div className="min-w-0 flex-1">
                     {note.linkedMessage ? (
                       <p className="mb-2 rounded-xl bg-[var(--input-bg)] px-3 py-2 text-xs leading-5 text-[var(--muted)]">
-                        К сообщению: «
-                        {(note.linkedMessage.body ?? "📷 Фото").slice(0, 120)}
+                        {t("chatLinkedMessage")} «
+                        {(note.linkedMessage.body ?? t("chatPhotoLabel")).slice(0, 120)}
                         {(note.linkedMessage.body?.length ?? 0) > 120 ? "…" : ""}»
                       </p>
                     ) : null}
                     <p className="whitespace-pre-wrap break-words text-sm leading-6">{note.body}</p>
                     <p className="mt-2 text-xs text-[var(--muted)]">
-                      {formatMessageTime(note.updatedAt)}
+                      {formatDateLocalized(locale, note.updatedAt.slice(0, 10))}
                     </p>
                   </div>
                   <button
-                    aria-label="Удалить заметку"
+                    aria-label={t("chatDeleteNote")}
                     className="grid size-9 shrink-0 place-items-center rounded-full text-[var(--muted)] transition-colors hover:bg-[var(--input-bg)] hover:text-[var(--accent)]"
                     disabled={isPending}
                     onClick={() => handleDeleteNote(note.id)}
@@ -187,7 +186,7 @@ export function ChatPersonalPanel({
           </ul>
         ) : (
           <p className="mt-4 rounded-2xl surface-panel border-dashed px-4 py-6 text-center text-sm text-[var(--muted)]">
-            Заметок пока нет. Можно привязать заметку к сообщению или написать отдельно.
+            {t("chatNotesEmpty")}
           </p>
         )}
       </section>

@@ -2,25 +2,15 @@
 
 import { Plus, Timer, Trash2 } from "lucide-react";
 import { useMemo, useState, useTransition } from "react";
+import { useLanguage } from "@/components/providers/language-provider";
 import { EmptyState } from "@/components/ui/empty-state";
 import type { HubCountdownEvent } from "@/components/features/hub/types";
 import { addCountdownEvent, deleteCountdownEvent } from "@/lib/hub/lifestyle-actions";
-import { daysUntil, formatDateRu, todayIso } from "@/lib/dates";
+import { daysUntil, formatDateLocalized, todayIso } from "@/lib/dates";
 
 type CountdownPanelProps = {
   events: HubCountdownEvent[];
 };
-
-function countdownLabel(targetDate: string) {
-  const days = daysUntil(targetDate);
-  if (days === 0) {
-    return "Сегодня!";
-  }
-  if (days === 1) {
-    return "Завтра";
-  }
-  return `Через ${days} дн.`;
-}
 
 export function CountdownPanel({ events }: CountdownPanelProps) {
   const [showCreate, setShowCreate] = useState(false);
@@ -28,6 +18,7 @@ export function CountdownPanel({ events }: CountdownPanelProps) {
   const [targetDate, setTargetDate] = useState("");
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
+  const { locale, t } = useLanguage();
 
   const today = todayIso();
   const upcoming = useMemo(
@@ -39,13 +30,24 @@ export function CountdownPanel({ events }: CountdownPanelProps) {
     [events, today],
   );
 
+  function countdownLabel(target: string) {
+    const days = daysUntil(target);
+    if (days === 0) {
+      return t("countdownTodayExclaim");
+    }
+    if (days === 1) {
+      return t("countdownTomorrow");
+    }
+    return t("countdownInDays", { days });
+  }
+
   function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
     startTransition(async () => {
       const result = await addCountdownEvent(title, targetDate);
       if (!result.ok) {
-        setError(result.error ?? "Не удалось добавить.");
+        setError(result.error ?? t("hubErrorAdd"));
         return;
       }
       setShowCreate(false);
@@ -67,10 +69,10 @@ export function CountdownPanel({ events }: CountdownPanelProps) {
                     <p className="text-sm opacity-80">{countdownLabel(event.target_date)}</p>
                   </div>
                   <p className="mt-2 text-lg font-bold leading-snug">{event.title}</p>
-                  <p className="mt-1 text-sm opacity-80">{formatDateRu(event.target_date)}</p>
+                  <p className="mt-1 text-sm opacity-80">{formatDateLocalized(locale, event.target_date)}</p>
                 </div>
                 <button
-                  aria-label="Удалить"
+                  aria-label={t("commonDelete")}
                   className="grid size-9 shrink-0 place-items-center rounded-full bg-white/15"
                   disabled={isPending}
                   onClick={() =>
@@ -87,20 +89,20 @@ export function CountdownPanel({ events }: CountdownPanelProps) {
           ))
         ) : (
           <EmptyState
-            description="Добавьте важную дату — встречу, отпуск или праздник."
-            title="Нет предстоящих событий"
+            description={t("hubCountdownEmptyDesc")}
+            title={t("hubCountdownEmpty")}
           />
         )}
       </section>
 
       {past.length ? (
         <section className="mt-6">
-          <p className="mb-3 text-sm font-semibold text-[var(--muted)]">Прошедшие</p>
+          <p className="mb-3 text-sm font-semibold text-[var(--muted)]">{t("hubCountdownPast")}</p>
           <div className="grid gap-2">
             {past.map((event) => (
               <article className="rounded-2xl surface-input px-4 py-3 opacity-80" key={event.id}>
                 <p className="font-semibold">{event.title}</p>
-                <p className="mt-1 text-xs text-[var(--muted)]">{formatDateRu(event.target_date)}</p>
+                <p className="mt-1 text-xs text-[var(--muted)]">{formatDateLocalized(locale, event.target_date)}</p>
               </article>
             ))}
           </div>
@@ -108,7 +110,7 @@ export function CountdownPanel({ events }: CountdownPanelProps) {
       ) : null}
 
       <button
-        aria-label="Добавить событие"
+        aria-label={t("hubCountdownAddEvent")}
         className="fixed bottom-[calc(max(0.75rem,env(safe-area-inset-bottom))+5.25rem)] right-5 z-30 grid size-14 place-items-center rounded-full bg-[var(--accent)] text-white shadow-lg"
         onClick={() => setShowCreate(true)}
         type="button"
@@ -119,12 +121,12 @@ export function CountdownPanel({ events }: CountdownPanelProps) {
       {showCreate ? (
         <div className="fixed inset-0 z-50 flex items-end bg-black/40 p-4 pb-24">
           <form className="w-full rounded-3xl surface-panel p-5" onSubmit={submit}>
-            <p className="text-lg font-bold">Новое событие</p>
+            <p className="text-lg font-bold">{t("hubCountdownNewEvent")}</p>
             <div className="mt-3 grid gap-3">
               <input
                 className="rounded-2xl surface-input px-4 py-3"
                 onChange={(event) => setTitle(event.target.value)}
-                placeholder="Что ждём?"
+                placeholder={t("hubCountdownEventPlaceholder")}
                 required
                 value={title}
               />
@@ -141,7 +143,7 @@ export function CountdownPanel({ events }: CountdownPanelProps) {
                 disabled={isPending}
                 type="submit"
               >
-                Добавить
+                {t("commonAdd")}
               </button>
             </div>
           </form>

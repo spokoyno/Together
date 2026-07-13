@@ -19,7 +19,7 @@ export default async function HubChoresPage() {
 
   return (
     <main className="mx-auto min-h-screen max-w-md px-5 pb-32 pt-8">
-      <HubPanelHeader subtitle="Общие домашние задачи" title="Дела" />
+      <HubPanelHeader subtitleKey="panelChoresDesc" titleKey="panelChores" />
       <ChoresPanel chores={chores} members={members} />
     </main>
   );

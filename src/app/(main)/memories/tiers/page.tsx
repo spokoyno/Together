@@ -8,7 +8,7 @@ export default async function HubTiersPage() {
 
   return (
     <main className="mx-auto min-h-screen max-w-md px-5 pb-32 pt-8">
-      <HubPanelHeader subtitle="TierMaker — вызовы партнёру" title="Тир-листы" />
+      <HubPanelHeader subtitleKey="panelTiersDesc" titleKey="panelTiers" />
       <TierListsPanel
         challenges={challenges}
         coupleId={ctx.coupleId}

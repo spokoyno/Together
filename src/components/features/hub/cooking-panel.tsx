@@ -2,11 +2,12 @@
 
 import { Check, Plus } from "lucide-react";
 import { useMemo, useState, useTransition } from "react";
+import { useLanguage } from "@/components/providers/language-provider";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PhotoSourcePicker } from "@/components/ui/photo-source-picker";
 import type { HubCookingDish } from "@/components/features/hub/types";
 import { addCookingDish, addCookingLog, markDishCooked } from "@/lib/hub/actions";
-import { formatDateRu } from "@/lib/dates";
+import { formatDateLocalized } from "@/lib/dates";
 import { compressImageFile } from "@/lib/media/compress-image.client";
 import { uploadCoupleMediaClient } from "@/lib/media/upload.client";
 
@@ -36,6 +37,7 @@ export function CookingPanel({ dishes, userId, coupleId }: CookingPanelProps) {
   const [error, setError] = useState("");
   const [isPreparingPhoto, setIsPreparingPhoto] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const { locale, t } = useLanguage();
 
   const planned = useMemo(
     () => dishes.filter((dish) => dish.status === "planned"),
@@ -57,7 +59,7 @@ export function CookingPanel({ dishes, userId, coupleId }: CookingPanelProps) {
       setMediaFile(prepared);
       setPreviewUrl(URL.createObjectURL(prepared));
     } catch {
-      setError("Не удалось обработать фото.");
+      setError(t("hubErrorPhoto"));
     } finally {
       setIsPreparingPhoto(false);
     }
@@ -73,7 +75,7 @@ export function CookingPanel({ dishes, userId, coupleId }: CookingPanelProps) {
       setCookMediaFile(prepared);
       setCookPreviewUrl(URL.createObjectURL(prepared));
     } catch {
-      setError("Не удалось обработать фото.");
+      setError(t("hubErrorPhoto"));
     } finally {
       setIsPreparingPhoto(false);
     }
@@ -99,7 +101,7 @@ export function CookingPanel({ dishes, userId, coupleId }: CookingPanelProps) {
 
       const result = await addCookingDish(formData);
       if (!result.ok) {
-        setError(result.error ?? "Не удалось добавить блюдо.");
+        setError(result.error ?? t("hubCookingErrorAddDish"));
         return;
       }
 
@@ -124,7 +126,7 @@ export function CookingPanel({ dishes, userId, coupleId }: CookingPanelProps) {
       setCommentMediaFile(prepared);
       setCommentPreviewUrl(URL.createObjectURL(prepared));
     } catch {
-      setError("Не удалось обработать фото.");
+      setError(t("hubErrorPhoto"));
     } finally {
       setIsPreparingPhoto(false);
     }
@@ -151,7 +153,7 @@ export function CookingPanel({ dishes, userId, coupleId }: CookingPanelProps) {
 
       const result = await addCookingLog(commentDishId, formData);
       if (!result.ok) {
-        setError(result.error ?? "Не удалось добавить комментарий.");
+        setError(result.error ?? t("hubErrorComment"));
         return;
       }
 
@@ -186,7 +188,7 @@ export function CookingPanel({ dishes, userId, coupleId }: CookingPanelProps) {
 
       const result = await markDishCooked(cookingDishId, formData);
       if (!result.ok) {
-        setError(result.error ?? "Не удалось отметить блюдо.");
+        setError(result.error ?? t("hubCookingErrorMark"));
         return;
       }
 
@@ -211,7 +213,7 @@ export function CookingPanel({ dishes, userId, coupleId }: CookingPanelProps) {
           onClick={() => setView("planned")}
           type="button"
         >
-          Хотим приготовить
+          {t("hubCookingWantCook")}
         </button>
         <button
           className={`flex-1 rounded-2xl px-4 py-2.5 text-sm font-semibold ${
@@ -220,7 +222,7 @@ export function CookingPanel({ dishes, userId, coupleId }: CookingPanelProps) {
           onClick={() => setView("cooked")}
           type="button"
         >
-          Уже готовили
+          {t("hubCookingAlreadyCooked")}
         </button>
       </div>
 
@@ -243,8 +245,10 @@ export function CookingPanel({ dishes, userId, coupleId }: CookingPanelProps) {
                     ) : null}
                     <p className="mt-2 text-xs text-[var(--muted)]">
                       {dish.status === "cooked" && dish.cooked_at
-                        ? `Готовили ${formatDateRu(dish.cooked_at.slice(0, 10))}`
-                        : `Добавил(а) ${dish.author_name}`}
+                        ? t("hubCookedOn", {
+                            date: formatDateLocalized(locale, dish.cooked_at.slice(0, 10)),
+                          })
+                        : t("hubAddedBy", { name: dish.author_name })}
                     </p>
                   </div>
                   {dish.status === "planned" ? (
@@ -254,7 +258,7 @@ export function CookingPanel({ dishes, userId, coupleId }: CookingPanelProps) {
                       type="button"
                     >
                       <Check aria-hidden className="size-4" />
-                      Готовили
+                      {t("hubCookingMarkCooked")}
                     </button>
                   ) : (
                     <button
@@ -262,7 +266,7 @@ export function CookingPanel({ dishes, userId, coupleId }: CookingPanelProps) {
                       onClick={() => setCommentDishId(dish.id)}
                       type="button"
                     >
-                      Комментарий
+                      {t("hubCookingComment")}
                     </button>
                   )}
                 </div>
@@ -281,7 +285,7 @@ export function CookingPanel({ dishes, userId, coupleId }: CookingPanelProps) {
                         ) : null}
                         {log.body ? <p className="text-sm">{log.body}</p> : null}
                         <p className="mt-1 text-xs text-[var(--muted)]">
-                          {log.author_name} · {formatDateRu(log.created_at.slice(0, 10))}
+                          {log.author_name} · {formatDateLocalized(locale, log.created_at.slice(0, 10))}
                         </p>
                       </div>
                     ))}
@@ -293,18 +297,18 @@ export function CookingPanel({ dishes, userId, coupleId }: CookingPanelProps) {
         ) : (
           <EmptyState
             description={
-              view === "planned"
-                ? "Добавьте блюдо с фото и рецептом."
-                : "Отметьте блюдо как приготовленное — оно появится здесь."
+              view === "planned" ? t("hubCookingEmptyPlanned") : t("hubCookingEmptyCooked")
             }
-            title={view === "planned" ? "Список пуст" : "Пока ничего не готовили"}
+            title={
+              view === "planned" ? t("hubCookingEmptyPlannedTitle") : t("hubCookingEmptyCookedTitle")
+            }
           />
         )}
       </section>
 
       {view === "planned" ? (
         <button
-          aria-label="Добавить блюдо"
+          aria-label={t("hubCookingAddDish")}
           className="fixed bottom-[calc(max(0.75rem,env(safe-area-inset-bottom))+5.25rem)] right-5 z-30 grid size-14 place-items-center rounded-full bg-[var(--accent)] text-white shadow-lg active:scale-95"
           onClick={() => setShowCreate(true)}
           type="button"
@@ -319,19 +323,19 @@ export function CookingPanel({ dishes, userId, coupleId }: CookingPanelProps) {
             className="max-h-[85vh] w-full overflow-y-auto rounded-3xl surface-panel p-5 shadow-xl"
             onSubmit={submitDish}
           >
-            <p className="text-lg font-bold">Новое блюдо</p>
+            <p className="text-lg font-bold">{t("hubCookingNewDish")}</p>
             <div className="mt-4 grid gap-3">
               <input
                 className="rounded-2xl surface-input px-4 py-3"
                 onChange={(event) => setTitle(event.target.value)}
-                placeholder="Название"
+                placeholder={t("commonTitle")}
                 required
                 value={title}
               />
               <textarea
                 className="min-h-24 rounded-2xl surface-input px-4 py-3"
                 onChange={(event) => setRecipe(event.target.value)}
-                placeholder="Рецепт (необязательно)"
+                placeholder={t("hubCookingRecipePlaceholder")}
                 value={recipe}
               />
               {previewUrl ? (
@@ -348,7 +352,7 @@ export function CookingPanel({ dishes, userId, coupleId }: CookingPanelProps) {
                       onClick={open}
                       type="button"
                     >
-                      Фото блюда (необязательно)
+                      {t("hubCookingDishPhotoOptional")}
                     </button>
                   )}
                 />
@@ -360,14 +364,14 @@ export function CookingPanel({ dishes, userId, coupleId }: CookingPanelProps) {
                   onClick={() => setShowCreate(false)}
                   type="button"
                 >
-                  Отмена
+                  {t("commonCancel")}
                 </button>
                 <button
                   className="rounded-2xl bg-[var(--accent)] px-4 py-3 font-semibold text-white disabled:opacity-60"
                   disabled={isPending}
                   type="submit"
                 >
-                  {isPending ? "Сохраняем..." : "Добавить"}
+                  {isPending ? t("commonSaving") : t("commonAdd")}
                 </button>
               </div>
             </div>
@@ -378,15 +382,13 @@ export function CookingPanel({ dishes, userId, coupleId }: CookingPanelProps) {
       {cookingDishId ? (
         <div className="fixed inset-0 z-50 flex items-end bg-black/40 p-4 pb-[calc(max(0.75rem,env(safe-area-inset-bottom))+5rem)]">
           <div className="max-h-[85vh] w-full overflow-y-auto rounded-3xl surface-panel p-5 shadow-xl">
-            <p className="text-lg font-bold">Мы это готовили!</p>
-            <p className="mt-1 text-sm text-[var(--muted)]">
-              Добавьте комментарий или фото результата
-            </p>
+            <p className="text-lg font-bold">{t("hubCookingWeCooked")}</p>
+            <p className="mt-1 text-sm text-[var(--muted)]">{t("hubCookingAddCommentOrPhoto")}</p>
             <div className="mt-4 grid gap-3">
               <textarea
                 className="min-h-20 rounded-2xl surface-input px-4 py-3"
                 onChange={(event) => setCookNote(event.target.value)}
-                placeholder="Как прошло? Что получилось?"
+                placeholder={t("hubCookingHowWasIt")}
                 value={cookNote}
               />
               {cookPreviewUrl ? (
@@ -407,7 +409,7 @@ export function CookingPanel({ dishes, userId, coupleId }: CookingPanelProps) {
                       onClick={open}
                       type="button"
                     >
-                      Фото результата
+                      {t("hubCookingResultPhoto")}
                     </button>
                   )}
                 />
@@ -419,7 +421,7 @@ export function CookingPanel({ dishes, userId, coupleId }: CookingPanelProps) {
                   onClick={() => setCookingDishId(null)}
                   type="button"
                 >
-                  Отмена
+                  {t("commonCancel")}
                 </button>
                 <button
                   className="rounded-2xl bg-[var(--accent)] px-4 py-3 font-semibold text-white disabled:opacity-60"
@@ -427,7 +429,7 @@ export function CookingPanel({ dishes, userId, coupleId }: CookingPanelProps) {
                   onClick={confirmCooked}
                   type="button"
                 >
-                  {isPending ? "Сохраняем..." : "Сохранить"}
+                  {isPending ? t("commonSaving") : t("commonSave")}
                 </button>
               </div>
             </div>
@@ -438,12 +440,12 @@ export function CookingPanel({ dishes, userId, coupleId }: CookingPanelProps) {
       {commentDishId ? (
         <div className="fixed inset-0 z-50 flex items-end bg-black/40 p-4 pb-[calc(max(0.75rem,env(safe-area-inset-bottom))+5rem)]">
           <div className="max-h-[85vh] w-full overflow-y-auto rounded-3xl surface-panel p-5 shadow-xl">
-            <p className="text-lg font-bold">Комментарий к блюду</p>
+            <p className="text-lg font-bold">{t("hubCookingDishComment")}</p>
             <div className="mt-4 grid gap-3">
               <textarea
                 className="min-h-20 rounded-2xl surface-input px-4 py-3"
                 onChange={(event) => setCommentNote(event.target.value)}
-                placeholder="Как получилось в этот раз?"
+                placeholder={t("hubCookingHowThisTime")}
                 value={commentNote}
               />
               {commentPreviewUrl ? (
@@ -464,7 +466,7 @@ export function CookingPanel({ dishes, userId, coupleId }: CookingPanelProps) {
                       onClick={open}
                       type="button"
                     >
-                      Прикрепить фото
+                      {t("hubCookingAttachPhoto")}
                     </button>
                   )}
                 />
@@ -476,7 +478,7 @@ export function CookingPanel({ dishes, userId, coupleId }: CookingPanelProps) {
                   onClick={() => setCommentDishId(null)}
                   type="button"
                 >
-                  Отмена
+                  {t("commonCancel")}
                 </button>
                 <button
                   className="rounded-2xl bg-[var(--accent)] px-4 py-3 font-semibold text-white disabled:opacity-60"
@@ -484,7 +486,7 @@ export function CookingPanel({ dishes, userId, coupleId }: CookingPanelProps) {
                   onClick={submitComment}
                   type="button"
                 >
-                  {isPending ? "Сохраняем..." : "Отправить"}
+                  {isPending ? t("commonSaving") : t("commonSend")}
                 </button>
               </div>
             </div>

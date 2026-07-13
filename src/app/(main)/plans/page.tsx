@@ -28,7 +28,7 @@ export default async function PlansPage() {
     year,
     myBirthday,
     partnerBirthday,
-    myName: me?.display_name ?? "Вы",
+    myName: me?.display_name ?? "",
     partnerName: partner.display_name,
   });
 

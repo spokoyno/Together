@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useLanguage } from "@/components/providers/language-provider";
 import { leaveCouple } from "@/lib/couple/actions";
 
 type LeaveCoupleButtonProps = {
@@ -8,38 +9,24 @@ type LeaveCoupleButtonProps = {
   className?: string;
 };
 
-const MESSAGES = {
-  solo: {
-    title: "Отвязать пару?",
-    body: "Приглашение станет недействительным. Вы сможете создать новую пару или принять другое приглашение.",
-    confirm: "Да, отвязать",
-    cancel: "Отмена",
-    action: "Отвязать пару",
-  },
-  complete: {
-    title: "Отвязать пару?",
-    body: "Вы выйдете из общего пространства. Партнёр останется один и сможет пригласить кого-то снова. Совместные данные сохранятся в паре.",
-    confirm: "Да, отвязать",
-    cancel: "Отмена",
-    action: "Отвязать пару",
-  },
-} as const;
-
 export function LeaveCoupleButton({
   variant = "solo",
   className,
 }: LeaveCoupleButtonProps) {
+  const { t } = useLanguage();
   const [showConfirm, setShowConfirm] = useState(false);
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
-  const copy = MESSAGES[variant];
+
+  const title = variant === "solo" ? t("pairUnlinkInviteTitle") : t("pairUnlinkFullTitle");
+  const body = variant === "solo" ? t("pairUnlinkInviteBody") : t("pairUnlinkFullBody");
 
   function handleLeave() {
     setError("");
     startTransition(async () => {
       const result = await leaveCouple();
       if (result && !result.ok) {
-        setError(result.error ?? "Не удалось отвязать пару");
+        setError(result.error ?? t("pairErrorUnlink"));
         setShowConfirm(false);
       }
     });
@@ -49,8 +36,8 @@ export function LeaveCoupleButton({
     return (
       <div className={className ?? "grid gap-3"}>
         <div className="alert-error rounded-2xl p-4">
-          <p className="font-semibold">{copy.title}</p>
-          <p className="mt-2 text-sm leading-6 opacity-90">{copy.body}</p>
+          <p className="font-semibold">{title}</p>
+          <p className="mt-2 text-sm leading-6 opacity-90">{body}</p>
           <div className="mt-4 grid gap-2">
             <button
               className="rounded-2xl bg-[var(--accent)] px-4 py-3 font-semibold text-white disabled:opacity-60"
@@ -58,7 +45,7 @@ export function LeaveCoupleButton({
               onClick={handleLeave}
               type="button"
             >
-              {isPending ? "Отвязываем..." : copy.confirm}
+              {isPending ? t("pairUnlinkPending") : t("pairUnlinkConfirm")}
             </button>
             <button
               className="surface-input rounded-2xl px-4 py-3 font-semibold"
@@ -66,7 +53,7 @@ export function LeaveCoupleButton({
               onClick={() => setShowConfirm(false)}
               type="button"
             >
-              {copy.cancel}
+              {t("profileCancel")}
             </button>
           </div>
         </div>
@@ -88,7 +75,7 @@ export function LeaveCoupleButton({
       onClick={() => setShowConfirm(true)}
       type="button"
     >
-      {copy.action}
+      {t("pairUnlink")}
     </button>
   );
 }

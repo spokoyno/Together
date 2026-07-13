@@ -2,10 +2,12 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { useLanguage } from "@/components/providers/language-provider";
 import { createCouple } from "@/lib/couple/actions";
 
 export function CreateCoupleForm() {
   const router = useRouter();
+  const { t } = useLanguage();
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
 
@@ -28,7 +30,7 @@ export function CreateCoupleForm() {
   return (
     <form className="mt-8 grid gap-4" onSubmit={handleSubmit}>
       <label className="grid gap-2">
-        <span className="text-sm font-medium">Дата начала отношений</span>
+        <span className="text-sm font-medium">{t("pairRelationshipDate")}</span>
         <input
           className="rounded-2xl surface-input px-4 py-3"
           disabled={isPending}
@@ -49,7 +51,7 @@ export function CreateCoupleForm() {
         disabled={isPending}
         type="submit"
       >
-        {isPending ? "Создаём пару..." : "Создать пару и получить ссылку"}
+        {isPending ? t("pairCreating") : t("pairCreateAndLink")}
       </button>
     </form>
   );

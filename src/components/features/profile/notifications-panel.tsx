@@ -8,7 +8,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { useLanguage } from "@/components/providers/language-provider";
 import type { NotificationType } from "@/lib/notifications/actions";
 import { markAllNotificationsRead, markNotificationRead } from "@/lib/notifications/actions";
-import { formatDateRu } from "@/lib/dates";
+import { formatDateLocalized } from "@/lib/dates";
 
 export type InAppNotification = {
   id: string;
@@ -43,7 +43,7 @@ function notificationIcon(type: NotificationType) {
 export function NotificationsPanel({ notifications }: NotificationsPanelProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const { t } = useLanguage();
+  const { locale, t } = useLanguage();
 
   const unreadCount = notifications.filter((item) => !item.read_at).length;
 
@@ -105,9 +105,9 @@ export function NotificationsPanel({ notifications }: NotificationsPanelProps) {
                   {notification.body ? (
                     <p className="mt-1 text-sm text-[var(--muted)]">{notification.body}</p>
                   ) : null}
-                  <p className="mt-2 text-xs text-[var(--muted)]">{formatDateRu(notification.created_at)}</p>
+                  <p className="mt-2 text-xs text-[var(--muted)]">{formatDateLocalized(locale, notification.created_at)}</p>
                   {notification.link_path ? (
-                    <p className="mt-2 text-xs font-semibold text-[var(--accent)]">Открыть →</p>
+                    <p className="mt-2 text-xs font-semibold text-[var(--accent)]">{t("profileOpenLink")}</p>
                   ) : null}
                 </div>
               </div>

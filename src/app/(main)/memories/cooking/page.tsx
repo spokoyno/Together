@@ -8,7 +8,7 @@ export default async function HubCookingPage() {
 
   return (
     <main className="mx-auto min-h-screen max-w-md px-5 pb-32 pt-8">
-      <HubPanelHeader subtitle="Хотим приготовить и уже готовили" title="Готовка" />
+      <HubPanelHeader subtitleKey="panelCookingDesc" titleKey="panelCooking" />
       <CookingPanel coupleId={ctx.coupleId} dishes={dishes} userId={ctx.userId} />
     </main>
   );

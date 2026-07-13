@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useLanguage } from "@/components/providers/language-provider";
 import { EmptyState } from "@/components/ui/empty-state";
 import type { HubShoppingNote } from "@/components/features/hub/types";
 import { addShoppingNote, closeShoppingNote } from "@/lib/hub/extended-actions";
-import { formatDateRu } from "@/lib/dates";
+import { formatDateLocalized } from "@/lib/dates";
 
 type ShoppingPanelProps = {
   notes: HubShoppingNote[];
@@ -15,6 +16,7 @@ export function ShoppingPanel({ notes }: ShoppingPanelProps) {
   const [view, setView] = useState<"open" | "closed">("open");
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
+  const { locale, t } = useLanguage();
 
   const openNotes = notes.filter((note) => note.status === "open");
   const closedNotes = notes.filter((note) => note.status === "closed");
@@ -26,7 +28,7 @@ export function ShoppingPanel({ notes }: ShoppingPanelProps) {
     startTransition(async () => {
       const result = await addShoppingNote(draft);
       if (!result.ok) {
-        setError(result.error ?? "Не удалось добавить.");
+        setError(result.error ?? t("hubErrorAdd"));
         return;
       }
       setDraft("");
@@ -41,14 +43,14 @@ export function ShoppingPanel({ notes }: ShoppingPanelProps) {
           onClick={() => setView("open")}
           type="button"
         >
-          Активные
+          {t("hubActiveTab")}
         </button>
         <button
           className={`flex-1 rounded-2xl px-4 py-2.5 text-sm font-semibold ${view === "closed" ? "bg-[var(--accent)] text-white" : "surface-input"}`}
           onClick={() => setView("closed")}
           type="button"
         >
-          Завершённые
+          {t("hubCompletedTab")}
         </button>
       </div>
 
@@ -57,7 +59,7 @@ export function ShoppingPanel({ notes }: ShoppingPanelProps) {
           <textarea
             className="min-h-28 w-full rotate-[-0.5deg] rounded-sm border border-amber-200/80 bg-amber-50 px-4 py-4 text-sm leading-6 shadow-md dark:border-amber-900/40 dark:bg-amber-950/40"
             onChange={(event) => setDraft(event.target.value)}
-            placeholder="Молоко, хлеб, сыр..."
+            placeholder={t("hubShoppingPlaceholder")}
             value={draft}
           />
           {error ? <p className="mt-2 alert-error rounded-xl px-3 py-2 text-sm">{error}</p> : null}
@@ -66,7 +68,7 @@ export function ShoppingPanel({ notes }: ShoppingPanelProps) {
             disabled={isPending || !draft.trim()}
             type="submit"
           >
-            {isPending ? "Клеим..." : "Приклеить на стену"}
+            {isPending ? t("hubShoppingSticking") : t("hubShoppingStick")}
           </button>
         </form>
       ) : null}
@@ -85,8 +87,14 @@ export function ShoppingPanel({ notes }: ShoppingPanelProps) {
               <p className="whitespace-pre-wrap text-sm leading-6">{note.body}</p>
               <p className="mt-2 text-xs text-[var(--muted)]">
                 {note.status === "closed" && note.closed_by_name
-                  ? `Купил(а) ${note.closed_by_name} · ${formatDateRu(note.closed_at?.slice(0, 10) ?? note.created_at.slice(0, 10))}`
-                  : formatDateRu(note.created_at.slice(0, 10))}
+                  ? t("hubBoughtBy", {
+                      name: note.closed_by_name,
+                      date: formatDateLocalized(
+                        locale,
+                        note.closed_at?.slice(0, 10) ?? note.created_at.slice(0, 10),
+                      ),
+                    })
+                  : formatDateLocalized(locale, note.created_at.slice(0, 10))}
               </p>
               {note.status === "open" ? (
                 <button
@@ -99,19 +107,15 @@ export function ShoppingPanel({ notes }: ShoppingPanelProps) {
                   }
                   type="button"
                 >
-                  Закрыть — купили
+                  {t("hubShoppingClose")}
                 </button>
               ) : null}
             </article>
           ))
         ) : (
           <EmptyState
-            description={
-              view === "open"
-                ? "Добавьте записку со списком покупок."
-                : "Закрытые списки появятся здесь."
-            }
-            title="Пока пусто"
+            description={view === "open" ? t("hubShoppingEmptyOpen") : t("hubShoppingEmptyClosed")}
+            title={t("hubEmptyShort")}
           />
         )}
       </section>

@@ -3,10 +3,11 @@
 import { ListChecks, Plus, Trash2, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { useLanguage } from "@/components/providers/language-provider";
 import { EmptyState } from "@/components/ui/empty-state";
 import type { HubPoll } from "@/components/features/hub/types";
 import { createPartnerPoll, submitPollAnswers, type PollQuestionInput } from "@/lib/polls/actions";
-import { formatDateRu } from "@/lib/dates";
+import { formatDateLocalized } from "@/lib/dates";
 
 type PollsPanelProps = {
   polls: HubPoll[];
@@ -36,6 +37,7 @@ export function PollsPanel({ polls, userId, partnerId, partnerName }: PollsPanel
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
+  const { locale, t } = useLanguage();
 
   const pendingForMe = polls.filter((poll) => poll.target_user_id === userId && poll.status === "pending");
   const answerPoll = pendingForMe.find((poll) => poll.id === answerPollId) ?? null;
@@ -93,14 +95,14 @@ export function PollsPanel({ polls, userId, partnerId, partnerName }: PollsPanel
       }));
 
     if (!payload.length) {
-      setError("Добавьте хотя бы один вопрос.");
+      setError(t("hubPollsErrorNoQuestions"));
       return;
     }
 
     startTransition(async () => {
       const result = await createPartnerPoll(partnerId, title, payload);
       if (!result.ok) {
-        setError(result.error ?? "Не удалось создать опрос.");
+        setError(result.error ?? t("hubPollsErrorCreate"));
         return;
       }
       resetCreate();
@@ -135,7 +137,7 @@ export function PollsPanel({ polls, userId, partnerId, partnerName }: PollsPanel
     startTransition(async () => {
       const result = await submitPollAnswers(answerPoll.id, answers);
       if (!result.ok) {
-        setError(result.error ?? "Не удалось отправить ответы.");
+        setError(result.error ?? t("hubPollsErrorSubmit"));
         return;
       }
       setAnswerPollId(null);
@@ -157,10 +159,15 @@ export function PollsPanel({ polls, userId, partnerId, partnerName }: PollsPanel
                 <div className="min-w-0 flex-1">
                   <p className="font-bold">{poll.title}</p>
                   <p className="mt-1 text-sm text-[var(--muted)]">
-                    От {poll.creator_name} · {formatDateRu(poll.created_at)}
+                    {t("hubPollsFrom", {
+                      name: poll.creator_name,
+                      date: formatDateLocalized(locale, poll.created_at.slice(0, 10)),
+                    })}
                   </p>
                   <p className="mt-1 text-xs text-[var(--muted)]">
-                    {poll.questions.length} {poll.questions.length === 1 ? "вопрос" : "вопроса"}
+                    {poll.questions.length === 1
+                      ? t("hubPollsQuestionOne")
+                      : t("hubPollsQuestionCount", { count: poll.questions.length })}
                   </p>
                   <button
                     className="mt-3 rounded-xl bg-[var(--accent)] px-3 py-2.5 text-xs font-semibold text-white"
@@ -171,7 +178,7 @@ export function PollsPanel({ polls, userId, partnerId, partnerName }: PollsPanel
                     }}
                     type="button"
                   >
-                    Ответить
+                    {t("hubPollsAnswer")}
                   </button>
                 </div>
               </div>
@@ -179,14 +186,14 @@ export function PollsPanel({ polls, userId, partnerId, partnerName }: PollsPanel
           ))
         ) : (
           <EmptyState
-            description={`Создайте опрос для ${partnerName} или дождитесь нового.`}
-            title="Нет опросов для ответа"
+            description={t("hubPollsEmptyDesc", { name: partnerName })}
+            title={t("hubPollsEmpty")}
           />
         )}
       </section>
 
       <button
-        aria-label="Создать опрос"
+        aria-label={t("hubPollsCreate")}
         className="fixed bottom-[calc(max(0.75rem,env(safe-area-inset-bottom))+5.25rem)] right-5 z-30 grid size-14 place-items-center rounded-full bg-[var(--accent)] text-white shadow-lg active:scale-95"
         onClick={() => setShowCreate(true)}
         type="button"
@@ -201,9 +208,9 @@ export function PollsPanel({ polls, userId, partnerId, partnerName }: PollsPanel
             onSubmit={submitCreate}
           >
             <div className="mb-4 flex items-center justify-between">
-              <p className="text-lg font-bold">Опрос для {partnerName}</p>
+              <p className="text-lg font-bold">{t("hubPollsFor", { name: partnerName })}</p>
               <button
-                aria-label="Закрыть"
+                aria-label={t("commonClose")}
                 className="grid size-9 place-items-center rounded-full surface-input"
                 onClick={resetCreate}
                 type="button"
@@ -216,7 +223,7 @@ export function PollsPanel({ polls, userId, partnerId, partnerName }: PollsPanel
               <input
                 className="rounded-2xl surface-input px-4 py-3"
                 onChange={(event) => setTitle(event.target.value)}
-                placeholder="Название опроса"
+                placeholder={t("hubPollsTitlePlaceholder")}
                 required
                 value={title}
               />
@@ -224,10 +231,12 @@ export function PollsPanel({ polls, userId, partnerId, partnerName }: PollsPanel
               {questions.map((question, questionIndex) => (
                 <div className="rounded-2xl surface-input p-4" key={questionIndex}>
                   <div className="mb-2 flex items-center justify-between gap-2">
-                    <p className="text-sm font-semibold">Вопрос {questionIndex + 1}</p>
+                    <p className="text-sm font-semibold">
+                      {t("hubPollsQuestionN", { n: questionIndex + 1 })}
+                    </p>
                     {questions.length > 1 ? (
                       <button
-                        aria-label="Удалить вопрос"
+                        aria-label={t("hubPollsDeleteQuestion")}
                         className="grid size-8 place-items-center rounded-full text-[var(--muted)]"
                         onClick={() => removeQuestion(questionIndex)}
                         type="button"
@@ -240,7 +249,7 @@ export function PollsPanel({ polls, userId, partnerId, partnerName }: PollsPanel
                   <input
                     className="w-full rounded-xl bg-[var(--surface)] px-3 py-2.5 text-sm"
                     onChange={(event) => updateQuestion(questionIndex, { prompt: event.target.value })}
-                    placeholder="Текст вопроса"
+                    placeholder={t("hubPollsQuestionPlaceholder")}
                     required
                     value={question.prompt}
                   />
@@ -254,7 +263,7 @@ export function PollsPanel({ polls, userId, partnerId, partnerName }: PollsPanel
                       }
                       type="checkbox"
                     />
-                    Только текстовый ответ
+                    {t("hubPollsTextOnly")}
                   </label>
 
                   {!question.allowsText ? (
@@ -264,7 +273,7 @@ export function PollsPanel({ polls, userId, partnerId, partnerName }: PollsPanel
                           className="rounded-xl bg-[var(--surface)] px-3 py-2.5 text-sm"
                           key={optionIndex}
                           onChange={(event) => updateOption(questionIndex, optionIndex, event.target.value)}
-                          placeholder={`Вариант ${optionIndex + 1}`}
+                          placeholder={t("hubPollsOptionN", { n: optionIndex + 1 })}
                           value={option}
                         />
                       ))}
@@ -273,7 +282,7 @@ export function PollsPanel({ polls, userId, partnerId, partnerName }: PollsPanel
                         onClick={() => addOption(questionIndex)}
                         type="button"
                       >
-                        + Добавить вариант
+                        {t("hubPollsAddOption")}
                       </button>
                     </div>
                   ) : null}
@@ -285,7 +294,7 @@ export function PollsPanel({ polls, userId, partnerId, partnerName }: PollsPanel
                 onClick={() => setQuestions((current) => [...current, emptyQuestion()])}
                 type="button"
               >
-                + Добавить вопрос
+                {t("hubPollsAddQuestion")}
               </button>
 
               {error ? <p className="alert-error rounded-xl px-3 py-2 text-sm">{error}</p> : null}
@@ -295,7 +304,7 @@ export function PollsPanel({ polls, userId, partnerId, partnerName }: PollsPanel
                 disabled={!title.trim() || isPending}
                 type="submit"
               >
-                {isPending ? "Отправляем…" : "Создать опрос"}
+                {isPending ? t("hubPollsSubmitting") : t("hubPollsCreatePoll")}
               </button>
             </div>
           </form>
@@ -311,7 +320,7 @@ export function PollsPanel({ polls, userId, partnerId, partnerName }: PollsPanel
             <div className="mb-4 flex items-center justify-between gap-3">
               <p className="text-lg font-bold">{answerPoll.title}</p>
               <button
-                aria-label="Закрыть"
+                aria-label={t("commonClose")}
                 className="grid size-9 shrink-0 place-items-center rounded-full surface-input"
                 onClick={() => {
                   setAnswerPollId(null);
@@ -337,7 +346,7 @@ export function PollsPanel({ polls, userId, partnerId, partnerName }: PollsPanel
                       <textarea
                         className="mt-3 min-h-20 w-full rounded-xl bg-[var(--surface)] px-3 py-2.5 text-sm"
                         onChange={(event) => setAnswer(question.id, { textAnswer: event.target.value })}
-                        placeholder="Ваш ответ…"
+                        placeholder={t("hubPollsYourAnswer")}
                         value={draft?.textAnswer ?? ""}
                       />
                     ) : (
@@ -372,7 +381,7 @@ export function PollsPanel({ polls, userId, partnerId, partnerName }: PollsPanel
                 disabled={isPending}
                 type="submit"
               >
-                {isPending ? "Отправляем…" : "Отправить ответы"}
+                {isPending ? t("hubPollsSubmitting") : t("hubPollsSubmitAnswers")}
               </button>
             </div>
           </form>

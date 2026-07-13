@@ -2,10 +2,11 @@
 
 import { Plus } from "lucide-react";
 import { useMemo, useState, useTransition } from "react";
+import { useLanguage } from "@/components/providers/language-provider";
 import { EmptyState } from "@/components/ui/empty-state";
 import type { HubChore } from "@/components/features/hub/types";
 import { addChore, completeChore } from "@/lib/hub/lifestyle-actions";
-import { formatDateRu } from "@/lib/dates";
+import { formatDateLocalized } from "@/lib/dates";
 
 type ChoreMember = {
   id: string;
@@ -27,6 +28,7 @@ export function ChoresPanel({ chores, members }: ChoresPanelProps) {
   const [assignedTo, setAssignedTo] = useState("");
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
+  const { locale, t } = useLanguage();
 
   const pending = useMemo(
     () => chores.filter((chore) => chore.status === "pending"),
@@ -48,7 +50,7 @@ export function ChoresPanel({ chores, members }: ChoresPanelProps) {
         assignedTo || null,
       );
       if (!result.ok) {
-        setError(result.error ?? "Не удалось добавить.");
+        setError(result.error ?? t("hubErrorAdd"));
         return;
       }
       setShowCreate(false);
@@ -66,14 +68,14 @@ export function ChoresPanel({ chores, members }: ChoresPanelProps) {
           onClick={() => setView("pending")}
           type="button"
         >
-          Запланировано
+          {t("hubPlannedTab")}
         </button>
         <button
           className={`flex-1 rounded-2xl px-4 py-2.5 text-sm font-semibold ${view === "done" ? "bg-[var(--accent)] text-white" : "surface-input"}`}
           onClick={() => setView("done")}
           type="button"
         >
-          Выполнено
+          {t("hubDoneTab")}
         </button>
       </div>
 
@@ -84,10 +86,20 @@ export function ChoresPanel({ chores, members }: ChoresPanelProps) {
               <p className="font-bold">{chore.title}</p>
               <p className="mt-2 text-xs text-[var(--muted)]">
                 {chore.status === "done" && chore.completed_by_name
-                  ? `Сделал(а) ${chore.completed_by_name} · ${formatDateRu(chore.completed_at?.slice(0, 10) ?? chore.created_at.slice(0, 10))}`
+                  ? t("hubCompletedBy", {
+                      name: chore.completed_by_name,
+                      date: formatDateLocalized(
+                        locale,
+                        chore.completed_at?.slice(0, 10) ?? chore.created_at.slice(0, 10),
+                      ),
+                    })
                   : [
-                      chore.assigned_to_name ? `Исполнитель: ${chore.assigned_to_name}` : null,
-                      chore.due_date ? `Срок: ${formatDateRu(chore.due_date)}` : null,
+                      chore.assigned_to_name
+                        ? t("hubAssignedTo", { name: chore.assigned_to_name })
+                        : null,
+                      chore.due_date
+                        ? t("hubDueDate", { date: formatDateLocalized(locale, chore.due_date) })
+                        : null,
                       chore.author_name,
                     ]
                       .filter(Boolean)
@@ -104,7 +116,7 @@ export function ChoresPanel({ chores, members }: ChoresPanelProps) {
                   }
                   type="button"
                 >
-                  Готово
+                  {t("hubMarkDone")}
                 </button>
               ) : null}
             </article>
@@ -112,18 +124,16 @@ export function ChoresPanel({ chores, members }: ChoresPanelProps) {
         ) : (
           <EmptyState
             description={
-              view === "pending"
-                ? "Добавьте домашнее дело для пары."
-                : "Выполненные задачи появятся здесь."
+              view === "pending" ? t("hubChoresEmptyOpen") : t("hubChoresEmptyClosed")
             }
-            title="Пока пусто"
+            title={t("hubEmptyShort")}
           />
         )}
       </section>
 
       {view === "pending" ? (
         <button
-          aria-label="Добавить дело"
+          aria-label={t("hubChoresAdd")}
           className="fixed bottom-[calc(max(0.75rem,env(safe-area-inset-bottom))+5.25rem)] right-5 z-30 grid size-14 place-items-center rounded-full bg-[var(--accent)] text-white shadow-lg"
           onClick={() => setShowCreate(true)}
           type="button"
@@ -135,12 +145,12 @@ export function ChoresPanel({ chores, members }: ChoresPanelProps) {
       {showCreate ? (
         <div className="fixed inset-0 z-50 flex items-end bg-black/40 p-4 pb-24">
           <form className="w-full rounded-3xl surface-panel p-5" onSubmit={submit}>
-            <p className="text-lg font-bold">Новое дело</p>
+            <p className="text-lg font-bold">{t("hubChoresNew")}</p>
             <div className="mt-3 grid gap-3">
               <input
                 className="rounded-2xl surface-input px-4 py-3"
                 onChange={(event) => setTitle(event.target.value)}
-                placeholder="Что нужно сделать?"
+                placeholder={t("hubChoresTitlePlaceholder")}
                 required
                 value={title}
               />
@@ -155,7 +165,7 @@ export function ChoresPanel({ chores, members }: ChoresPanelProps) {
                 onChange={(event) => setAssignedTo(event.target.value)}
                 value={assignedTo}
               >
-                <option value="">Справедливо (авто)</option>
+                <option value="">{t("hubChoresFairAuto")}</option>
                 {members.map((member) => (
                   <option key={member.id} value={member.id}>
                     {member.name}
@@ -168,7 +178,7 @@ export function ChoresPanel({ chores, members }: ChoresPanelProps) {
                 disabled={isPending}
                 type="submit"
               >
-                Добавить
+                {t("commonAdd")}
               </button>
             </div>
           </form>

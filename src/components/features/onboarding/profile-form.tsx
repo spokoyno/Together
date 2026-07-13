@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { GenderSelect } from "@/components/features/profile/gender-select";
+import { useLanguage } from "@/components/providers/language-provider";
 import { saveOnboardingProfile } from "@/lib/onboarding/actions";
 import type { ProfileGender } from "@/types/domain";
 
@@ -16,6 +17,7 @@ export function ProfileOnboardingForm({
   initialGender = null,
 }: ProfileOnboardingFormProps) {
   const router = useRouter();
+  const { t } = useLanguage();
   const [name, setName] = useState(displayName);
   const [birthday, setBirthday] = useState("");
   const [gender, setGender] = useState<ProfileGender | "">(initialGender ?? "");
@@ -27,14 +29,14 @@ export function ProfileOnboardingForm({
     setError("");
 
     if (!gender) {
-      setError("Выберите пол.");
+      setError(t("onboardingSelectGender"));
       return;
     }
 
     startTransition(async () => {
       const result = await saveOnboardingProfile(name, birthday, gender);
       if (!result.ok) {
-        setError(result.error ?? "Не удалось сохранить.");
+        setError(result.error ?? t("hubErrorSave"));
         return;
       }
       router.replace("/onboarding/invite");
@@ -45,17 +47,17 @@ export function ProfileOnboardingForm({
   return (
     <form className="mt-8 grid gap-4" onSubmit={handleSubmit}>
       <label className="grid gap-2">
-        <span className="text-sm font-semibold">Имя</span>
+        <span className="text-sm font-semibold">{t("profileName")}</span>
         <input
           className="rounded-2xl surface-input px-4 py-3"
           onChange={(event) => setName(event.target.value)}
-          placeholder="Как вас называть?"
+          placeholder={t("onboardingNamePlaceholder")}
           required
           value={name}
         />
       </label>
       <label className="grid gap-2">
-        <span className="text-sm font-semibold">День рождения</span>
+        <span className="text-sm font-semibold">{t("onboardingBirthday")}</span>
         <input
           className="rounded-2xl surface-input px-4 py-3"
           onChange={(event) => setBirthday(event.target.value)}
@@ -65,7 +67,7 @@ export function ProfileOnboardingForm({
         />
       </label>
       <div className="grid gap-2">
-        <span className="text-sm font-semibold">Пол</span>
+        <span className="text-sm font-semibold">{t("profileGender")}</span>
         <GenderSelect disabled={isPending} onChange={setGender} value={gender} />
       </div>
       {error ? <p className="alert-error rounded-xl px-3 py-2 text-sm">{error}</p> : null}
@@ -74,7 +76,7 @@ export function ProfileOnboardingForm({
         disabled={isPending || !name.trim() || !birthday || !gender}
         type="submit"
       >
-        {isPending ? "Сохраняем..." : "Продолжить"}
+        {isPending ? t("profileSaving") : t("onboardingContinue")}
       </button>
     </form>
   );

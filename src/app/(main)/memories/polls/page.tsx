@@ -8,7 +8,7 @@ export default async function HubPollsPage() {
 
   return (
     <main className="mx-auto min-h-screen max-w-md px-5 pb-32 pt-8">
-      <HubPanelHeader subtitle="Вопросы и ответы для двоих" title="Опросы" />
+      <HubPanelHeader subtitleKey="panelPollsDesc" titleKey="panelPolls" />
       <PollsPanel
         partnerId={ctx.partnerId}
         partnerName={ctx.partnerName}

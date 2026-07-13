@@ -79,11 +79,11 @@ export async function DashboardContent({
 
   return (
     <DashboardHome
-      dailyQuestionPrompt={dailyQuestion?.questions?.prompt ?? "Вопросы скоро появятся"}
+      dailyQuestionPrompt={dailyQuestion?.questions?.prompt ?? ""}
       daysTogether={daysTogether}
       myAvatarUrl={myProfile?.avatar_path ? signed[myProfile.avatar_path] ?? null : null}
       myMood={(myMoodResult.data?.level as MoodLevel | undefined) ?? null}
-      myName={me?.display_name ?? "Вы"}
+      myName={me?.display_name ?? ""}
       nearestCountdown={nearestCountdown}
       panelPreferences={panels}
       partnerAvatarUrl={

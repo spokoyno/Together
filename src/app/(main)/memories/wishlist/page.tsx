@@ -8,7 +8,7 @@ export default async function HubWishlistPage() {
 
   return (
     <main className="mx-auto min-h-screen max-w-md px-5 pb-32 pt-8">
-      <HubPanelHeader subtitle="Желания, которые можно исполнить" title="Wishlist" />
+      <HubPanelHeader subtitleKey="panelWishlistDesc" titleKey="panelWishlist" />
       <WishlistPanel
         coupleId={ctx.coupleId}
         items={items}

@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { Camera, Loader2 } from "lucide-react";
 import { PhotoSourcePicker } from "@/components/ui/photo-source-picker";
 import { UserAvatar } from "@/components/ui/user-avatar";
+import { useLanguage } from "@/components/providers/language-provider";
 import { compressAvatarFile } from "@/lib/media/compress-image.client";
 import { uploadAvatarClient } from "@/lib/media/upload.client";
 import { saveAvatarPath } from "@/lib/profile/actions";
@@ -16,6 +17,7 @@ type AvatarUploadProps = {
 };
 
 export function AvatarUpload({ name, userId, imageUrl, size = "lg" }: AvatarUploadProps) {
+  const { t } = useLanguage();
   const [overrideUrl, setOverrideUrl] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [isPreparing, setIsPreparing] = useState(false);
@@ -61,7 +63,7 @@ export function AvatarUpload({ name, userId, imageUrl, size = "lg" }: AvatarUplo
         setOverrideUrl(saved.avatarUrl);
       });
     } catch {
-      setError("Не удалось обработать фото.");
+      setError(t("hubErrorPhoto"));
       setOverrideUrl(null);
       if (localPreview) {
         URL.revokeObjectURL(localPreview);
@@ -86,7 +88,7 @@ export function AvatarUpload({ name, userId, imageUrl, size = "lg" }: AvatarUplo
         onSelect={(file) => void handlePick(file)}
         renderTrigger={({ open, disabled }) => (
           <button
-            aria-label="Изменить аватар"
+            aria-label={t("profileChangeAvatar")}
             className={`absolute -bottom-0.5 -right-0.5 grid ${buttonSize} place-items-center rounded-full bg-[var(--accent)] text-white shadow-md transition-transform active:scale-95 disabled:opacity-60`}
             disabled={disabled}
             onClick={open}

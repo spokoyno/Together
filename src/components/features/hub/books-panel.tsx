@@ -3,6 +3,7 @@
 import { BookOpen, Plus, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
+import { useLanguage } from "@/components/providers/language-provider";
 import { EmptyState } from "@/components/ui/empty-state";
 import { RatingDisplay, RatingInput } from "@/components/ui/rating-stars";
 import type { HubBook } from "@/components/features/hub/types";
@@ -57,6 +58,7 @@ export function BooksPanel({ books, userId, partnerId, partnerName }: BooksPanel
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
+  const { t } = useLanguage();
 
   const wantBooks = useMemo(() => books.filter((book) => book.status === "want"), [books]);
   const readBooks = useMemo(
@@ -86,7 +88,7 @@ export function BooksPanel({ books, userId, partnerId, partnerName }: BooksPanel
       });
 
       if (!result.ok) {
-        setError(result.error ?? "Не удалось добавить книгу.");
+        setError(result.error ?? t("hubBooksErrorAdd"));
         return;
       }
 
@@ -114,7 +116,7 @@ export function BooksPanel({ books, userId, partnerId, partnerName }: BooksPanel
     startTransition(async () => {
       const result = await markBookRead(readModal.bookId, readModal.rating, readModal.review);
       if (!result.ok) {
-        setError(result.error ?? "Не удалось сохранить.");
+        setError(result.error ?? t("hubErrorSave"));
         return;
       }
       setReadModal(null);
@@ -127,7 +129,7 @@ export function BooksPanel({ books, userId, partnerId, partnerName }: BooksPanel
     startTransition(async () => {
       const result = await saveBookReview(bookId, review);
       if (!result.ok) {
-        setError(result.error ?? "Не удалось сохранить отзыв.");
+        setError(result.error ?? t("hubBooksErrorReview"));
         return;
       }
       router.refresh();
@@ -139,8 +141,8 @@ export function BooksPanel({ books, userId, partnerId, partnerName }: BooksPanel
       <div className="mb-4 flex gap-2 overflow-x-auto">
         {(
           [
-            ["want", "Хочу прочитать"],
-            ["read", "Прочитано"],
+            ["want", t("hubBooksWantRead")],
+            ["read", t("hubBooksRead")],
           ] as const
         ).map(([key, label]) => (
           <button
@@ -175,7 +177,7 @@ export function BooksPanel({ books, userId, partnerId, partnerName }: BooksPanel
                         onClick={() => openReadModal(book)}
                         type="button"
                       >
-                        Прочитано
+                        {t("hubBooksMarkRead")}
                       </button>
                     </div>
                   </div>
@@ -184,8 +186,8 @@ export function BooksPanel({ books, userId, partnerId, partnerName }: BooksPanel
             ))
           ) : (
             <EmptyState
-              description="Добавьте книгу, которую хотите прочитать вместе."
-              title="Список книг пуст"
+              description={t("hubBooksEmptyWantDesc")}
+              title={t("hubBooksEmptyWant")}
             />
           )}
         </section>
@@ -208,7 +210,7 @@ export function BooksPanel({ books, userId, partnerId, partnerName }: BooksPanel
                         <p className="mt-1 text-sm text-[var(--muted)]">{book.author}</p>
                       ) : null}
                       <div className="mt-3 space-y-2">
-                        <RatingDisplay label="Вы" value={myRating} />
+                        <RatingDisplay label={t("commonYou")} value={myRating} />
                         <RatingDisplay label={partnerName} value={partnerRating} />
                       </div>
                     </div>
@@ -217,7 +219,7 @@ export function BooksPanel({ books, userId, partnerId, partnerName }: BooksPanel
                   <div className="space-y-2 border-t border-[var(--border)] px-4 py-4">
                     {myReview ? (
                       <p className="rounded-xl surface-input px-3 py-2 text-sm">
-                        <span className="font-semibold">Ваш отзыв: </span>
+                        <span className="font-semibold">{t("hubYourReviewLabel")} </span>
                         {myReview}
                       </p>
                     ) : null}
@@ -235,7 +237,7 @@ export function BooksPanel({ books, userId, partnerId, partnerName }: BooksPanel
                           [book.id]: event.target.value,
                         }))
                       }
-                      placeholder="Ваш отзыв после прочтения…"
+                      placeholder={t("hubReviewShort")}
                       value={reviewDrafts[book.id] ?? myReview ?? ""}
                     />
                     <button
@@ -244,7 +246,7 @@ export function BooksPanel({ books, userId, partnerId, partnerName }: BooksPanel
                       onClick={() => saveReview(book.id)}
                       type="button"
                     >
-                      Сохранить отзыв
+                      {t("hubSaveReview")}
                     </button>
                   </div>
                 </article>
@@ -252,8 +254,8 @@ export function BooksPanel({ books, userId, partnerId, partnerName }: BooksPanel
             })
           ) : (
             <EmptyState
-              description="Отметьте книгу прочитанной и оставьте отзыв."
-              title="Прочитанных книг пока нет"
+              description={t("hubBooksEmptyReadDesc")}
+              title={t("hubBooksEmptyRead")}
             />
           )}
         </section>
@@ -261,7 +263,7 @@ export function BooksPanel({ books, userId, partnerId, partnerName }: BooksPanel
 
       {tab === "want" ? (
         <button
-          aria-label="Добавить книгу"
+          aria-label={t("hubBooksAddBook")}
           className="fixed bottom-[calc(max(0.75rem,env(safe-area-inset-bottom))+5.25rem)] right-5 z-30 grid size-14 place-items-center rounded-full bg-[var(--accent)] text-white shadow-lg active:scale-95"
           onClick={() => setShowForm(true)}
           type="button"
@@ -274,9 +276,9 @@ export function BooksPanel({ books, userId, partnerId, partnerName }: BooksPanel
         <div className="fixed inset-0 z-50 flex items-end bg-black/40 p-4 pb-[calc(max(0.75rem,env(safe-area-inset-bottom))+5rem)]">
           <form className="w-full max-w-md rounded-3xl surface-panel p-5 shadow-xl" onSubmit={submitReadModal}>
             <div className="mb-4 flex items-center justify-between">
-              <p className="text-lg font-bold">Прочитано</p>
+              <p className="text-lg font-bold">{t("hubBooksReadTitle")}</p>
               <button
-                aria-label="Закрыть"
+                aria-label={t("commonClose")}
                 className="grid size-9 place-items-center rounded-full surface-input"
                 onClick={() => setReadModal(null)}
                 type="button"
@@ -285,14 +287,14 @@ export function BooksPanel({ books, userId, partnerId, partnerName }: BooksPanel
               </button>
             </div>
             <p className="mb-3 font-semibold">{readModal.title}</p>
-            <p className="mb-2 text-sm font-semibold">Оценка</p>
+            <p className="mb-2 text-sm font-semibold">{t("ratingLabel")}</p>
             <RatingInput
               disabled={isPending}
               onChange={(rating) => setReadModal((current) => (current ? { ...current, rating } : current))}
               value={readModal.rating}
             />
             <label className="mt-4 block text-sm font-semibold" htmlFor="read-review">
-              Отзыв
+              {t("commonReview")}
             </label>
             <textarea
               className="mt-2 min-h-24 w-full rounded-2xl surface-input px-4 py-3 text-sm"
@@ -300,7 +302,7 @@ export function BooksPanel({ books, userId, partnerId, partnerName }: BooksPanel
               onChange={(event) =>
                 setReadModal((current) => (current ? { ...current, review: event.target.value } : current))
               }
-              placeholder="Что понравилось или не понравилось?"
+              placeholder={t("hubReviewPlaceholder")}
               value={readModal.review}
             />
             <button
@@ -308,7 +310,7 @@ export function BooksPanel({ books, userId, partnerId, partnerName }: BooksPanel
               disabled={isPending}
               type="submit"
             >
-              {isPending ? "Сохраняем…" : "Сохранить"}
+              {isPending ? t("commonSaving") : t("commonSave")}
             </button>
           </form>
         </div>
@@ -318,9 +320,9 @@ export function BooksPanel({ books, userId, partnerId, partnerName }: BooksPanel
         <div className="fixed inset-0 z-50 flex items-end bg-black/40 p-4 pb-[calc(max(0.75rem,env(safe-area-inset-bottom))+5rem)]">
           <form className="max-h-[85vh] w-full overflow-y-auto rounded-3xl surface-panel p-5 shadow-xl" onSubmit={submitBook}>
             <div className="mb-4 flex items-center justify-between">
-              <p className="text-lg font-bold">Добавить книгу</p>
+              <p className="text-lg font-bold">{t("hubBooksAddBook")}</p>
               <button
-                aria-label="Закрыть"
+                aria-label={t("commonClose")}
                 className="grid size-9 place-items-center rounded-full surface-input"
                 onClick={resetForm}
                 type="button"
@@ -333,14 +335,14 @@ export function BooksPanel({ books, userId, partnerId, partnerName }: BooksPanel
               <input
                 className="rounded-2xl surface-input px-4 py-3"
                 onChange={(event) => setTitle(event.target.value)}
-                placeholder="Название"
+                placeholder={t("commonTitle")}
                 required
                 value={title}
               />
               <input
                 className="rounded-2xl surface-input px-4 py-3"
                 onChange={(event) => setAuthor(event.target.value)}
-                placeholder="Автор (необязательно)"
+                placeholder={t("hubBooksAuthorOptional")}
                 value={author}
               />
 
@@ -349,7 +351,7 @@ export function BooksPanel({ books, userId, partnerId, partnerName }: BooksPanel
                 disabled={!title.trim() || isPending}
                 type="submit"
               >
-                {isPending ? "Сохраняем…" : "Добавить"}
+                {isPending ? t("commonSaving") : t("commonAdd")}
               </button>
             </div>
           </form>

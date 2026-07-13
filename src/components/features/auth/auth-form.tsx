@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ZodError } from "zod";
+import { useLanguage } from "@/components/providers/language-provider";
+import type { MessageKey } from "@/lib/i18n/messages";
 import { createClient } from "@/lib/supabase/client";
 import { getAppUrl } from "@/lib/config/app-url";
 import {
@@ -22,30 +24,30 @@ type AuthFormProps = {
   nextPath?: string;
 };
 
-function mapAuthError(message: string): string {
+function mapAuthError(message: string, t: (key: MessageKey) => string): string {
   const normalized = message.toLowerCase();
 
   if (normalized.includes("invalid login credentials")) {
-    return "Неверный email или пароль.";
+    return t("authErrorInvalid");
   }
 
   if (normalized.includes("user already registered")) {
-    return "Пользователь с таким email уже зарегистрирован.";
+    return t("authErrorExists");
   }
 
   if (normalized.includes("email not confirmed")) {
-    return "Подтвердите email — проверьте почту.";
+    return t("authErrorUnconfirmed");
   }
 
   if (normalized.includes("password")) {
-    return "Пароль не подходит. Нужно минимум 8 символов.";
+    return t("authErrorPassword");
   }
 
   if (normalized.includes("rate limit")) {
-    return "Слишком много попыток. Подождите немного.";
+    return t("authErrorRateLimit");
   }
 
-  return "Не удалось выполнить действие. Попробуйте ещё раз.";
+  return t("commonErrorGeneric");
 }
 
 export function AuthForm({
@@ -54,6 +56,7 @@ export function AuthForm({
   nextPath = "/dashboard",
 }: AuthFormProps) {
   const router = useRouter();
+  const { t } = useLanguage();
   const [mode, setMode] = useState<AuthMode>(initialMode);
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
@@ -86,11 +89,11 @@ export function AuthForm({
         );
 
         if (resetError) {
-          setError(mapAuthError(resetError.message));
+          setError(mapAuthError(resetError.message, t));
           return;
         }
 
-        setSuccess("Ссылка для сброса пароля отправлена на ваш email.");
+        setSuccess(t("authResetSent"));
         return;
       }
 
@@ -111,7 +114,7 @@ export function AuthForm({
         });
 
         if (signUpError) {
-          setError(mapAuthError(signUpError.message));
+          setError(mapAuthError(signUpError.message, t));
           return;
         }
 
@@ -121,9 +124,7 @@ export function AuthForm({
           return;
         }
 
-        setSuccess(
-          "Аккаунт создан. Проверьте почту и перейдите по ссылке для подтверждения.",
-        );
+        setSuccess(t("authAccountCreated"));
         return;
       }
 
@@ -135,7 +136,7 @@ export function AuthForm({
       });
 
       if (signInError) {
-        setError(mapAuthError(signInError.message));
+        setError(mapAuthError(signInError.message, t));
         return;
       }
 
@@ -154,7 +155,7 @@ export function AuthForm({
         return;
       }
 
-      setError("Не удалось выполнить действие. Попробуйте ещё раз.");
+      setError(t("commonErrorGeneric"));
     } finally {
       setLoading(false);
     }
@@ -170,14 +171,12 @@ export function AuthForm({
   if (mode === "reset") {
     return (
       <div>
-        <h2 className="text-xl font-bold">Восстановление доступа</h2>
-        <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-          Мы отправим ссылку для нового пароля на ваш email.
-        </p>
+        <h2 className="text-xl font-bold">{t("authResetTitle")}</h2>
+        <p className="mt-2 text-sm leading-6 text-[var(--muted)]">{t("authResetHint")}</p>
 
         <form className="mt-8 grid gap-4" onSubmit={handleSubmit}>
           <label className="grid gap-2">
-            <span className="text-sm font-medium">Email</span>
+            <span className="text-sm font-medium">{t("authEmail")}</span>
             <input
               autoComplete="email"
               className="rounded-2xl surface-input px-4 py-3"
@@ -193,15 +192,11 @@ export function AuthForm({
           </label>
 
           {error ? (
-            <p className="alert-error rounded-2xl px-4 py-3 text-sm">
-              {error}
-            </p>
+            <p className="alert-error rounded-2xl px-4 py-3 text-sm">{error}</p>
           ) : null}
 
           {success ? (
-            <p className="rounded-2xl alert-success rounded-2xl px-4 py-3 text-sm">
-              {success}
-            </p>
+            <p className="rounded-2xl alert-success rounded-2xl px-4 py-3 text-sm">{success}</p>
           ) : null}
 
           <button
@@ -209,7 +204,7 @@ export function AuthForm({
             disabled={loading}
             type="submit"
           >
-            {loading ? "Отправляем..." : "Отправить ссылку"}
+            {loading ? t("authResetSending") : t("authResetSubmit")}
           </button>
 
           <button
@@ -217,7 +212,7 @@ export function AuthForm({
             onClick={() => switchMode("signin")}
             type="button"
           >
-            ← Вернуться ко входу
+            {t("authBackToSignIn")}
           </button>
         </form>
       </div>
@@ -236,7 +231,7 @@ export function AuthForm({
           onClick={() => switchMode("signup")}
           type="button"
         >
-          Регистрация
+          {t("authSignUp")}
         </button>
         <button
           className={`rounded-xl px-4 py-3 text-sm font-semibold ${
@@ -247,25 +242,22 @@ export function AuthForm({
           onClick={() => switchMode("signin")}
           type="button"
         >
-          Вход
+          {t("authSignIn")}
         </button>
       </div>
 
-      <p className="mt-4 text-xs leading-5 text-[var(--muted)]">
-        На этом устройстве вы останетесь в системе — повторный вход не потребуется,
-        пока действует сессия.
-      </p>
+      <p className="mt-4 text-xs leading-5 text-[var(--muted)]">{t("authSessionHint")}</p>
 
       <form className="mt-6 grid gap-4" onSubmit={handleSubmit}>
         {mode === "signup" ? (
           <label className="grid gap-2">
-            <span className="text-sm font-medium">Имя</span>
+            <span className="text-sm font-medium">{t("authDisplayName")}</span>
             <input
               autoComplete="name"
               className="rounded-2xl surface-input px-4 py-3"
               disabled={loading}
               onChange={(event) => setDisplayName(event.target.value)}
-              placeholder="Ваше имя"
+              placeholder={t("authDisplayNamePlaceholder")}
               value={displayName}
             />
             {fieldErrors.displayName ? (
@@ -275,7 +267,7 @@ export function AuthForm({
         ) : null}
 
         <label className="grid gap-2">
-          <span className="text-sm font-medium">Email</span>
+          <span className="text-sm font-medium">{t("authEmail")}</span>
           <input
             autoComplete="email"
             className="rounded-2xl surface-input px-4 py-3"
@@ -291,14 +283,16 @@ export function AuthForm({
         </label>
 
         <label className="grid gap-2">
-          <span className="text-sm font-medium">Пароль</span>
+          <span className="text-sm font-medium">{t("authPassword")}</span>
           <input
             autoComplete={mode === "signup" ? "new-password" : "current-password"}
             className="rounded-2xl surface-input px-4 py-3"
             disabled={loading}
             minLength={mode === "signup" ? 8 : undefined}
             onChange={(event) => setPassword(event.target.value)}
-            placeholder={mode === "signup" ? "Минимум 8 символов" : "Ваш пароль"}
+            placeholder={
+              mode === "signup" ? t("authPasswordNewPlaceholder") : t("authPasswordPlaceholder")
+            }
             type="password"
             value={password}
           />
@@ -313,20 +307,14 @@ export function AuthForm({
             onClick={() => switchMode("reset")}
             type="button"
           >
-            Забыли пароль?
+            {t("authForgotPassword")}
           </button>
         ) : null}
 
-        {error ? (
-          <p className="alert-error rounded-2xl px-4 py-3 text-sm">
-            {error}
-          </p>
-        ) : null}
+        {error ? <p className="alert-error rounded-2xl px-4 py-3 text-sm">{error}</p> : null}
 
         {success ? (
-          <p className="rounded-2xl alert-success rounded-2xl px-4 py-3 text-sm">
-            {success}
-          </p>
+          <p className="rounded-2xl alert-success rounded-2xl px-4 py-3 text-sm">{success}</p>
         ) : null}
 
         <button
@@ -335,10 +323,10 @@ export function AuthForm({
           type="submit"
         >
           {loading
-            ? "Подождите..."
+            ? t("authPleaseWait")
             : mode === "signup"
-              ? "Создать аккаунт"
-              : "Войти"}
+              ? t("authSubmitSignUp")
+              : t("authSubmitSignIn")}
         </button>
       </form>
     </div>

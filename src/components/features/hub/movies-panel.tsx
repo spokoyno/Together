@@ -3,6 +3,7 @@
 import { Check, Plus, Search, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
+import { useLanguage } from "@/components/providers/language-provider";
 import { EmptyState } from "@/components/ui/empty-state";
 import { RatingDisplay, RatingInput } from "@/components/ui/rating-stars";
 import type { HubMovie, HubMovieCollection, MovieSearchResult } from "@/components/features/hub/types";
@@ -83,6 +84,7 @@ export function MoviesPanel({ movies, collections, userId, partnerId, partnerNam
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
+  const { t } = useLanguage();
 
   const wantMovies = useMemo(() => movies.filter((movie) => movie.status === "want"), [movies]);
   const watchedMovies = useMemo(
@@ -124,7 +126,7 @@ export function MoviesPanel({ movies, collections, userId, partnerId, partnerNam
       });
 
       if (!result.ok) {
-        setError(result.error ?? "Не удалось добавить фильм.");
+        setError(result.error ?? t("moviesErrorAdd"));
         return;
       }
 
@@ -155,7 +157,7 @@ export function MoviesPanel({ movies, collections, userId, partnerId, partnerNam
     startTransition(async () => {
       const result = await markMovieWatched(watchModal.movieId, watchModal.rating, watchModal.review);
       if (!result.ok) {
-        setError(result.error ?? "Не удалось сохранить.");
+        setError(result.error ?? t("hubErrorSave"));
         return;
       }
       setWatchModal(null);
@@ -168,7 +170,7 @@ export function MoviesPanel({ movies, collections, userId, partnerId, partnerNam
     startTransition(async () => {
       const result = await saveMovieReview(movieId, review);
       if (!result.ok) {
-        setError(result.error ?? "Не удалось сохранить отзыв.");
+        setError(result.error ?? t("hubErrorReview"));
         return;
       }
       router.refresh();
@@ -187,7 +189,7 @@ export function MoviesPanel({ movies, collections, userId, partnerId, partnerNam
     startTransition(async () => {
       const result = await createMovieCollection(collectionTitle, selectedMovieIds);
       if (!result.ok) {
-        setError(result.error ?? "Не удалось создать подборку.");
+        setError(result.error ?? t("hubErrorCollection"));
         return;
       }
       setShowCreateCollection(false);
@@ -202,9 +204,9 @@ export function MoviesPanel({ movies, collections, userId, partnerId, partnerNam
       <div className="mb-4 flex gap-2 overflow-x-auto">
         {(
           [
-            ["want", "Хотим посмотреть"],
-            ["watched", "Просмотрено"],
-            ["collections", "Подборки"],
+            ["want", t("moviesWantWatch")],
+            ["watched", t("moviesWatchedTab")],
+            ["collections", t("moviesCollections")],
           ] as const
         ).map(([key, label]) => (
           <button
@@ -246,13 +248,13 @@ export function MoviesPanel({ movies, collections, userId, partnerId, partnerNam
                       ))}
                     </div>
                   ) : (
-                    <p className="mt-3 text-sm text-[var(--muted)]">Пока пусто.</p>
+                    <p className="mt-3 text-sm text-[var(--muted)]">{t("hubEmptyShort")}</p>
                   )}
                 </article>
               ))}
             </div>
           ) : (
-            <EmptyState description="Создайте подборку для фильмов на вечер." title="Подборок пока нет" />
+            <EmptyState description={t("hubCollectionEmptyDesc")} title={t("hubCollectionEmpty")} />
           )}
         </section>
       ) : tab === "want" ? (
@@ -271,7 +273,7 @@ export function MoviesPanel({ movies, collections, userId, partnerId, partnerNam
                         onClick={() => openWatchModal(movie)}
                         type="button"
                       >
-                        Просмотрено
+                        {t("hubWatched")}
                       </button>
                       {collections.length ? (
                         <button
@@ -282,7 +284,7 @@ export function MoviesPanel({ movies, collections, userId, partnerId, partnerNam
                           }
                           type="button"
                         >
-                          В подборку
+                          {t("hubToCollection")}
                         </button>
                       ) : null}
                     </div>
@@ -292,8 +294,8 @@ export function MoviesPanel({ movies, collections, userId, partnerId, partnerNam
             ))
           ) : (
             <EmptyState
-              description="Найдите фильм в базе TMDB и добавьте в список."
-              title="Список фильмов пуст"
+              description={t("moviesListEmptyDesc")}
+              title={t("moviesListEmpty")}
             />
           )}
         </section>
@@ -313,7 +315,7 @@ export function MoviesPanel({ movies, collections, userId, partnerId, partnerNam
                     <div className="min-w-0 flex-1">
                       <h2 className="font-bold leading-snug">{movie.title}</h2>
                       <div className="mt-3 space-y-2">
-                        <RatingDisplay label="Вы" value={myRating} />
+                        <RatingDisplay label={t("commonYou")} value={myRating} />
                         <RatingDisplay label={partnerName} value={partnerRating} />
                       </div>
                     </div>
@@ -322,7 +324,7 @@ export function MoviesPanel({ movies, collections, userId, partnerId, partnerNam
                   <div className="space-y-2 border-t border-[var(--border)] px-4 py-4">
                     {myReview ? (
                       <p className="rounded-xl surface-input px-3 py-2 text-sm">
-                        <span className="font-semibold">Ваш отзыв: </span>
+                        <span className="font-semibold">{t("hubYourReviewLabel")} </span>
                         {myReview}
                       </p>
                     ) : null}
@@ -340,7 +342,7 @@ export function MoviesPanel({ movies, collections, userId, partnerId, partnerNam
                           [movie.id]: event.target.value,
                         }))
                       }
-                      placeholder="Ваш отзыв после просмотра…"
+                      placeholder={t("hubReviewAfter")}
                       value={reviewDrafts[movie.id] ?? myReview ?? ""}
                     />
                     <button
@@ -349,7 +351,7 @@ export function MoviesPanel({ movies, collections, userId, partnerId, partnerNam
                       onClick={() => saveReview(movie.id)}
                       type="button"
                     >
-                      Сохранить отзыв
+                      {t("hubSaveReview")}
                     </button>
                   </div>
                 </article>
@@ -357,8 +359,8 @@ export function MoviesPanel({ movies, collections, userId, partnerId, partnerNam
             })
           ) : (
             <EmptyState
-              description="Отметьте фильм просмотренным и оставьте отзыв."
-              title="Просмотренных фильмов пока нет"
+              description={t("moviesWatchedEmptyDesc")}
+              title={t("moviesWatchedEmpty")}
             />
           )}
         </section>
@@ -366,7 +368,7 @@ export function MoviesPanel({ movies, collections, userId, partnerId, partnerNam
 
       {tab === "want" ? (
         <button
-          aria-label="Добавить фильм"
+          aria-label={t("moviesAddMovie")}
           className="fixed bottom-[calc(max(0.75rem,env(safe-area-inset-bottom))+5.25rem)] right-5 z-30 grid size-14 place-items-center rounded-full bg-[var(--accent)] text-white shadow-lg active:scale-95"
           onClick={() => setShowSearch(true)}
           type="button"
@@ -377,7 +379,7 @@ export function MoviesPanel({ movies, collections, userId, partnerId, partnerNam
 
       {tab === "collections" ? (
         <button
-          aria-label="Создать подборку"
+          aria-label={t("hubCreateCollection")}
           className="fixed bottom-[calc(max(0.75rem,env(safe-area-inset-bottom))+5.25rem)] right-5 z-30 grid size-14 place-items-center rounded-full bg-[var(--accent)] text-white shadow-lg active:scale-95"
           onClick={() => setShowCreateCollection(true)}
           type="button"
@@ -390,9 +392,9 @@ export function MoviesPanel({ movies, collections, userId, partnerId, partnerNam
         <div className="fixed inset-0 z-50 flex items-end bg-black/40 p-4 pb-[calc(max(0.75rem,env(safe-area-inset-bottom))+5rem)]">
           <div className="w-full max-w-md rounded-3xl surface-panel p-5 shadow-xl">
             <div className="mb-4 flex items-center justify-between">
-              <p className="text-lg font-bold">В подборку</p>
+              <p className="text-lg font-bold">{t("hubToCollection")}</p>
               <button
-                aria-label="Закрыть"
+                aria-label={t("commonClose")}
                 className="grid size-9 place-items-center rounded-full surface-input"
                 onClick={() => setCollectionPicker(null)}
                 type="button"
@@ -411,7 +413,7 @@ export function MoviesPanel({ movies, collections, userId, partnerId, partnerNam
                     startTransition(async () => {
                       const result = await addMovieToCollection(collection.id, collectionPicker.movieId);
                       if (!result.ok) {
-                        setError(result.error ?? "Не удалось добавить.");
+                        setError(result.error ?? t("hubErrorAdd"));
                         return;
                       }
                       setCollectionPicker(null);
@@ -432,9 +434,9 @@ export function MoviesPanel({ movies, collections, userId, partnerId, partnerNam
         <div className="fixed inset-0 z-50 flex items-end bg-black/40 p-4 pb-[calc(max(0.75rem,env(safe-area-inset-bottom))+5rem)]">
           <form className="w-full max-w-md rounded-3xl surface-panel p-5 shadow-xl" onSubmit={submitWatchModal}>
             <div className="mb-4 flex items-center justify-between">
-              <p className="text-lg font-bold">Просмотрено</p>
+              <p className="text-lg font-bold">{t("hubWatched")}</p>
               <button
-                aria-label="Закрыть"
+                aria-label={t("commonClose")}
                 className="grid size-9 place-items-center rounded-full surface-input"
                 onClick={() => setWatchModal(null)}
                 type="button"
@@ -443,14 +445,14 @@ export function MoviesPanel({ movies, collections, userId, partnerId, partnerNam
               </button>
             </div>
             <p className="mb-3 font-semibold">{watchModal.title}</p>
-            <p className="mb-2 text-sm font-semibold">Оценка</p>
+            <p className="mb-2 text-sm font-semibold">{t("ratingLabel")}</p>
             <RatingInput
               disabled={isPending}
               onChange={(rating) => setWatchModal((current) => (current ? { ...current, rating } : current))}
               value={watchModal.rating}
             />
             <label className="mt-4 block text-sm font-semibold" htmlFor="watch-review">
-              Отзыв
+              {t("hubYourReview")}
             </label>
             <textarea
               className="mt-2 min-h-24 w-full rounded-2xl surface-input px-4 py-3 text-sm"
@@ -458,7 +460,7 @@ export function MoviesPanel({ movies, collections, userId, partnerId, partnerNam
               onChange={(event) =>
                 setWatchModal((current) => (current ? { ...current, review: event.target.value } : current))
               }
-              placeholder="Что понравилось или не понравилось?"
+              placeholder={t("hubReviewPlaceholder")}
               value={watchModal.review}
             />
             <button
@@ -466,7 +468,7 @@ export function MoviesPanel({ movies, collections, userId, partnerId, partnerNam
               disabled={isPending}
               type="submit"
             >
-              {isPending ? "Сохраняем…" : "Сохранить"}
+              {isPending ? t("commonSaving") : t("commonSave")}
             </button>
           </form>
         </div>
@@ -479,9 +481,9 @@ export function MoviesPanel({ movies, collections, userId, partnerId, partnerNam
             onSubmit={submitCreateCollection}
           >
             <div className="mb-4 flex items-center justify-between">
-              <p className="text-lg font-bold">Создать подборку</p>
+              <p className="text-lg font-bold">{t("moviesCreateCollection")}</p>
               <button
-                aria-label="Закрыть"
+                aria-label={t("commonClose")}
                 className="grid size-9 place-items-center rounded-full surface-input"
                 onClick={() => {
                   setShowCreateCollection(false);
@@ -496,13 +498,13 @@ export function MoviesPanel({ movies, collections, userId, partnerId, partnerNam
             <input
               className="w-full rounded-2xl surface-input px-4 py-3"
               onChange={(event) => setCollectionTitle(event.target.value)}
-              placeholder="Название подборки"
+              placeholder={t("hubCollectionName")}
               required
               value={collectionTitle}
             />
             {wantMovies.length ? (
               <div className="mt-4">
-                <p className="mb-2 text-sm font-semibold">Фильмы из «Хотим посмотреть»</p>
+                <p className="mb-2 text-sm font-semibold">{t("moviesFromWantList")}</p>
                 <div className="grid max-h-56 gap-2 overflow-y-auto">
                   {wantMovies.map((movie) => {
                     const checked = selectedMovieIds.includes(movie.id);
@@ -525,14 +527,14 @@ export function MoviesPanel({ movies, collections, userId, partnerId, partnerNam
                 </div>
               </div>
             ) : (
-              <p className="mt-4 text-sm text-[var(--muted)]">Добавьте фильмы в «Хотим посмотреть», чтобы включить их в подборку.</p>
+              <p className="mt-4 text-sm text-[var(--muted)]">{t("moviesWantListHint")}</p>
             )}
             <button
               className="mt-4 w-full rounded-2xl bg-[var(--accent)] py-3 font-semibold text-white disabled:opacity-60"
               disabled={!collectionTitle.trim() || isPending}
               type="submit"
             >
-              {isPending ? "Создаём…" : "Создать подборку"}
+              {isPending ? t("hubCreating") : t("moviesCreateCollection")}
             </button>
           </form>
         </div>
@@ -541,7 +543,7 @@ export function MoviesPanel({ movies, collections, userId, partnerId, partnerNam
       {showSearch ? (
         <div className="fixed inset-0 z-50 flex items-end bg-black/40 p-4 pb-[calc(max(0.75rem,env(safe-area-inset-bottom))+5rem)]">
           <div className="max-h-[85vh] w-full overflow-y-auto rounded-3xl surface-panel p-5 shadow-xl">
-            <p className="text-lg font-bold">Добавить фильм</p>
+            <p className="text-lg font-bold">{t("moviesAddMovieTitle")}</p>
             <div className="relative mt-4">
               <Search
                 aria-hidden
@@ -550,7 +552,7 @@ export function MoviesPanel({ movies, collections, userId, partnerId, partnerNam
               <input
                 className="w-full rounded-2xl surface-input py-3 pl-11 pr-4"
                 onChange={(event) => void searchMovies(event.target.value)}
-                placeholder="Поиск по названию..."
+                placeholder={t("hubSearchPlaceholder")}
                 value={query}
               />
             </div>
@@ -597,7 +599,7 @@ export function MoviesPanel({ movies, collections, userId, partnerId, partnerNam
                 }}
                 type="button"
               >
-                Отмена
+                {t("commonCancel")}
               </button>
               <button
                 className="rounded-2xl bg-[var(--accent)] px-4 py-3 font-semibold text-white disabled:opacity-60"
@@ -605,7 +607,7 @@ export function MoviesPanel({ movies, collections, userId, partnerId, partnerNam
                 onClick={addMovie}
                 type="button"
               >
-                {isPending ? "Сохраняем..." : "Добавить"}
+                {isPending ? t("commonSaving") : t("commonAdd")}
               </button>
             </div>
           </div>

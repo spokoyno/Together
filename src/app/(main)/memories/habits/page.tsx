@@ -8,7 +8,7 @@ export default async function HubHabitsPage() {
 
   return (
     <main className="mx-auto min-h-screen max-w-md px-5 pb-32 pt-8">
-      <HubPanelHeader subtitle="Привычки для двоих" title="Привычки" />
+      <HubPanelHeader subtitleKey="panelHabitsDesc" titleKey="panelHabits" />
       <HabitsPanel habits={habits} />
     </main>
   );

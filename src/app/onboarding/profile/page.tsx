@@ -1,6 +1,6 @@
 import { requireUser } from "@/lib/auth/session";
 import { redirect } from "next/navigation";
-import { ProfileOnboardingForm } from "@/components/features/onboarding/profile-form";
+import { OnboardingProfileIntro } from "@/components/features/onboarding/onboarding-profile-intro";
 import type { ProfileGender } from "@/types/domain";
 
 export default async function ProfileOnboardingPage() {
@@ -21,12 +21,8 @@ export default async function ProfileOnboardingPage() {
 
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-5 py-10">
-      <h1 className="text-2xl font-bold">Ваш профиль</h1>
-      <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-        Расскажите немного о себе — имя, пол и день рождения появятся в календаре праздников.
-      </p>
-      <ProfileOnboardingForm
-        displayName={profile?.display_name ?? "Пользователь"}
+      <OnboardingProfileIntro
+        displayName={profile?.display_name ?? ""}
         initialGender={(profile?.gender as ProfileGender | null) ?? null}
       />
     </main>

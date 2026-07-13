@@ -1,5 +1,9 @@
+"use client";
+
 import Link from "next/link";
 import { ChefHat, Clapperboard, Heart, ShoppingBag, Sparkles, Star, Trophy } from "lucide-react";
+import { useLanguage } from "@/components/providers/language-provider";
+import type { MessageKey } from "@/lib/i18n/messages";
 import type { HubMenuCounts } from "@/lib/hub/load-data.server";
 
 type HubMenuProps = {
@@ -7,21 +11,23 @@ type HubMenuProps = {
 };
 
 const tiles = [
-  { href: "/memories/moments", label: "Наши моменты", description: "Фото и воспоминания", icon: Sparkles, countKey: "moments" as const, tone: "from-violet-500/20 to-violet-500/5" },
-  { href: "/memories/movies", label: "Фильмы", description: "Смотрим вместе", icon: Clapperboard, countKey: "movies" as const, tone: "from-sky-500/20 to-sky-500/5" },
-  { href: "/memories/cooking", label: "Готовка", description: "Блюда и рецепты", icon: ChefHat, countKey: "cooking" as const, tone: "from-amber-500/20 to-amber-500/5" },
-  { href: "/memories/compliments", label: "Комплименты", description: "Банка тёплых слов", icon: Heart, countKey: "compliments" as const, tone: "from-pink-500/20 to-pink-500/5" },
-  { href: "/memories/shopping", label: "Покупки", description: "Общий список", icon: ShoppingBag, countKey: "shopping" as const, tone: "from-lime-500/20 to-lime-500/5" },
-  { href: "/memories/wishlist", label: "Wishlist", description: "Желания и хотелки", icon: Star, countKey: "wishlist" as const, tone: "from-fuchsia-500/20 to-fuchsia-500/5" },
-  { href: "/memories/tiers", label: "Тир-листы", description: "TierMaker вместе", icon: Trophy, countKey: "tiers" as const, tone: "from-orange-500/20 to-orange-500/5" },
+  { href: "/memories/moments", labelKey: "panelMoments" as const, descKey: "panelMomentsDesc" as const, icon: Sparkles, countKey: "moments" as const, tone: "from-violet-500/20 to-violet-500/5" },
+  { href: "/memories/movies", labelKey: "panelMovies" as const, descKey: "panelMoviesDesc" as const, icon: Clapperboard, countKey: "movies" as const, tone: "from-sky-500/20 to-sky-500/5" },
+  { href: "/memories/cooking", labelKey: "panelCooking" as const, descKey: "panelCookingDesc" as const, icon: ChefHat, countKey: "cooking" as const, tone: "from-amber-500/20 to-amber-500/5" },
+  { href: "/memories/compliments", labelKey: "panelCompliments" as const, descKey: "panelComplimentsDesc" as const, icon: Heart, countKey: "compliments" as const, tone: "from-pink-500/20 to-pink-500/5" },
+  { href: "/memories/shopping", labelKey: "panelShopping" as const, descKey: "panelShoppingDesc" as const, icon: ShoppingBag, countKey: "shopping" as const, tone: "from-lime-500/20 to-lime-500/5" },
+  { href: "/memories/wishlist", labelKey: "panelWishlist" as const, descKey: "panelWishlistDesc" as const, icon: Star, countKey: "wishlist" as const, tone: "from-fuchsia-500/20 to-fuchsia-500/5" },
+  { href: "/memories/tiers", labelKey: "panelTiers" as const, descKey: "panelTiersDesc" as const, icon: Trophy, countKey: "tiers" as const, tone: "from-orange-500/20 to-orange-500/5" },
 ] as const;
 
 export function HubMenu({ counts }: HubMenuProps) {
+  const { t } = useLanguage();
+
   return (
     <>
       <header>
-        <h1 className="text-2xl font-bold">Лента</h1>
-        <p className="mt-1 text-sm text-[var(--muted)]">Выберите раздел</p>
+        <h1 className="text-2xl font-bold">{t("feedTitle")}</h1>
+        <p className="mt-1 text-sm text-[var(--muted)]">{t("hubMenuSubtitle")}</p>
       </header>
 
       <div className="mt-6 grid grid-cols-2 gap-3">
@@ -47,8 +53,8 @@ export function HubMenu({ counts }: HubMenuProps) {
               </div>
 
               <div>
-                <p className="text-base font-bold leading-snug">{tile.label}</p>
-                <p className="mt-1 text-xs leading-5 text-[var(--muted)]">{tile.description}</p>
+                <p className="text-base font-bold leading-snug">{t(tile.labelKey as MessageKey)}</p>
+                <p className="mt-1 text-xs leading-5 text-[var(--muted)]">{t(tile.descKey as MessageKey)}</p>
               </div>
             </Link>
           );

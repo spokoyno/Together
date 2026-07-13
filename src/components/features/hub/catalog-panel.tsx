@@ -3,6 +3,7 @@
 import { Plus, Search, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
+import { useLanguage } from "@/components/providers/language-provider";
 import { EmptyState } from "@/components/ui/empty-state";
 import { RatingDisplay, RatingInput } from "@/components/ui/rating-stars";
 import type { CatalogPanelConfig, CatalogEntry, CatalogSearchResult } from "@/lib/hub/catalog";
@@ -69,6 +70,7 @@ export function CatalogPanel({
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
+  const { t } = useLanguage();
 
   const wantItems = useMemo(() => entries.filter((e) => e.status === "want"), [entries]);
   const completedItems = useMemo(() => entries.filter((e) => e.status === "completed"), [entries]);
@@ -108,7 +110,7 @@ export function CatalogPanel({
         rating: addModal.rating,
       });
       if (!result.ok) {
-        setError(result.error ?? "Не удалось добавить.");
+        setError(result.error ?? t("hubErrorAdd"));
         return;
       }
       setAddModal(null);
@@ -134,7 +136,7 @@ export function CatalogPanel({
         completeModal.review,
       );
       if (!result.ok) {
-        setError(result.error ?? "Не удалось сохранить.");
+        setError(result.error ?? t("hubErrorSave"));
         return;
       }
       setCompleteModal(null);
@@ -146,7 +148,7 @@ export function CatalogPanel({
     startTransition(async () => {
       const result = await saveCatalogReview(entryId, config.kind, reviewDrafts[entryId] ?? "");
       if (!result.ok) {
-        setError(result.error ?? "Не удалось сохранить отзыв.");
+        setError(result.error ?? t("hubErrorReview"));
         return;
       }
       router.refresh();
@@ -202,7 +204,7 @@ export function CatalogPanel({
                     </button>
                   ) : (
                     <div className="mt-3 space-y-2">
-                      <RatingDisplay label="Вы" value={entry.ratings[userId]} />
+                      <RatingDisplay label={t("commonYou")} value={entry.ratings[userId]} />
                       <RatingDisplay label={partnerName} value={entry.ratings[partnerId]} />
                     </div>
                   )}
@@ -213,7 +215,7 @@ export function CatalogPanel({
                 <div className="space-y-2 border-t border-[var(--border)] px-4 py-4">
                   {entry.reviews[userId] ? (
                     <p className="rounded-xl surface-input px-3 py-2 text-sm">
-                      <span className="font-semibold">Ваш отзыв: </span>
+                      <span className="font-semibold">{t("hubYourReviewLabel")} </span>
                       {entry.reviews[userId]}
                     </p>
                   ) : null}
@@ -231,7 +233,7 @@ export function CatalogPanel({
                         [entry.id]: event.target.value,
                       }))
                     }
-                    placeholder="Ваш отзыв…"
+                    placeholder={t("hubReviewShort")}
                     value={reviewDrafts[entry.id] ?? entry.reviews[userId] ?? ""}
                   />
                   <button
@@ -240,7 +242,7 @@ export function CatalogPanel({
                     onClick={() => saveReview(entry.id)}
                     type="button"
                   >
-                    Сохранить отзыв
+                    {t("hubSaveReview")}
                   </button>
                 </div>
               ) : null}
@@ -249,14 +251,14 @@ export function CatalogPanel({
         ) : (
           <EmptyState
             description={tab === "want" ? config.emptyWant : config.emptyCompleted}
-            title="Пока пусто"
+            title={t("hubEmptyShort")}
           />
         )}
       </section>
 
       {tab === "want" ? (
         <button
-          aria-label="Добавить"
+          aria-label={t("commonAdd")}
           className="fixed bottom-[calc(max(0.75rem,env(safe-area-inset-bottom))+5.25rem)] right-5 z-30 grid size-14 place-items-center rounded-full bg-[var(--accent)] text-white shadow-lg"
           onClick={() => setShowSearch(true)}
           type="button"
@@ -277,7 +279,7 @@ export function CatalogPanel({
               value={query}
             />
             <button
-              aria-label="Закрыть"
+              aria-label={t("commonClose")}
               className="grid size-9 place-items-center rounded-full surface-input"
               onClick={() => {
                 setShowSearch(false);
@@ -310,9 +312,9 @@ export function CatalogPanel({
                 ))}
               </div>
             ) : query.length >= 2 ? (
-              <p className="text-center text-sm text-[var(--muted)]">Ничего не найдено</p>
+              <p className="text-center text-sm text-[var(--muted)]">{t("hubNothingFound")}</p>
             ) : (
-              <p className="text-center text-sm text-[var(--muted)]">Введите минимум 2 символа</p>
+              <p className="text-center text-sm text-[var(--muted)]">{t("hubMinTwoChars")}</p>
             )}
           </div>
         </div>
@@ -322,7 +324,7 @@ export function CatalogPanel({
         <div className="fixed inset-0 z-[60] flex items-end bg-black/40 p-4 pb-24">
           <form className="w-full rounded-3xl surface-panel p-5" onSubmit={submitAdd}>
             <p className="text-lg font-bold">{addModal.item.title}</p>
-            <p className="mt-2 text-sm text-[var(--muted)]">Ваша оценка</p>
+            <p className="mt-2 text-sm text-[var(--muted)]">{t("hubYourRating")}</p>
             <div className="mt-2">
               <RatingInput
                 onChange={(rating) => setAddModal((current) => (current ? { ...current, rating } : null))}
@@ -334,7 +336,7 @@ export function CatalogPanel({
               disabled={isPending}
               type="submit"
             >
-              Добавить
+              {t("commonAdd")}
             </button>
           </form>
         </div>
@@ -344,7 +346,7 @@ export function CatalogPanel({
         <div className="fixed inset-0 z-[60] flex items-end bg-black/40 p-4 pb-24">
           <form className="w-full rounded-3xl surface-panel p-5" onSubmit={submitComplete}>
             <p className="text-lg font-bold">{completeModal.title}</p>
-            <p className="mt-2 text-sm text-[var(--muted)]">Ваша оценка</p>
+            <p className="mt-2 text-sm text-[var(--muted)]">{t("hubYourRating")}</p>
             <div className="mt-2">
               <RatingInput
                 onChange={(rating) =>
@@ -360,7 +362,7 @@ export function CatalogPanel({
                   current ? { ...current, review: event.target.value } : null,
                 )
               }
-              placeholder="Отзыв (необязательно)"
+              placeholder={t("hubReviewOptional")}
               value={completeModal.review}
             />
             <button

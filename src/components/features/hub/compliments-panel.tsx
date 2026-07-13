@@ -3,6 +3,7 @@
 import { Gift, Heart, Plus, Sparkles, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { useLanguage } from "@/components/providers/language-provider";
 import type { HubComplimentState } from "@/components/features/hub/types";
 import { addCompliment, drawCompliment } from "@/lib/hub/actions";
 
@@ -24,11 +25,12 @@ type ComplimentJarProps = {
 };
 
 function ComplimentJar({ count, disabled, onTap }: ComplimentJarProps) {
+  const { t } = useLanguage();
   const fill = jarFillPercent(count);
 
   return (
     <button
-      aria-label="Достать комплимент из банки"
+      aria-label={t("hubComplimentsDraw")}
       className="group relative mx-auto block w-52 transition-transform active:scale-[0.98] disabled:opacity-70 sm:w-56"
       disabled={disabled}
       onClick={onTap}
@@ -59,14 +61,14 @@ function ComplimentJar({ count, disabled, onTap }: ComplimentJarProps) {
               <Sparkles aria-hidden className="mb-4 size-8 text-[var(--muted)]" />
             )}
             <p className="text-sm font-semibold text-[var(--foreground)]">
-              {count > 0 ? `${count} внутри` : "Пусто"}
+              {count > 0 ? t("hubComplimentsInside", { count }) : t("hubEmptyShort")}
             </p>
           </div>
         </div>
       </div>
 
       <p className="mt-4 text-center text-sm font-medium text-[var(--muted)] transition-colors group-enabled:group-hover:text-[var(--accent)]">
-        Нажмите на банку
+        {t("hubComplimentsTapJar")}
       </p>
     </button>
   );
@@ -80,15 +82,16 @@ export function ComplimentsPanel({ partnerName, state }: ComplimentsPanelProps) 
   const [drawnText, setDrawnText] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
+  const { t } = useLanguage();
 
   function pullCompliment() {
     if (!state.canDraw && state.myJarCount === 0) {
-      setError("Банка пуста — попросите партнёра добавить комплимент.");
+      setError(t("hubComplimentsJarEmpty"));
       return;
     }
 
     if (!state.canDraw && state.waitMinutes > 0) {
-      setError(`Можно доставать комплимент раз в час. Подождите ${state.waitMinutes} мин.`);
+      setError(t("hubComplimentsWaitHour", { minutes: state.waitMinutes }));
       return;
     }
 
@@ -96,7 +99,7 @@ export function ComplimentsPanel({ partnerName, state }: ComplimentsPanelProps) 
     startTransition(async () => {
       const result = await drawCompliment();
       if (!result.ok) {
-        setError(result.error ?? "Не удалось достать комплимент.");
+        setError(result.error ?? t("hubComplimentsErrorDraw"));
         return;
       }
       setDrawnText(result.text);
@@ -112,7 +115,7 @@ export function ComplimentsPanel({ partnerName, state }: ComplimentsPanelProps) 
     startTransition(async () => {
       const result = await addCompliment(draft);
       if (!result.ok) {
-        setError(result.error ?? "Не удалось добавить комплимент.");
+        setError(result.error ?? t("hubComplimentsErrorAdd"));
         return;
       }
       setDraft("");
@@ -125,7 +128,7 @@ export function ComplimentsPanel({ partnerName, state }: ComplimentsPanelProps) 
     <>
       <section className="flex min-h-[calc(100dvh-14rem)] flex-col items-center justify-center pb-8">
         <p className="mb-8 max-w-xs text-center text-sm leading-6 text-[var(--muted)]">
-          Ваша банка с комплиментами от {partnerName}. Доставать — раз в час.
+          {t("hubComplimentsJarHint", { name: partnerName })}
         </p>
 
         <div className="relative">
@@ -136,7 +139,7 @@ export function ComplimentsPanel({ partnerName, state }: ComplimentsPanelProps) 
           />
 
           <button
-            aria-label={`Добавить комплимент для ${partnerName}`}
+            aria-label={t("hubComplimentsAddFor", { name: partnerName })}
             className="absolute -right-3 top-10 grid size-14 place-items-center rounded-full bg-[var(--accent)] text-white shadow-lg transition-transform active:scale-95 disabled:opacity-60"
             disabled={isPending}
             onClick={() => {
@@ -151,7 +154,7 @@ export function ComplimentsPanel({ partnerName, state }: ComplimentsPanelProps) 
 
         {state.waitMinutes > 0 ? (
           <p className="mt-6 text-sm text-[var(--muted)]">
-            Следующий комплимент через {state.waitMinutes} мин
+            {t("hubComplimentsNextIn", { minutes: state.waitMinutes })}
           </p>
         ) : null}
 
@@ -170,13 +173,13 @@ export function ComplimentsPanel({ partnerName, state }: ComplimentsPanelProps) 
           >
             <div className="mb-4 flex items-start justify-between gap-3">
               <div>
-                <p className="text-lg font-bold">Комплимент для {partnerName}</p>
+                <p className="text-lg font-bold">{t("hubComplimentsFor", { name: partnerName })}</p>
                 <p className="mt-1 text-sm text-[var(--muted)]">
-                  Партнёр сможет достать его из своей банки
+                  {t("hubComplimentsPartnerCanDraw")}
                 </p>
               </div>
               <button
-                aria-label="Закрыть"
+                aria-label={t("commonClose")}
                 className="grid size-11 place-items-center rounded-full surface-input"
                 onClick={() => {
                   setShowAddPopup(false);
@@ -194,7 +197,7 @@ export function ComplimentsPanel({ partnerName, state }: ComplimentsPanelProps) 
               className="min-h-28 w-full rounded-2xl surface-input px-4 py-3"
               maxLength={280}
               onChange={(event) => setDraft(event.target.value)}
-              placeholder="Напишите что-нибудь приятное..."
+              placeholder={t("hubComplimentsPlaceholder")}
               value={draft}
             />
 
@@ -205,7 +208,7 @@ export function ComplimentsPanel({ partnerName, state }: ComplimentsPanelProps) 
               disabled={isPending || !draft.trim()}
               type="submit"
             >
-              {isPending ? "Отправляем..." : "Положить в банку"}
+              {isPending ? t("hubComplimentsSending") : t("hubComplimentsPutInJar")}
             </button>
           </form>
         </div>
@@ -216,7 +219,7 @@ export function ComplimentsPanel({ partnerName, state }: ComplimentsPanelProps) 
           <div className="w-full max-w-sm rounded-3xl surface-panel p-6 text-center shadow-2xl">
             <Gift aria-hidden className="mx-auto size-10 text-[var(--accent)]" />
             <p className="mt-3 text-sm font-semibold uppercase tracking-wide text-[var(--accent)]">
-              Для вас
+              {t("hubComplimentsForYou")}
             </p>
             <p className="mt-4 text-xl font-semibold leading-8">{drawnText}</p>
             <button
@@ -227,7 +230,7 @@ export function ComplimentsPanel({ partnerName, state }: ComplimentsPanelProps) 
               }}
               type="button"
             >
-              Спасибо ♥
+              {t("hubComplimentsThanks")}
             </button>
           </div>
         </div>

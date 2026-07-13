@@ -2,6 +2,8 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { ChevronLeft, ChevronRight, Gift, Plus, X } from "lucide-react";
+import { useLanguage } from "@/components/providers/language-provider";
+import type { MessageKey } from "@/lib/i18n/messages";
 import { completePlan, createPlan, deletePlan } from "@/lib/plans/actions";
 import { formatDateRu } from "@/lib/dates";
 import { holidaysForDay, type CoupleHoliday } from "@/lib/plans/holidays";
@@ -23,7 +25,15 @@ type CalendarPlansPanelProps = {
   holidays: CoupleHoliday[];
 };
 
-const WEEKDAYS = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
+const WEEKDAY_KEYS: MessageKey[] = [
+  "calendarWeekdayMon",
+  "calendarWeekdayTue",
+  "calendarWeekdayWed",
+  "calendarWeekdayThu",
+  "calendarWeekdayFri",
+  "calendarWeekdaySat",
+  "calendarWeekdaySun",
+];
 
 function pad(value: number) {
   return value.toString().padStart(2, "0");
@@ -47,6 +57,7 @@ export function CalendarPlansPanel({ plans, userId, holidays }: CalendarPlansPan
   const [showCreate, setShowCreate] = useState(false);
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
+  const { t } = useLanguage();
 
   const activePlans = useMemo(
     () => plans.filter((plan) => plan.status === "active"),
@@ -105,7 +116,7 @@ export function CalendarPlansPanel({ plans, userId, holidays }: CalendarPlansPan
     startTransition(async () => {
       const result = await createPlan(formData);
       if (!result.ok) {
-        setError(result.error ?? "Не удалось создать план.");
+        setError(result.error ?? t("plansCreateError"));
         return;
       }
       setShowCreate(false);
@@ -116,14 +127,14 @@ export function CalendarPlansPanel({ plans, userId, holidays }: CalendarPlansPan
   return (
     <>
       <header>
-        <h1 className="text-2xl font-bold">Планы</h1>
-        <p className="mt-1 text-sm text-[var(--muted)]">Выберите день и запланируйте активность</p>
+        <h1 className="text-2xl font-bold">{t("plansTitle")}</h1>
+        <p className="mt-1 text-sm text-[var(--muted)]">{t("plansCalendarSubtitle")}</p>
       </header>
 
       <section className="mt-6 rounded-3xl surface-panel p-4">
         <div className="flex items-center justify-between">
           <button
-            aria-label="Предыдущий месяц"
+            aria-label={t("plansPrevMonth")}
             className="grid size-10 place-items-center rounded-full surface-input"
             onClick={() => setMonth((current) => addMonths(current, -1))}
             type="button"
@@ -134,7 +145,7 @@ export function CalendarPlansPanel({ plans, userId, holidays }: CalendarPlansPan
             {month.toLocaleDateString("ru-RU", { month: "long", year: "numeric" })}
           </p>
           <button
-            aria-label="Следующий месяц"
+            aria-label={t("plansNextMonth")}
             className="grid size-10 place-items-center rounded-full surface-input"
             onClick={() => setMonth((current) => addMonths(current, 1))}
             type="button"
@@ -144,8 +155,8 @@ export function CalendarPlansPanel({ plans, userId, holidays }: CalendarPlansPan
         </div>
 
         <div className="mt-4 grid grid-cols-7 gap-1 text-center text-xs font-medium text-[var(--muted)]">
-          {WEEKDAYS.map((day) => (
-            <span key={day}>{day}</span>
+          {WEEKDAY_KEYS.map((key) => (
+            <span key={key}>{t(key)}</span>
           ))}
         </div>
 
@@ -201,7 +212,7 @@ export function CalendarPlansPanel({ plans, userId, holidays }: CalendarPlansPan
             type="button"
           >
             <Plus aria-hidden className="size-4" />
-            Добавить
+            {t("commonAdd")}
           </button>
         </div>
 
@@ -232,11 +243,11 @@ export function CalendarPlansPanel({ plans, userId, holidays }: CalendarPlansPan
                       {plan.is_surprise ? (
                         <span className="inline-flex items-center gap-1 rounded-full bg-[var(--accent-soft)] px-2 py-1 text-[var(--accent)]">
                           <Gift aria-hidden className="size-3" />
-                          Сюрприз
+                          {t("plansSurprise")}
                         </span>
                       ) : null}
                       {plan.remind_enabled ? (
-                        <span className="rounded-full surface-input px-2 py-1">Напоминание</span>
+                        <span className="rounded-full surface-input px-2 py-1">{t("plansReminder")}</span>
                       ) : null}
                     </div>
                   </div>
@@ -248,7 +259,7 @@ export function CalendarPlansPanel({ plans, userId, holidays }: CalendarPlansPan
                         onClick={() => startTransition(() => completePlan(plan.id))}
                         type="button"
                       >
-                        Готово
+                        {t("plansDone")}
                       </button>
                       <button
                         className="text-xs text-[var(--muted)]"
@@ -256,7 +267,7 @@ export function CalendarPlansPanel({ plans, userId, holidays }: CalendarPlansPan
                         onClick={() => startTransition(() => deletePlan(plan.id))}
                         type="button"
                       >
-                        Удалить
+                        {t("commonDelete")}
                       </button>
                     </div>
                   ) : null}
@@ -265,7 +276,7 @@ export function CalendarPlansPanel({ plans, userId, holidays }: CalendarPlansPan
             ))
           ) : (
             <p className="rounded-3xl surface-panel border-dashed px-4 py-8 text-center text-sm text-[var(--muted)]">
-              На этот день пока ничего не запланировано
+              {t("plansDayEmpty")}
             </p>
           )}
         </div>
@@ -278,9 +289,9 @@ export function CalendarPlansPanel({ plans, userId, holidays }: CalendarPlansPan
             onSubmit={handleCreate}
           >
             <div className="mb-4 flex items-center justify-between">
-              <p className="text-lg font-bold">Новый план</p>
+              <p className="text-lg font-bold">{t("plansNewTitle")}</p>
               <button
-                aria-label="Закрыть"
+                aria-label={t("commonClose")}
                 className="grid size-9 place-items-center rounded-full surface-input"
                 onClick={() => setShowCreate(false)}
                 type="button"
@@ -295,24 +306,24 @@ export function CalendarPlansPanel({ plans, userId, holidays }: CalendarPlansPan
               <input
                 className="rounded-2xl surface-input px-4 py-3"
                 name="title"
-                placeholder="Мероприятие"
+                placeholder={t("plansEventPlaceholder")}
                 required
               />
               <textarea
                 className="min-h-24 rounded-2xl surface-input px-4 py-3"
                 name="details"
-                placeholder="Описание"
+                placeholder={t("plansDetailsPlaceholder")}
                 rows={3}
               />
               <label className="flex items-center justify-between rounded-2xl surface-input px-4 py-3">
                 <span className="inline-flex items-center gap-2 font-medium">
                   <Gift aria-hidden className="size-4" />
-                  Сюрприз
+                  {t("plansSurprise")}
                 </span>
                 <input className="size-5 accent-[var(--accent)]" name="isSurprise" type="checkbox" />
               </label>
               <label className="flex items-center justify-between rounded-2xl surface-input px-4 py-3">
-                <span className="font-medium">Напоминать</span>
+                <span className="font-medium">{t("plansRemindLabel")}</span>
                 <input className="size-5 accent-[var(--accent)]" name="remindEnabled" type="checkbox" />
               </label>
               {error ? <p className="alert-error rounded-xl px-3 py-2 text-sm">{error}</p> : null}
@@ -321,7 +332,7 @@ export function CalendarPlansPanel({ plans, userId, holidays }: CalendarPlansPan
                 disabled={isPending}
                 type="submit"
               >
-                {isPending ? "Сохраняем..." : "Запланировать"}
+                {isPending ? t("commonSaving") : t("plansSchedule")}
               </button>
             </div>
           </form>

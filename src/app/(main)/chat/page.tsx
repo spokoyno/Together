@@ -1,7 +1,6 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
+import { ChatPageHeader } from "@/components/features/chat/chat-page-header";
 import { ChatShell } from "@/components/features/chat/chat-shell";
-import { UserAvatar } from "@/components/ui/user-avatar";
 import { requireUser } from "@/lib/auth/session";
 import { getRecentCoupleMessages } from "@/lib/chat/messages";
 import { getChatNotes, getSavedMessages } from "@/lib/chat/private";
@@ -44,7 +43,7 @@ export default async function ChatPage() {
     partnerProfile.data?.avatar_path ? [partnerProfile.data.avatar_path] : [],
   );
   const partnerAvatarUrl = partnerProfile.data?.avatar_path
-    ? signed[partnerProfile.data.avatar_path] ?? null
+    ? (signed[partnerProfile.data.avatar_path] ?? null)
     : null;
 
   const [messagesPage, savedMessages, notes] = await Promise.all([
@@ -57,15 +56,7 @@ export default async function ChatPage() {
 
   return (
     <main className="mx-auto flex h-[100dvh] max-w-md flex-col bg-[var(--chat-bg)]">
-      <header className="fade-up sticky top-0 z-10 border-b border-[var(--border)] bg-[var(--surface-elevated)] px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
-        <Link className="flex items-center gap-3" href="/profile/partner">
-          <UserAvatar imageUrl={partnerAvatarUrl} name={partnerDisplayName} size="sm" />
-          <div>
-            <h1 className="text-lg font-semibold">{partnerDisplayName}</h1>
-            <p className="text-xs text-[var(--muted)]">личный чат · профиль</p>
-          </div>
-        </Link>
-      </header>
+      <ChatPageHeader partnerAvatarUrl={partnerAvatarUrl} partnerDisplayName={partnerDisplayName} />
 
       <ChatShell
         coupleId={context.coupleId}

@@ -15,13 +15,13 @@ import {
   localeCookieValue,
   normalizeLocale,
 } from "@/lib/i18n/constants";
-import { translate, type Messages } from "@/lib/i18n/messages";
+import { translate, type MessageKey } from "@/lib/i18n/messages";
 import { saveLocalePreference } from "@/lib/profile/locale";
 
 type LanguageContextValue = {
   locale: Locale;
   setLocale: (locale: Locale) => void;
-  t: (key: keyof Messages, params?: Record<string, string | number>) => string;
+  t: (key: MessageKey, params?: Record<string, string | number>) => string;
 };
 
 const LanguageContext = createContext<LanguageContextValue | null>(null);
@@ -48,7 +48,7 @@ export function LanguageProvider({
   }, []);
 
   const t = useCallback(
-    (key: keyof Messages, params?: Record<string, string | number>) => translate(locale, key, params),
+    (key: MessageKey, params?: Record<string, string | number>) => translate(locale, key, params),
     [locale],
   );
 

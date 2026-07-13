@@ -8,7 +8,7 @@ export default async function HubShoppingPage() {
 
   return (
     <main className="mx-auto min-h-screen max-w-md px-5 pb-32 pt-8">
-      <HubPanelHeader subtitle="Записки на стену" title="Список покупок" />
+      <HubPanelHeader subtitleKey="panelShoppingDesc" titleKey="panelShopping" />
       <ShoppingPanel notes={notes} />
     </main>
   );

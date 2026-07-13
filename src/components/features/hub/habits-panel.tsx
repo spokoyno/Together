@@ -2,6 +2,7 @@
 
 import { Gift, Plus, Repeat } from "lucide-react";
 import { useMemo, useState, useTransition } from "react";
+import { useLanguage } from "@/components/providers/language-provider";
 import { EmptyState } from "@/components/ui/empty-state";
 import type { HubHabit } from "@/components/features/hub/types";
 import {
@@ -9,7 +10,7 @@ import {
   completeCoupleHabit,
   setHabitMotivation,
 } from "@/lib/hub/lifestyle-actions";
-import { formatDateRu } from "@/lib/dates";
+import { formatDateLocalized } from "@/lib/dates";
 
 type HabitsPanelProps = {
   habits: HubHabit[];
@@ -26,6 +27,7 @@ export function HabitsPanel({ habits }: HabitsPanelProps) {
   const [motivationDrafts, setMotivationDrafts] = useState<Record<string, string>>({});
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
+  const { locale, t } = useLanguage();
 
   const active = useMemo(
     () => habits.filter((habit) => habit.status === "active"),
@@ -43,7 +45,7 @@ export function HabitsPanel({ habits }: HabitsPanelProps) {
     startTransition(async () => {
       const result = await addCoupleHabit(title, description, plannedDate || undefined);
       if (!result.ok) {
-        setError(result.error ?? "Не удалось добавить.");
+        setError(result.error ?? t("hubErrorAdd"));
         return;
       }
       setShowCreate(false);
@@ -61,7 +63,7 @@ export function HabitsPanel({ habits }: HabitsPanelProps) {
     startTransition(async () => {
       const result = await setHabitMotivation(habitId, text);
       if (!result.ok) {
-        setError(result.error ?? "Не удалось сохранить мотивацию.");
+        setError(result.error ?? t("hubErrorMotivation"));
       }
     });
   }
@@ -74,14 +76,14 @@ export function HabitsPanel({ habits }: HabitsPanelProps) {
           onClick={() => setView("active")}
           type="button"
         >
-          Активные
+          {t("hubActiveTab")}
         </button>
         <button
           className={`flex-1 rounded-2xl px-4 py-2.5 text-sm font-semibold ${view === "completed" ? "bg-[var(--accent)] text-white" : "surface-input"}`}
           onClick={() => setView("completed")}
           type="button"
         >
-          Завершённые
+          {t("hubCompletedTab")}
         </button>
       </div>
 
@@ -102,7 +104,7 @@ export function HabitsPanel({ habits }: HabitsPanelProps) {
                     <div className="mt-3 rounded-2xl bg-[var(--accent-soft)] px-3 py-2">
                       <div className="flex items-center gap-1.5 text-xs font-semibold text-[var(--accent)]">
                         <Gift aria-hidden className="size-3.5" />
-                        Мотивация
+                        {t("hubHabitsMotivation")}
                       </div>
                       <p className="mt-1 text-sm leading-relaxed">{habit.motivation}</p>
                     </div>
@@ -116,7 +118,7 @@ export function HabitsPanel({ habits }: HabitsPanelProps) {
                             [habit.id]: event.target.value,
                           }))
                         }
-                        placeholder="Что партнёр получит, если сделает?"
+                        placeholder={t("hubHabitsMotivationPlaceholder")}
                         value={motivationDrafts[habit.id] ?? ""}
                       />
                       <button
@@ -125,15 +127,15 @@ export function HabitsPanel({ habits }: HabitsPanelProps) {
                         onClick={() => saveMotivation(habit.id)}
                         type="button"
                       >
-                        Добавить мотивацию
+                        {t("hubHabitsAddMotivation")}
                       </button>
                     </div>
                   ) : null}
                   <p className="mt-2 text-xs text-[var(--muted)]">
                     {habit.author_name}
                     {habit.planned_date
-                      ? ` · ${formatDateRu(habit.planned_date)}`
-                      : ` · ${formatDateRu(habit.created_at.slice(0, 10))}`}
+                      ? ` · ${formatDateLocalized(locale, habit.planned_date)}`
+                      : ` · ${formatDateLocalized(locale, habit.created_at.slice(0, 10))}`}
                   </p>
                   {habit.status === "active" ? (
                     <button
@@ -146,7 +148,7 @@ export function HabitsPanel({ habits }: HabitsPanelProps) {
                       }
                       type="button"
                     >
-                      Завершить
+                      {t("hubHabitsComplete")}
                     </button>
                   ) : null}
                 </div>
@@ -156,18 +158,16 @@ export function HabitsPanel({ habits }: HabitsPanelProps) {
         ) : (
           <EmptyState
             description={
-              view === "active"
-                ? "Добавьте привычку, которую хотите развивать вместе."
-                : "Завершённые привычки появятся здесь."
+              view === "active" ? t("hubHabitsEmptyOpen") : t("hubHabitsEmptyClosed")
             }
-            title="Пока пусто"
+            title={t("hubEmptyShort")}
           />
         )}
       </section>
 
       {view === "active" ? (
         <button
-          aria-label="Добавить привычку"
+          aria-label={t("hubHabitsAdd")}
           className="fixed bottom-[calc(max(0.75rem,env(safe-area-inset-bottom))+5.25rem)] right-5 z-30 grid size-14 place-items-center rounded-full bg-[var(--accent)] text-white shadow-lg"
           onClick={() => setShowCreate(true)}
           type="button"
@@ -179,19 +179,19 @@ export function HabitsPanel({ habits }: HabitsPanelProps) {
       {showCreate ? (
         <div className="fixed inset-0 z-50 flex items-end bg-black/40 p-4 pb-24">
           <form className="w-full rounded-3xl surface-panel p-5" onSubmit={submit}>
-            <p className="text-lg font-bold">Новая привычка</p>
+            <p className="text-lg font-bold">{t("hubHabitsNew")}</p>
             <div className="mt-3 grid gap-3">
               <input
                 className="rounded-2xl surface-input px-4 py-3"
                 onChange={(event) => setTitle(event.target.value)}
-                placeholder="Что делаем вместе?"
+                placeholder={t("hubHabitsTitlePlaceholder")}
                 required
                 value={title}
               />
               <textarea
                 className="min-h-20 rounded-2xl surface-input px-4 py-3"
                 onChange={(event) => setDescription(event.target.value)}
-                placeholder="Описание (необязательно)"
+                placeholder={t("commonDescriptionOptional")}
                 value={description}
               />
               <input
@@ -200,16 +200,14 @@ export function HabitsPanel({ habits }: HabitsPanelProps) {
                 type="date"
                 value={plannedDate}
               />
-              <p className="text-xs text-[var(--muted)]">
-                Дата добавится в календарь, если указана.
-              </p>
+              <p className="text-xs text-[var(--muted)]">{t("hubDateCalendarHint")}</p>
               {error ? <p className="alert-error rounded-xl px-3 py-2 text-sm">{error}</p> : null}
               <button
                 className="rounded-2xl bg-[var(--accent)] py-3 font-semibold text-white disabled:opacity-60"
                 disabled={isPending}
                 type="submit"
               >
-                Добавить
+                {t("commonAdd")}
               </button>
             </div>
           </form>

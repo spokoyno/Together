@@ -4,11 +4,11 @@ import { useEffect, useState, useTransition } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import {
   Home,
-  Activity,
   ListTodo,
   MessageCircle,
   UserRound,
 } from "lucide-react";
+import { HeartArrowIcon } from "@/components/icons/heart-arrow-icon";
 import { setAppBadgeCount } from "@/lib/pwa/app-badge";
 import { createClient } from "@/lib/supabase/client";
 import { useLanguage } from "@/components/providers/language-provider";
@@ -23,7 +23,7 @@ type BottomNavProps = {
 const navLinkDefs = [
   { href: "/dashboard", labelKey: "navHome" as const, icon: Home },
   { href: "/plans", labelKey: "navPlans" as const, icon: ListTodo },
-  { href: "/memories", labelKey: "navFeed" as const, icon: Activity },
+  { href: "/memories", labelKey: "navFeed" as const, icon: HeartArrowIcon },
   { href: "/profile", labelKey: "navProfile" as const, icon: UserRound },
 ] as const;
 

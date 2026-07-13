@@ -2,6 +2,7 @@
 
 import { Bell, Share, X } from "lucide-react";
 import { useEffect, useState, useTransition } from "react";
+import { useLanguage } from "@/components/providers/language-provider";
 import { setNotificationsEnabled } from "@/lib/partner/actions";
 import { getPushStatus, savePushSubscription } from "@/lib/push/actions";
 import {
@@ -94,6 +95,8 @@ function BannerShell({
   actionDisabled,
   hint,
 }: BannerShellProps) {
+  const { t } = useLanguage();
+
   return (
     <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)]/95 px-3 py-2.5 shadow-sm backdrop-blur-sm">
       <div className="flex items-center gap-2">
@@ -107,7 +110,7 @@ function BannerShell({
           {actionLabel}
         </button>
         <button
-          aria-label="Закрыть"
+          aria-label={t("commonClose")}
           className="grid size-11 shrink-0 place-items-center rounded-xl surface-input text-[var(--muted)]"
           onClick={onDismiss}
           type="button"
@@ -125,6 +128,7 @@ export function DashboardTopBanners({
   initialSubscriptionCount,
   profileNotificationsEnabled,
 }: DashboardTopBannersProps) {
+  const { t } = useLanguage();
   const [clientState, setClientState] = useState<ClientBannerState | null>(null);
   const [installEvent, setInstallEvent] = useState<BeforeInstallPromptEvent | null>(null);
   const [installing, setInstalling] = useState(false);
@@ -259,14 +263,14 @@ export function DashboardTopBanners({
         if (settingsWereDisabled) {
           const settingsResult = await setNotificationsEnabled(true);
           if (!settingsResult.ok) {
-            setNotifError(settingsResult.error ?? "Не удалось включить в настройках.");
+            setNotifError(settingsResult.error ?? t("pwaNotifErrorSettings"));
             return;
           }
         }
 
         const result = await Notification.requestPermission();
         if (result !== "granted") {
-          setNotifError("Разрешите уведомления в настройках браузера.");
+          setNotifError(t("pwaNotifErrorPermission"));
           setClientState((current) =>
             current
               ? { ...current, permission: result, profileNotificationsEnabled: true }
@@ -277,7 +281,7 @@ export function DashboardTopBanners({
 
         const registration = await getServiceWorkerRegistration();
         if (!registration) {
-          setNotifError("Обновите страницу и попробуйте снова.");
+          setNotifError(t("pwaNotifErrorRefresh"));
           return;
         }
 
@@ -291,13 +295,13 @@ export function DashboardTopBanners({
 
         const payload = subscriptionToPayload(subscription);
         if (!payload) {
-          setNotifError("Не удалось оформить подписку.");
+          setNotifError(t("pwaNotifErrorSubscribe"));
           return;
         }
 
         const saveResult = await savePushSubscription(payload);
         if (!saveResult.ok) {
-          setNotifError(saveResult.error ?? "Не удалось сохранить подписку.");
+          setNotifError(saveResult.error ?? t("pwaNotifErrorSave"));
           return;
         }
 
@@ -313,20 +317,20 @@ export function DashboardTopBanners({
             : current,
         );
       } catch {
-        setNotifError("Не удалось включить уведомления.");
+        setNotifError(t("pwaNotifErrorGeneric"));
       }
     });
   }
 
   const installActionLabel = installEvent
-    ? "Установить"
+    ? t("pwaInstallAction")
     : showInstallHint
-      ? "Скрыть"
-      : "Установить";
+      ? t("pwaInstallHide")
+      : t("pwaInstallAction");
 
   const notificationsLabel = showNotificationsBecauseSettings
-    ? "Уведомления выключены в настройках"
-    : "Включите уведомления";
+    ? t("pwaNotifDisabled")
+    : t("pwaNotifEnable");
 
   return (
     <div className="sticky top-0 z-30 -mx-5 space-y-2 px-3 pb-3 pt-[max(0.25rem,env(safe-area-inset-top))]">
@@ -337,27 +341,22 @@ export function DashboardTopBanners({
           hint={
             showInstallHint ? (
               isInAppBrowser() ? (
-                <p className="text-xs leading-5 text-[var(--muted)]">
-                  Откройте сайт во внешнем браузере (Safari или Chrome), затем добавьте на главный
-                  экран.
-                </p>
+                <p className="text-xs leading-5 text-[var(--muted)]">{t("pwaInstallInAppHint")}</p>
               ) : isIosDevice() ? (
                 <ol className="list-decimal space-y-1 pl-4 text-xs leading-5 text-[var(--muted)]">
-                  <li>Откройте в Safari (не во встроенном браузере).</li>
+                  <li>{t("pwaInstallIos1")}</li>
                   <li>
-                    Нажмите{" "}
-                    <Share aria-hidden className="inline size-3.5 align-text-bottom" /> «Поделиться»
+                    <Share aria-hidden className="mr-1 inline size-3.5 align-text-bottom" />
+                    {t("pwaInstallIos2")}
                   </li>
-                  <li>Выберите «На экран Домой» → «Добавить»</li>
+                  <li>{t("pwaInstallIos3")}</li>
                 </ol>
               ) : (
-                <p className="text-xs leading-5 text-[var(--muted)]">
-                  Меню браузера (⋮) → «Установить приложение» или «Добавить на главный экран».
-                </p>
+                <p className="text-xs leading-5 text-[var(--muted)]">{t("pwaInstallAndroidHint")}</p>
               )
             ) : null
           }
-          label="Установите приложение на главный экран"
+          label={t("pwaInstallLabel")}
           onAction={handleInstallAction}
           onDismiss={dismissInstall}
         />
@@ -366,23 +365,18 @@ export function DashboardTopBanners({
       {showNotifications ? (
         <BannerShell
           actionDisabled={isPending || clientState.permission === "denied"}
-          actionLabel={isPending ? "..." : "Включить"}
+          actionLabel={isPending ? "..." : t("pwaNotifAction")}
           hint={
             notifError ? (
               <p className="text-xs text-red-600">{notifError}</p>
             ) : showNotificationsBecauseSettings ? (
-              <p className="text-xs leading-5 text-[var(--muted)]">
-                Вы отключили уведомления в профиле партнёра. Включите снова, чтобы получать
-                сообщения.
-              </p>
+              <p className="text-xs leading-5 text-[var(--muted)]">{t("pwaNotifSettingsHint")}</p>
             ) : clientState.permission === "denied" ? (
-              <p className="text-xs leading-5 text-[var(--muted)]">
-                Разрешите уведомления в настройках браузера или телефона.
-              </p>
+              <p className="text-xs leading-5 text-[var(--muted)]">{t("pwaNotifDenied")}</p>
             ) : (
               <p className="flex items-center gap-1.5 text-xs text-[var(--muted)]">
                 <Bell aria-hidden className="size-3.5 shrink-0" />
-                Сообщения и напоминания, когда приложение свёрнуто
+                {t("pwaNotifHint")}
               </p>
             )
           }

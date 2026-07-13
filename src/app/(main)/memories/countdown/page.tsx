@@ -8,7 +8,7 @@ export default async function HubCountdownPage() {
 
   return (
     <main className="mx-auto min-h-screen max-w-md px-5 pb-32 pt-8">
-      <HubPanelHeader subtitle="До важного момента" title="Отсчёт" />
+      <HubPanelHeader subtitleKey="panelCountdownDesc" titleKey="panelCountdown" />
       <CountdownPanel events={events} />
     </main>
   );

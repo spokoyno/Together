@@ -10,6 +10,7 @@ import {
   useTransition,
 } from "react";
 import { ImagePlus, Loader2, Send, X } from "lucide-react";
+import { useLanguage } from "@/components/providers/language-provider";
 import { MessageContextMenu } from "@/components/features/chat/message-context-menu";
 import {
   createChatNote,
@@ -66,6 +67,7 @@ export function ChatPanel({
   const [noteDraft, setNoteDraft] = useState("");
   const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const { t } = useLanguage();
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const topSentinelRef = useRef<HTMLDivElement>(null);
@@ -144,13 +146,13 @@ export function ChatPanel({
 
     if (!result.ok) {
       scrollAnchorRef.current = null;
-      setError(result.error ?? "Не удалось загрузить сообщения.");
+      setError(result.error ?? t("chatErrorLoad"));
       return;
     }
 
     setHasMore(result.hasMore);
     setMessages((current) => prependMessages(current, result.messages));
-  }, [hasMore, oldestMessage]);
+  }, [hasMore, oldestMessage, t]);
 
   useEffect(() => {
     const root = scrollRef.current;
@@ -211,7 +213,7 @@ export function ChatPanel({
                 id: row.id,
                 coupleId: row.couple_id,
                 senderId: row.sender_id,
-                senderName: row.sender_id === userId ? "Вы" : partnerName,
+                senderName: row.sender_id === userId ? t("commonYou") : partnerName,
                 body: row.body,
                 imagePath: row.image_path,
                 imageUrl,
@@ -245,7 +247,7 @@ export function ChatPanel({
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [coupleId, partnerName, userId]);
+  }, [coupleId, partnerName, userId, t]);
 
   function clearPendingImage() {
     setPendingImagePath(null);
@@ -276,7 +278,7 @@ export function ChatPanel({
 
       setPendingImagePath(result.path);
     } catch {
-      setError("Не удалось обработать фото.");
+      setError(t("chatErrorPhoto"));
       clearPendingImage();
     } finally {
       setIsUploading(false);
@@ -318,7 +320,7 @@ export function ChatPanel({
     }
 
     if (!pendingImagePath && pendingImagePreview) {
-      setError("Дождитесь загрузки фото.");
+      setError(t("chatErrorWaitPhoto"));
       return;
     }
 
@@ -333,7 +335,7 @@ export function ChatPanel({
       clientId,
       coupleId,
       senderId: userId,
-      senderName: "Вы",
+      senderName: t("commonYou"),
       body: text || null,
       imagePath,
       imageUrl: imagePreview,
@@ -408,7 +410,7 @@ export function ChatPanel({
       startTransition(async () => {
         const result = await deleteMessage(message.id);
         if (!result.ok) {
-          setError(result.error ?? "Не удалось удалить.");
+          setError(result.error ?? t("chatErrorDelete"));
           return;
         }
         setMessages((current) => current.filter((item) => item.id !== message.id));
@@ -448,10 +450,10 @@ export function ChatPanel({
           </div>
         ) : hasMore ? (
           <p className="mb-3 text-center text-xs text-[var(--muted)]">
-            Листайте вверх для более ранних сообщений
+            {t("chatScrollUp")}
           </p>
         ) : messages.length > 0 ? (
-          <p className="mb-3 text-center text-xs text-[var(--muted)]">Начало переписки</p>
+          <p className="mb-3 text-center text-xs text-[var(--muted)]">{t("chatConversationStart")}</p>
         ) : null}
 
         {messages.length ? (
@@ -526,7 +528,7 @@ export function ChatPanel({
                       {isSending ? (
                         <div className={`mt-1 flex ${isMine ? "justify-end" : "justify-start"}`}>
                           <Loader2
-                            aria-label="Отправляется"
+                            aria-label={t("chatSending")}
                             className="size-4 animate-spin text-[var(--muted)]"
                           />
                         </div>
@@ -537,7 +539,7 @@ export function ChatPanel({
                             onClick={() => handleRetry(message)}
                             type="button"
                           >
-                            Повторить
+                            {t("chatRetry")}
                           </button>
                         </div>
                       ) : null}
@@ -550,7 +552,7 @@ export function ChatPanel({
                             disabled={isPending}
                             maxLength={2000}
                             onChange={(event) => setNoteDraft(event.target.value)}
-                            placeholder="Ваша личная заметка к этому сообщению..."
+                            placeholder={t("chatNotePlaceholder")}
                             value={noteDraft}
                           />
                           <div className="flex gap-2">
@@ -559,7 +561,7 @@ export function ChatPanel({
                               disabled={isPending || !noteDraft.trim()}
                               type="submit"
                             >
-                              Сохранить заметку
+                              {t("chatSaveNote")}
                             </button>
                             <button
                               className="rounded-xl surface-input px-3 py-2 text-xs font-semibold"
@@ -569,7 +571,7 @@ export function ChatPanel({
                               }}
                               type="button"
                             >
-                              Отмена
+                              {t("commonCancel")}
                             </button>
                           </div>
                         </form>
@@ -583,9 +585,9 @@ export function ChatPanel({
         ) : (
           <div className="grid h-full place-items-center px-6 text-center">
             <div>
-              <p className="text-lg font-semibold">Начните переписку</p>
+              <p className="text-lg font-semibold">{t("chatStartTitle")}</p>
               <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-                Напишите {partnerName} — сообщения приходят мгновенно.
+                {t("chatStartHint", { name: partnerName })}
               </p>
             </div>
           </div>
@@ -613,7 +615,7 @@ export function ChatPanel({
                 onClick={clearPendingImage}
                 type="button"
               >
-                Убрать
+                {t("chatRemove")}
               </button>
             )}
           </div>
@@ -626,7 +628,7 @@ export function ChatPanel({
             onSelect={(file) => void handleImagePick(file)}
             renderTrigger={({ open, disabled }) => (
               <button
-                aria-label="Прикрепить фото"
+                aria-label={t("chatAttachPhoto")}
                 className="grid size-11 shrink-0 place-items-center rounded-full bg-[var(--surface)] text-[var(--muted)] shadow-md transition-transform active:scale-95 disabled:opacity-50"
                 disabled={disabled}
                 onClick={open}
@@ -647,12 +649,12 @@ export function ChatPanel({
                 event.currentTarget.form?.requestSubmit();
               }
             }}
-            placeholder="Сообщение"
+            placeholder={t("chatPlaceholder")}
             rows={1}
             value={draft}
           />
           <button
-            aria-label="Отправить сообщение"
+            aria-label={t("chatSend")}
             className="grid size-11 shrink-0 place-items-center rounded-full bg-[var(--accent)] text-white shadow-md transition-transform active:scale-95 disabled:opacity-50"
             disabled={isUploading || (!draft.trim() && !pendingImagePath)}
             type="submit"
@@ -668,7 +670,7 @@ export function ChatPanel({
       {fullscreenImage ? (
         <div className="fixed inset-0 z-[100] flex flex-col bg-black">
           <button
-            aria-label="Закрыть"
+            aria-label={t("commonClose")}
             className="absolute right-4 top-[max(1rem,env(safe-area-inset-top))] z-10 grid size-10 place-items-center rounded-full bg-white/15 text-white"
             onClick={() => setFullscreenImage(null)}
             type="button"

@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useLanguage } from "@/components/providers/language-provider";
 import { exportCoupleData } from "@/lib/profile/actions";
 
 export function ExportDataButton() {
+  const { t } = useLanguage();
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
 
@@ -34,7 +36,7 @@ export function ExportDataButton() {
         onClick={handleExport}
         type="button"
       >
-        {isPending ? "Готовим файл..." : "Экспортировать мои данные"}
+        {isPending ? t("pairExportPreparing") : t("profileExport")}
       </button>
       {error ? <p className="mt-2 text-sm text-[var(--danger-text)]">{error}</p> : null}
     </div>

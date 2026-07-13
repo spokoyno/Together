@@ -8,7 +8,7 @@ export default async function HubTravelPage() {
 
   return (
     <main className="mx-auto min-h-screen max-w-md px-5 pb-32 pt-8">
-      <HubPanelHeader subtitle="Места мечты вдвоём" title="Путешествия" />
+      <HubPanelHeader subtitleKey="panelTravelDesc" titleKey="panelTravel" />
       <TravelPanel destinations={destinations} />
     </main>
   );

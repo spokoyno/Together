@@ -2,13 +2,13 @@ import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { DashboardContent } from "@/components/features/dashboard/dashboard-content";
 import { DashboardTopBanners } from "@/components/features/dashboard/dashboard-top-banners";
-import { PairWaitingPanel } from "@/components/features/pair/pair-waiting-panel";
+import { DashboardGreeting } from "@/components/features/dashboard/dashboard-greeting";
+import { DashboardWaitingState } from "@/components/features/dashboard/dashboard-waiting-state";
 import { TabPageSkeleton } from "@/components/ui/tab-page-skeleton";
 import { requireUser } from "@/lib/auth/session";
 import { getOnboardingPath } from "@/lib/auth/routes";
 import { getCoupleContextForUser } from "@/lib/couple/context.server";
 import { createInvitationUrl } from "@/lib/couple/invitation";
-import { greeting } from "@/lib/dates";
 import { normalizeDashboardPreferences } from "@/lib/hub/panels-preferences";
 import { getPushServerConfig } from "@/lib/push/config";
 import type { OnboardingStep } from "@/lib/onboarding/actions";
@@ -66,24 +66,14 @@ export default async function DashboardPage() {
           profileNotificationsEnabled={profileNotificationsEnabled}
           vapidPublicKey={pushConfig.vapidPublicKey}
         />
-        <header>
-          <p className="text-sm text-[var(--muted)]">{greeting()}</p>
-          <h1 className="text-2xl font-bold">Together</h1>
-        </header>
+        <DashboardGreeting />
 
-        <section className="mt-7 rounded-3xl surface-panel border-dashed p-5">
-          <p className="text-sm font-semibold text-[var(--accent)]">Почти готово</p>
-          <p className="mt-2 leading-7 text-[var(--muted)]">
-            Приложение откроется полностью, когда партнёр примет приглашение.
-          </p>
-        </section>
-
-        <div className="mt-6">
-          <PairWaitingPanel
+        <section className="mt-7">
+          <DashboardWaitingState
             inviteUrl={inviteUrl}
             relationshipStartedOn={context.relationshipStartedOn}
           />
-        </div>
+        </section>
       </main>
     );
   }

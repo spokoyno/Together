@@ -2,9 +2,10 @@
 
 import { ImagePlus, Loader2, MessageCircle, X } from "lucide-react";
 import { useState, useTransition } from "react";
+import { useLanguage } from "@/components/providers/language-provider";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PhotoSourcePicker } from "@/components/ui/photo-source-picker";
-import { formatDateRu } from "@/lib/dates";
+import { formatDateLocalized } from "@/lib/dates";
 import { addGalleryComment, addGalleryPhotos } from "@/lib/gallery/actions";
 import { compressImageFile } from "@/lib/media/compress-image.client";
 import { uploadCoupleMediaClient } from "@/lib/media/upload.client";
@@ -23,6 +24,7 @@ export function GalleryPanel({ items, coupleId, userId }: GalleryPanelProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
+  const { locale, t } = useLanguage();
 
   async function handleFiles(files: File[]) {
     if (!files.length) {
@@ -46,10 +48,10 @@ export function GalleryPanel({ items, coupleId, userId }: GalleryPanelProps) {
 
       const saveResult = await addGalleryPhotos(paths);
       if (!saveResult.ok) {
-        setError(saveResult.error ?? "Не удалось сохранить.");
+        setError(saveResult.error ?? t("hubErrorSave"));
       }
     } catch {
-      setError("Не удалось загрузить фото.");
+      setError(t("hubErrorUploadPhoto"));
     } finally {
       setIsUploading(false);
     }
@@ -64,7 +66,7 @@ export function GalleryPanel({ items, coupleId, userId }: GalleryPanelProps) {
     startTransition(async () => {
       const result = await addGalleryComment(galleryId, text);
       if (!result.ok) {
-        setError(result.error ?? "Не удалось добавить комментарий.");
+        setError(result.error ?? t("hubErrorComment"));
         return;
       }
       setCommentDraft("");
@@ -91,7 +93,7 @@ export function GalleryPanel({ items, coupleId, userId }: GalleryPanelProps) {
                   <p className="text-sm">{item.caption}</p>
                 ) : null}
                 <p className="text-xs text-[var(--muted)]">
-                  {item.author_name} · {formatDateRu(item.created_at.slice(0, 10))}
+                  {item.author_name} · {formatDateLocalized(locale, item.created_at.slice(0, 10))}
                 </p>
                 {item.comments.length ? (
                   <div className="space-y-1">
@@ -108,7 +110,7 @@ export function GalleryPanel({ items, coupleId, userId }: GalleryPanelProps) {
                     <input
                       className="rounded-xl surface-input px-3 py-2 text-sm"
                       onChange={(event) => setCommentDraft(event.target.value)}
-                      placeholder="Комментарий..."
+                      placeholder={t("hubGalleryCommentPlaceholder")}
                       value={commentDraft}
                     />
                     <button
@@ -117,7 +119,7 @@ export function GalleryPanel({ items, coupleId, userId }: GalleryPanelProps) {
                       onClick={() => submitComment(item.id)}
                       type="button"
                     >
-                      Отправить
+                      {t("commonSend")}
                     </button>
                   </div>
                 ) : (
@@ -130,7 +132,7 @@ export function GalleryPanel({ items, coupleId, userId }: GalleryPanelProps) {
                     type="button"
                   >
                     <MessageCircle aria-hidden className="size-3.5" />
-                    Комментировать
+                    {t("hubGalleryComment")}
                   </button>
                 )}
               </div>
@@ -139,8 +141,8 @@ export function GalleryPanel({ items, coupleId, userId }: GalleryPanelProps) {
         </section>
       ) : (
         <EmptyState
-          description="Загрузите общие фото — они появятся в удобной сетке."
-          title="Галерея пуста"
+          description={t("hubGalleryEmptyDesc")}
+          title={t("hubGalleryEmpty")}
         />
       )}
 
@@ -154,7 +156,7 @@ export function GalleryPanel({ items, coupleId, userId }: GalleryPanelProps) {
         onSelectMany={(files) => void handleFiles(files)}
         renderTrigger={({ open, disabled }) => (
           <button
-            aria-label="Добавить фото"
+            aria-label={t("hubGalleryAddPhoto")}
             className="fixed bottom-[calc(max(0.75rem,env(safe-area-inset-bottom))+5.25rem)] right-5 z-30 grid size-14 place-items-center rounded-full bg-[var(--accent)] text-white shadow-lg disabled:opacity-60"
             disabled={disabled}
             onClick={open}
@@ -172,7 +174,7 @@ export function GalleryPanel({ items, coupleId, userId }: GalleryPanelProps) {
       {fullscreenUrl ? (
         <div className="fixed inset-0 z-50 flex flex-col bg-black">
           <button
-            aria-label="Закрыть"
+            aria-label={t("commonClose")}
             className="absolute right-4 top-[max(1rem,env(safe-area-inset-top))] z-10 grid size-10 place-items-center rounded-full bg-white/15 text-white"
             onClick={() => setFullscreenUrl(null)}
             type="button"

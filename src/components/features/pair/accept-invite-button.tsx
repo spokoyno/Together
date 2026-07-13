@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useLanguage } from "@/components/providers/language-provider";
 import { acceptInvitation } from "@/lib/couple/actions";
 
 type AcceptInviteButtonProps = {
@@ -8,6 +9,7 @@ type AcceptInviteButtonProps = {
 };
 
 export function AcceptInviteButton({ token }: AcceptInviteButtonProps) {
+  const { t } = useLanguage();
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
 
@@ -29,7 +31,7 @@ export function AcceptInviteButton({ token }: AcceptInviteButtonProps) {
         onClick={handleAccept}
         type="button"
       >
-        {isPending ? "Подключаем..." : "Принять приглашение"}
+        {isPending ? t("pairConnecting") : t("pairAccept")}
       </button>
       {error ? (
         <p className="alert-error rounded-2xl px-4 py-3 text-sm">

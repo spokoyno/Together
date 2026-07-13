@@ -8,7 +8,7 @@ export default async function HubComplimentsPage() {
 
   return (
     <main className="mx-auto min-h-screen max-w-md px-5 pb-32 pt-8">
-      <HubPanelHeader title="Комплименты" />
+      <HubPanelHeader subtitleKey="panelComplimentsDesc" titleKey="panelCompliments" />
       <ComplimentsPanel partnerName={ctx.partnerName} state={complimentState} />
     </main>
   );

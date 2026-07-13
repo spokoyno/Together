@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { useLanguage } from "@/components/providers/language-provider";
 import { createInvitation } from "@/lib/couple/actions";
 import { InviteLinkDisplay } from "@/components/features/pair/invite-link-display";
 
@@ -9,13 +10,13 @@ type InviteRegenerateButtonProps = {
   label?: string;
 };
 
-export function InviteRegenerateButton({
-  label = "Создать новую ссылку",
-}: InviteRegenerateButtonProps) {
+export function InviteRegenerateButton({ label }: InviteRegenerateButtonProps) {
   const router = useRouter();
+  const { t } = useLanguage();
   const [inviteUrl, setInviteUrl] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
+  const buttonLabel = label ?? t("pairRegenerate");
 
   function handleCreate() {
     setError("");
@@ -34,7 +35,7 @@ export function InviteRegenerateButton({
     return (
       <div className="grid gap-3">
         <p className="rounded-2xl alert-success rounded-2xl px-4 py-3 text-sm">
-          Новая ссылка создана. Предыдущие ссылки тоже остаются действительными до истечения срока.
+          {t("pairNewLinkCreated")}
         </p>
         <InviteLinkDisplay inviteUrl={inviteUrl} />
         <button
@@ -43,7 +44,7 @@ export function InviteRegenerateButton({
           onClick={handleCreate}
           type="button"
         >
-          {isPending ? "Создаём..." : "Создать ещё одну ссылку"}
+          {isPending ? t("pairCreating") : t("pairCreateAnother")}
         </button>
       </div>
     );
@@ -57,7 +58,7 @@ export function InviteRegenerateButton({
         onClick={handleCreate}
         type="button"
       >
-        {isPending ? "Создаём ссылку..." : label}
+        {isPending ? t("pairCreatingLink") : buttonLabel}
       </button>
       {error ? (
         <p className="alert-error rounded-2xl px-4 py-3 text-sm">

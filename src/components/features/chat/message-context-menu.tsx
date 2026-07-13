@@ -2,6 +2,7 @@
 
 import { Bookmark, BookmarkCheck, ChefHat, Clapperboard, ListTodo, MoreVertical, Sparkles, StickyNote, Trash2, X } from "lucide-react";
 import { useEffect, useRef, useState, useTransition } from "react";
+import { useLanguage } from "@/components/providers/language-provider";
 import {
   addMessageToCooking,
   addMessageToMemories,
@@ -31,6 +32,7 @@ export function MessageContextMenu({
   onError,
   onDelete,
 }: MessageContextMenuProps) {
+  const { t } = useLanguage();
   const [open, setOpen] = useState(false);
   const [planOpen, setPlanOpen] = useState(false);
   const [planDate, setPlanDate] = useState("");
@@ -57,7 +59,7 @@ export function MessageContextMenu({
     startTransition(async () => {
       const result = await action();
       if (!result.ok) {
-        onError("error" in result ? (result.error ?? "Не удалось выполнить действие.") : "Не удалось выполнить действие.");
+        onError("error" in result ? (result.error ?? t("chatActionError")) : t("chatActionError"));
       }
     });
   }
@@ -65,7 +67,7 @@ export function MessageContextMenu({
   const menuItems = [
     {
       id: "plan",
-      label: "В планы",
+      label: t("chatToPlans"),
       icon: ListTodo,
       onClick: () => {
         setOpen(false);
@@ -74,25 +76,25 @@ export function MessageContextMenu({
     },
     {
       id: "memory",
-      label: "В воспоминания",
+      label: t("chatToMemories"),
       icon: Sparkles,
       onClick: () => runAction(() => addMessageToMemories(message.id)),
     },
     {
       id: "watch",
-      label: "В просмотр",
+      label: t("chatToWatch"),
       icon: Clapperboard,
       onClick: () => runAction(() => addMessageToWatchlist(message.id)),
     },
     {
       id: "cook",
-      label: "Приготовить",
+      label: t("chatToCook"),
       icon: ChefHat,
       onClick: () => runAction(() => addMessageToCooking(message.id)),
     },
     {
       id: "save",
-      label: isSaved ? "Убрать из сохранённых" : "Сохранить",
+      label: isSaved ? t("chatUnsave") : t("chatSaveMessage"),
       icon: isSaved ? BookmarkCheck : Bookmark,
       onClick: () => {
         setOpen(false);
@@ -101,7 +103,7 @@ export function MessageContextMenu({
     },
     {
       id: "note",
-      label: "Заметка",
+      label: t("chatNoteAction"),
       icon: StickyNote,
       onClick: () => {
         setOpen(false);
@@ -112,7 +114,7 @@ export function MessageContextMenu({
       ? [
           {
             id: "delete",
-            label: "Удалить",
+            label: t("chatDelete"),
             icon: Trash2,
             onClick: () => {
               setOpen(false);
@@ -129,7 +131,7 @@ export function MessageContextMenu({
         <button
           aria-expanded={open}
           aria-haspopup="menu"
-          aria-label="Действия с сообщением"
+          aria-label={t("chatMessageActions")}
           className={`grid size-8 place-items-center rounded-full transition-colors ${
             isMine ? "hover:bg-white/15" : "hover:bg-[var(--input-bg)]"
           }`}
@@ -173,7 +175,7 @@ export function MessageContextMenu({
             onSubmit={(event) => {
               event.preventDefault();
               if (!planDate) {
-                onError("Выберите дату.");
+                onError(t("chatSelectDate"));
                 return;
               }
               runAction(() => addMessageToPlan(message.id, `${planDate}T12:00`));
@@ -182,9 +184,9 @@ export function MessageContextMenu({
             }}
           >
             <div className="mb-4 flex items-center justify-between">
-              <p className="text-lg font-bold">Добавить в планы</p>
+              <p className="text-lg font-bold">{t("chatAddToPlans")}</p>
               <button
-                aria-label="Закрыть"
+                aria-label={t("commonClose")}
                 className="grid size-9 place-items-center rounded-full surface-input"
                 onClick={() => setPlanOpen(false)}
                 type="button"
@@ -192,7 +194,7 @@ export function MessageContextMenu({
                 <X aria-hidden className="size-5" />
               </button>
             </div>
-            <p className="mb-3 text-sm text-[var(--muted)]">Когда планируете?</p>
+            <p className="mb-3 text-sm text-[var(--muted)]">{t("chatWhenPlan")}</p>
             <input
               className="w-full rounded-2xl surface-input px-4 py-3"
               onChange={(event) => setPlanDate(event.target.value)}
@@ -205,7 +207,7 @@ export function MessageContextMenu({
               disabled={isPending}
               type="submit"
             >
-              {isPending ? "Сохраняем..." : "Запланировать"}
+              {isPending ? t("chatScheduling") : t("chatSchedule")}
             </button>
           </form>
         </div>

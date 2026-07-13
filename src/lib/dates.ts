@@ -34,8 +34,20 @@ export function formatDateRu(value: string): string {
   }).format(new Date(value));
 }
 
+export function formatDateLocalized(locale: string, value: string): string {
+  return new Intl.DateTimeFormat(locale, {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(new Date(value));
+}
+
 export function formatDateTimeRu(value: string): string {
-  return new Intl.DateTimeFormat("ru-RU", {
+  return formatDateTimeLocalized("ru-RU", value);
+}
+
+export function formatDateTimeLocalized(locale: string, value: string): string {
+  return new Intl.DateTimeFormat(locale, {
     day: "numeric",
     month: "long",
     hour: "2-digit",
@@ -44,13 +56,30 @@ export function formatDateTimeRu(value: string): string {
 }
 
 export function relativeTimeRu(value: string): string {
-  const diffMs = Date.now() - new Date(value).getTime();
-  const hours = Math.floor(diffMs / (1000 * 60 * 60));
-  if (hours < 1) return "только что";
-  if (hours < 24) return `${hours} ч. назад`;
-  const days = Math.floor(hours / 24);
-  if (days === 1) return "вчера";
-  return `${days} дн. назад`;
+  return relativeTimeLocalized("ru-RU", value);
+}
+
+export function relativeTimeLocalized(locale: string, value: string): string {
+  const diffSec = Math.round((new Date(value).getTime() - Date.now()) / 1000);
+  const rtf = new Intl.RelativeTimeFormat(locale, { numeric: "auto" });
+
+  const absSec = Math.abs(diffSec);
+  if (absSec < 60) {
+    return rtf.format(Math.round(diffSec), "second");
+  }
+
+  const diffMin = Math.round(diffSec / 60);
+  if (Math.abs(diffMin) < 60) {
+    return rtf.format(diffMin, "minute");
+  }
+
+  const diffHour = Math.round(diffSec / 3600);
+  if (Math.abs(diffHour) < 24) {
+    return rtf.format(diffHour, "hour");
+  }
+
+  const diffDay = Math.round(diffSec / 86400);
+  return rtf.format(diffDay, "day");
 }
 
 export function formatMessageTime(value: string): string {

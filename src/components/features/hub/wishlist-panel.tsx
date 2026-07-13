@@ -2,6 +2,7 @@
 
 import { Gift, Plus } from "lucide-react";
 import { useState, useTransition } from "react";
+import { useLanguage } from "@/components/providers/language-provider";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PhotoSourcePicker } from "@/components/ui/photo-source-picker";
 import type { HubWishlistItem } from "@/components/features/hub/types";
@@ -29,6 +30,7 @@ export function WishlistPanel({ items, coupleId, userId, partnerName }: Wishlist
   const [planDate, setPlanDate] = useState("");
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
+  const { t } = useLanguage();
 
   const openItems = items.filter((item) => item.status === "open");
   const fulfilledItems = items.filter((item) => item.status === "fulfilled");
@@ -50,7 +52,7 @@ export function WishlistPanel({ items, coupleId, userId, partnerName }: Wishlist
       }
       const result = await addWishlistItem(formData);
       if (!result.ok) {
-        setError(result.error ?? "Не удалось добавить.");
+        setError(result.error ?? t("hubErrorAdd"));
         return;
       }
       setShowCreate(false);
@@ -87,7 +89,7 @@ export function WishlistPanel({ items, coupleId, userId, partnerName }: Wishlist
                     }
                     type="button"
                   >
-                    Исполнить
+                    {t("hubWishlistFulfill")}
                   </button>
                   {item.created_by !== userId ? (
                     <button
@@ -95,7 +97,7 @@ export function WishlistPanel({ items, coupleId, userId, partnerName }: Wishlist
                       onClick={() => setPlanItemId(item.id)}
                       type="button"
                     >
-                      <Gift aria-hidden className="size-3.5" /> В планы-сюрприз
+                      <Gift aria-hidden className="size-3.5" /> {t("hubWishlistSurprise")}
                     </button>
                   ) : null}
                 </div>
@@ -103,13 +105,13 @@ export function WishlistPanel({ items, coupleId, userId, partnerName }: Wishlist
             </article>
           ))
         ) : (
-          <EmptyState description="Добавьте желание или хотелку." title="Wishlist пуст" />
+          <EmptyState description={t("hubWishlistEmptyDesc")} title={t("hubWishlistEmpty")} />
         )}
       </section>
 
       {fulfilledItems.length ? (
         <section className="mt-6">
-          <p className="mb-3 text-sm font-semibold text-[var(--muted)]">Исполнено</p>
+          <p className="mb-3 text-sm font-semibold text-[var(--muted)]">{t("hubFulfilledTab")}</p>
           <div className="grid gap-2">
             {fulfilledItems.map((item) => (
               <p className="rounded-2xl surface-input px-3 py-2 text-sm" key={item.id}>
@@ -122,7 +124,7 @@ export function WishlistPanel({ items, coupleId, userId, partnerName }: Wishlist
       ) : null}
 
       <button
-        aria-label="Добавить желание"
+        aria-label={t("hubWishlistAdd")}
         className="fixed bottom-[calc(max(0.75rem,env(safe-area-inset-bottom))+5.25rem)] right-5 z-30 grid size-14 place-items-center rounded-full bg-[var(--accent)] text-white shadow-lg"
         onClick={() => setShowCreate(true)}
         type="button"
@@ -133,32 +135,32 @@ export function WishlistPanel({ items, coupleId, userId, partnerName }: Wishlist
       {showCreate ? (
         <div className="fixed inset-0 z-50 flex items-end bg-black/40 p-4 pb-24">
           <form className="w-full rounded-3xl surface-panel p-5" onSubmit={submitWish}>
-            <p className="text-lg font-bold">Новое желание</p>
+            <p className="text-lg font-bold">{t("hubWishlistNew")}</p>
             <div className="mt-3 grid gap-3">
               <input
                 className="rounded-2xl surface-input px-4 py-3"
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="Что хочется?"
+                placeholder={t("hubWishlistTitlePlaceholder")}
                 required
                 value={title}
               />
               <textarea
                 className="min-h-20 rounded-2xl surface-input px-4 py-3"
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Подробности"
+                placeholder={t("hubWishlistDetailsPlaceholder")}
                 value={description}
               />
               <PhotoSourcePicker
                 onSelect={(file) => void compressImageFile(file).then(setMediaFile)}
                 renderTrigger={({ open }) => (
                   <button className="rounded-2xl surface-input px-4 py-3 text-left text-sm" onClick={open} type="button">
-                    Фото (необязательно)
+                    {t("commonPhotoOptional")}
                   </button>
                 )}
               />
               {error ? <p className="alert-error rounded-xl px-3 py-2 text-sm">{error}</p> : null}
               <button className="rounded-2xl bg-[var(--accent)] py-3 font-semibold text-white" disabled={isPending} type="submit">
-                Добавить
+                {t("commonAdd")}
               </button>
             </div>
           </form>
@@ -168,7 +170,7 @@ export function WishlistPanel({ items, coupleId, userId, partnerName }: Wishlist
       {planItemId ? (
         <div className="fixed inset-0 z-50 flex items-end bg-black/40 p-4 pb-24">
           <div className="w-full rounded-3xl surface-panel p-5">
-            <p className="font-bold">Сюрприз для {partnerName}</p>
+            <p className="font-bold">{t("hubWishlistSurpriseFor", { name: partnerName })}</p>
             <input
               className="mt-3 w-full rounded-2xl surface-input px-4 py-3"
               onChange={(e) => setPlanDate(e.target.value)}
@@ -182,7 +184,7 @@ export function WishlistPanel({ items, coupleId, userId, partnerName }: Wishlist
                 startTransition(async () => {
                   const result = await wishlistToSurprisePlan(planItemId, `${planDate}T12:00`);
                   if (!result.ok) {
-                    setError(result.error ?? "Ошибка");
+                    setError(result.error ?? t("commonErrorGeneric"));
                     return;
                   }
                   setPlanItemId(null);
@@ -191,7 +193,7 @@ export function WishlistPanel({ items, coupleId, userId, partnerName }: Wishlist
               }
               type="button"
             >
-              Запланировать сюрприз
+              {t("hubWishlistScheduleSurprise")}
             </button>
           </div>
         </div>

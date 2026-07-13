@@ -66,7 +66,7 @@ export default async function ProfilePage() {
     <ProfileScreen
       avatarUrl={avatarUrl}
       daysTogether={daysTogether}
-      displayName={myProfile?.display_name ?? "Пользователь"}
+      displayName={myProfile?.display_name ?? ""}
       email={user.email ?? ""}
       gender={(myProfile?.gender as ProfileGender | null) ?? null}
       hasCouple={Boolean(context)}

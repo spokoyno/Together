@@ -1,36 +1,42 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
+import { useLanguage } from "@/components/providers/language-provider";
 import {
   advanceOnboardingToDistance,
   saveRelationshipDistance,
   type RelationshipDistance,
 } from "@/lib/onboarding/actions";
 
-const OPTIONS: Array<{ value: RelationshipDistance; label: string; description: string }> = [
-  {
-    value: "distance",
-    label: "На дистанции",
-    description: "Живём в разных городах или странах",
-  },
-  {
-    value: "nearby",
-    label: "Рядом",
-    description: "Часто раздельно, но недалеко друг от друга",
-  },
-  {
-    value: "together",
-    label: "Живём вместе",
-    description: "В одном доме или квартире",
-  },
-];
-
 export function DistanceOnboardingForm() {
   const router = useRouter();
+  const { t } = useLanguage();
   const [selected, setSelected] = useState<RelationshipDistance | null>(null);
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
+
+  const options = useMemo(
+    () =>
+      [
+        {
+          value: "distance" as const,
+          label: t("onboardingDistanceLong"),
+          description: t("onboardingDistanceLongDesc"),
+        },
+        {
+          value: "nearby" as const,
+          label: t("onboardingDistanceNear"),
+          description: t("onboardingDistanceNearDesc"),
+        },
+        {
+          value: "together" as const,
+          label: t("onboardingDistanceTogether"),
+          description: t("onboardingDistanceTogetherDesc"),
+        },
+      ] satisfies Array<{ value: RelationshipDistance; label: string; description: string }>,
+    [t],
+  );
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -42,7 +48,7 @@ export function DistanceOnboardingForm() {
     startTransition(async () => {
       const result = await saveRelationshipDistance(selected);
       if (!result.ok) {
-        setError(result.error ?? "Не удалось сохранить.");
+        setError(result.error ?? t("hubErrorSave"));
         return;
       }
       router.replace("/pair");
@@ -52,7 +58,7 @@ export function DistanceOnboardingForm() {
 
   return (
     <form className="mt-8 grid gap-3" onSubmit={handleSubmit}>
-      {OPTIONS.map((option) => {
+      {options.map((option) => {
         const active = selected === option.value;
         return (
           <button
@@ -76,7 +82,7 @@ export function DistanceOnboardingForm() {
         disabled={isPending || !selected}
         type="submit"
       >
-        {isPending ? "Сохраняем..." : "Готово"}
+        {isPending ? t("profileSaving") : t("onboardingDone")}
       </button>
     </form>
   );
@@ -84,6 +90,7 @@ export function DistanceOnboardingForm() {
 
 export function SkipToDistanceButton() {
   const router = useRouter();
+  const { t } = useLanguage();
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
 
@@ -92,7 +99,7 @@ export function SkipToDistanceButton() {
     startTransition(async () => {
       const result = await advanceOnboardingToDistance();
       if (!result.ok) {
-        setError(result.error ?? "Не удалось продолжить.");
+        setError(result.error ?? t("onboardingErrorContinue"));
         return;
       }
       router.replace("/onboarding/distance");
@@ -108,7 +115,7 @@ export function SkipToDistanceButton() {
         onClick={handleSkip}
         type="button"
       >
-        {isPending ? "Переходим..." : "Пропустить"}
+        {isPending ? t("onboardingGoing") : t("onboardingSkip")}
       </button>
       {error ? <p className="mt-2 alert-error rounded-xl px-3 py-2 text-sm">{error}</p> : null}
     </div>

@@ -11,7 +11,7 @@ export default async function HubMoviesPage() {
 
   return (
     <main className="mx-auto min-h-screen max-w-md px-5 pb-32 pt-8">
-      <HubPanelHeader subtitle="Поиск и оценки вдвоём" title="Фильмы" />
+      <HubPanelHeader subtitleKey="panelMoviesDesc" titleKey="panelMovies" />
       <MoviesPanel
         collections={collections}
         movies={movies}

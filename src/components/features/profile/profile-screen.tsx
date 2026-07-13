@@ -14,10 +14,16 @@ import { LeaveCoupleButton } from "@/components/features/pair/leave-couple-butto
 import { AvatarUpload } from "@/components/features/profile/avatar-upload";
 import { GenderSelect } from "@/components/features/profile/gender-select";
 import { UserAvatar } from "@/components/ui/user-avatar";
-import { genderLabel } from "@/lib/profile/gender";
 import { updateProfile } from "@/lib/profile/actions";
 import { useLanguage } from "@/components/providers/language-provider";
+import type { MessageKey } from "@/lib/i18n/messages";
 import type { ProfileGender } from "@/types/domain";
+
+const GENDER_KEYS: Record<ProfileGender, MessageKey> = {
+  female: "genderFemale",
+  male: "genderMale",
+  other: "genderOther",
+};
 
 type ProfileScreenProps = {
   userId: string;
@@ -65,7 +71,8 @@ export function ProfileScreen({
   const [tab, setTab] = useState<Tab>("notifications");
   const { t } = useLanguage();
   const [showEdit, setShowEdit] = useState(false);
-  const [name, setName] = useState(displayName);
+  const resolvedName = displayName || t("defaultDisplayName");
+  const [name, setName] = useState(displayName || resolvedName);
   const [profileGender, setProfileGender] = useState<ProfileGender | "">(gender ?? "");
   const [relationshipDate, setRelationshipDate] = useState(relationshipStartedOn ?? "");
   const [isPending, startTransition] = useTransition();
@@ -98,12 +105,12 @@ export function ProfileScreen({
   return (
     <main className="mx-auto min-h-screen max-w-md px-5 pb-32 pt-8">
       <section className="flex items-center gap-4">
-        <AvatarUpload imageUrl={avatarUrl} name={displayName} size="lg" userId={userId} />
+        <AvatarUpload imageUrl={avatarUrl} name={resolvedName} size="lg" userId={userId} />
         <div className="min-w-0 flex-1">
-          <h1 className="truncate text-2xl font-bold">{displayName}</h1>
+          <h1 className="truncate text-2xl font-bold">{resolvedName}</h1>
           <p className="truncate text-sm text-[var(--muted)]">{email}</p>
-          {genderLabel(gender) ? (
-            <p className="truncate text-sm text-[var(--muted)]">{genderLabel(gender)}</p>
+          {gender ? (
+            <p className="truncate text-sm text-[var(--muted)]">{t(GENDER_KEYS[gender])}</p>
           ) : null}
         </div>
         <button
@@ -119,7 +126,7 @@ export function ProfileScreen({
 
       {isComplete && partnerName && partnerId ? (
         <section className="mt-6 flex items-center justify-center gap-4">
-          <UserAvatar imageUrl={avatarUrl} name={displayName} />
+          <UserAvatar imageUrl={avatarUrl} name={resolvedName} />
           <Heart aria-hidden className="size-6 fill-[var(--accent)] text-[var(--accent)]" />
           <UserAvatar href="/profile/partner" imageUrl={partnerAvatarUrl} name={partnerName} />
         </section>

@@ -1,134 +1,134 @@
 @import "tailwindcss";
 
-/* Default: dark rose — laconic, minimal */
+/* Soft dark palettes — low contrast, laconic */
 :root,
 [data-theme="pink"] {
-  --background: #0f0b0d;
-  --foreground: #f5eef2;
-  --surface: #1a1418;
-  --surface-elevated: #241c22;
-  --input-bg: #1e171c;
-  --muted: #a8949e;
-  --accent: #ff5c8a;
-  --accent-soft: #3d2430;
-  --border: #2e2329;
-  --chat-bg: #120d10;
-  --chat-incoming: #1e171c;
-  --chat-outgoing: #ff5c8a;
-  --nav-bg: rgb(26 20 24 / 0.96);
-  --shadow: rgb(0 0 0 / 0.35);
-  --danger-bg: #2a1820;
-  --danger-border: #5c3040;
-  --danger-text: #ff9eb5;
-  --badge-bg: #ffe8ef;
-  --badge-text: #ff5c8a;
-  --success-bg: #142820;
-  --success-border: #2a5040;
-  --success-text: #8fd4b0;
+  --background: #131114;
+  --foreground: #cfc9cd;
+  --surface: #1a1819;
+  --surface-elevated: #211e20;
+  --input-bg: #1c1a1b;
+  --muted: #7a7478;
+  --accent: #c07890;
+  --accent-soft: #261f22;
+  --border: #2a2729;
+  --chat-bg: #121012;
+  --chat-incoming: #1f1c1e;
+  --chat-outgoing: #c46885;
+  --nav-bg: rgb(28 25 27 / 0.94);
+  --shadow: rgb(0 0 0 / 0.22);
+  --danger-bg: #261a1f;
+  --danger-border: #4a3038;
+  --danger-text: #d49aaa;
+  --badge-bg: #2a2226;
+  --badge-text: #e8a0b8;
+  --success-bg: #1a2420;
+  --success-border: #2a4038;
+  --success-text: #7fb89a;
   color-scheme: dark;
 }
 
 [data-theme="blue"] {
-  --background: #0a0e14;
-  --foreground: #eef2f8;
-  --surface: #121820;
-  --surface-elevated: #1a2230;
-  --input-bg: #151c28;
-  --muted: #8a96a8;
-  --accent: #4da3ff;
-  --accent-soft: #1a3050;
-  --border: #243040;
-  --chat-bg: #0c1018;
-  --chat-incoming: #151c28;
-  --chat-outgoing: #4da3ff;
-  --nav-bg: rgb(18 24 32 / 0.96);
-  --shadow: rgb(0 0 0 / 0.35);
-  --danger-bg: #281820;
-  --danger-border: #503040;
-  --danger-text: #ff9eb5;
-  --badge-bg: #e8f2ff;
-  --badge-text: #4da3ff;
-  --success-bg: #142820;
-  --success-border: #2a5040;
-  --success-text: #8fd4b0;
+  --background: #0f1216;
+  --foreground: #d8dde4;
+  --surface: #171b22;
+  --surface-elevated: #1f2530;
+  --input-bg: #1a1f28;
+  --muted: #848c98;
+  --accent: #6a9fd4;
+  --accent-soft: #1e2838;
+  --border: #282e38;
+  --chat-bg: #0e1116;
+  --chat-incoming: #1a1f28;
+  --chat-outgoing: #5a8fc4;
+  --nav-bg: rgb(23 27 34 / 0.94);
+  --shadow: rgb(0 0 0 / 0.22);
+  --danger-bg: #241a1e;
+  --danger-border: #403038;
+  --danger-text: #c49098;
+  --badge-bg: #1e2838;
+  --badge-text: #8ab4e0;
+  --success-bg: #1a2420;
+  --success-border: #2a4038;
+  --success-text: #7fb89a;
   color-scheme: dark;
 }
 
 [data-theme="purple"] {
-  --background: #0e0a12;
-  --foreground: #f2eef8;
-  --surface: #181420;
-  --surface-elevated: #221c30;
-  --input-bg: #1c1628;
-  --muted: #9a94a8;
-  --accent: #a78bfa;
-  --accent-soft: #2e2448;
-  --border: #2a2438;
-  --chat-bg: #100c16;
-  --chat-incoming: #1c1628;
-  --chat-outgoing: #a78bfa;
-  --nav-bg: rgb(24 20 32 / 0.96);
-  --shadow: rgb(0 0 0 / 0.35);
-  --danger-bg: #281828;
-  --danger-border: #503050;
-  --danger-text: #ff9eb5;
-  --badge-bg: #f0e8ff;
-  --badge-text: #a78bfa;
-  --success-bg: #142820;
-  --success-border: #2a5040;
-  --success-text: #8fd4b0;
+  --background: #121016;
+  --foreground: #dcd8e4;
+  --surface: #1a1822;
+  --surface-elevated: #22202e;
+  --input-bg: #1c1a26;
+  --muted: #908a9a;
+  --accent: #9a84d4;
+  --accent-soft: #262038;
+  --border: #2a2836;
+  --chat-bg: #100e14;
+  --chat-incoming: #1c1a26;
+  --chat-outgoing: #8a74c4;
+  --nav-bg: rgb(26 24 34 / 0.94);
+  --shadow: rgb(0 0 0 / 0.22);
+  --danger-bg: #241a24;
+  --danger-border: #403040;
+  --danger-text: #c490c0;
+  --badge-bg: #262038;
+  --badge-text: #b0a0e0;
+  --success-bg: #1a2420;
+  --success-border: #2a4038;
+  --success-text: #7fb89a;
   color-scheme: dark;
 }
 
 [data-theme="emerald"] {
-  --background: #0a100e;
-  --foreground: #eef6f2;
-  --surface: #121a16;
-  --surface-elevated: #1a2620;
-  --input-bg: #151f1a;
-  --muted: #8aa898;
-  --accent: #34d399;
-  --accent-soft: #1a3830;
-  --border: #243830;
-  --chat-bg: #0c1410;
-  --chat-incoming: #151f1a;
-  --chat-outgoing: #34d399;
-  --nav-bg: rgb(18 26 22 / 0.96);
-  --shadow: rgb(0 0 0 / 0.35);
-  --danger-bg: #281820;
-  --danger-border: #503040;
-  --danger-text: #ff9eb5;
-  --badge-bg: #e8fff4;
-  --badge-text: #34d399;
-  --success-bg: #142820;
-  --success-border: #2a5040;
-  --success-text: #8fd4b0;
+  --background: #0f1412;
+  --foreground: #d8e4de;
+  --surface: #171c1a;
+  --surface-elevated: #1f2824;
+  --input-bg: #1a211e;
+  --muted: #849890;
+  --accent: #5cb896;
+  --accent-soft: #1e3028;
+  --border: #283230;
+  --chat-bg: #0e1210;
+  --chat-incoming: #1a211e;
+  --chat-outgoing: #4ca886;
+  --nav-bg: rgb(23 28 26 / 0.94);
+  --shadow: rgb(0 0 0 / 0.22);
+  --danger-bg: #241a1e;
+  --danger-border: #403038;
+  --danger-text: #c49098;
+  --badge-bg: #1e3028;
+  --badge-text: #7ec8a8;
+  --success-bg: #1a2420;
+  --success-border: #2a4038;
+  --success-text: #7fb89a;
   color-scheme: dark;
 }
 
 [data-theme="amber"] {
-  --background: #100e0a;
-  --foreground: #f8f4ee;
-  --surface: #1a1610;
-  --surface-elevated: #262018;
-  --input-bg: #1f1a14;
-  --muted: #a8a094;
-  --accent: #fbbf24;
-  --accent-soft: #3d3018;
-  --border: #383024;
-  --chat-bg: #14100c;
-  --chat-incoming: #1f1a14;
-  --chat-outgoing: #fbbf24;
-  --nav-bg: rgb(26 22 16 / 0.96);
-  --shadow: rgb(0 0 0 / 0.35);
-  --danger-bg: #281820;
-  --danger-border: #503040;
-  --danger-text: #ff9eb5;
-  --badge-bg: #fff8e8;
-  --badge-text: #d97706;
-  --success-bg: #142820;
-  --success-border: #2a5040;
-  --success-text: #8fd4b0;
+  --background: #141210;
+  --foreground: #e4e0d8;
+  --surface: #1c1a16;
+  --surface-elevated: #242018;
+  --input-bg: #1f1d18;
+  --muted: #989088;
+  --accent: #c9a04a;
+  --accent-soft: #302818;
+  --border: #302c28;
+  --chat-bg: #12100e;
+  --chat-incoming: #1f1d18;
+  --chat-outgoing: #b8903a;
+  --nav-bg: rgb(28 26 22 / 0.94);
+  --shadow: rgb(0 0 0 / 0.22);
+  --danger-bg: #241a1e;
+  --danger-border: #403038;
+  --danger-text: #c49098;
+  --badge-bg: #302818;
+  --badge-text: #d8b060;
+  --success-bg: #1a2420;
+  --success-border: #2a4038;
+  --success-text: #7fb89a;
   color-scheme: dark;
 }
 
@@ -150,7 +150,7 @@ body {
   padding-right: env(safe-area-inset-right);
   color: var(--foreground);
   background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
   transition: background-color 0.2s ease, color 0.2s ease;
 }
 
@@ -180,21 +180,8 @@ textarea::placeholder {
 @keyframes message-in {
   from {
     opacity: 0;
-    transform: translateY(8px) scale(0.98);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-@keyframes fade-up {
-  from {
-    opacity: 0;
     transform: translateY(6px);
   }
-
   to {
     opacity: 1;
     transform: translateY(0);
@@ -202,19 +189,14 @@ textarea::placeholder {
 }
 
 .message-enter {
-  animation: message-in 0.22s ease-out;
-}
-
-.fade-up {
-  animation: fade-up 0.28s ease-out;
+  animation: message-in 0.2s ease-out;
 }
 
 @keyframes page-enter {
   from {
     opacity: 0;
-    transform: translateY(5px);
+    transform: translateY(4px);
   }
-
   to {
     opacity: 1;
     transform: translateY(0);
@@ -222,14 +204,13 @@ textarea::placeholder {
 }
 
 .page-enter {
-  animation: page-enter 0.18s ease-out;
+  animation: page-enter 0.16s ease-out;
 }
 
 @keyframes nav-progress {
   from {
     transform: scaleX(0);
   }
-
   to {
     transform: scaleX(0.92);
   }
@@ -241,7 +222,6 @@ textarea::placeholder {
 
 @media (prefers-reduced-motion: reduce) {
   .page-enter,
-  .fade-up,
   .message-enter,
   .nav-progress {
     animation: none;
@@ -251,7 +231,7 @@ textarea::placeholder {
 .surface-card {
   background: var(--surface);
   border: 1px solid var(--border);
-  box-shadow: 0 8px 24px var(--shadow);
+  box-shadow: 0 4px 16px var(--shadow);
 }
 
 .surface-panel {
@@ -286,4 +266,19 @@ textarea::placeholder {
 select option {
   background: var(--surface-elevated);
   color: var(--foreground);
+}
+
+.dashboard-panel-card {
+  background: color-mix(in srgb, var(--surface) 92%, var(--background));
+  border: 1px solid color-mix(in srgb, var(--border) 85%, transparent);
+  transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+.dashboard-panel-card:active {
+  transform: scale(0.988);
+  background: var(--surface-elevated);
+}
+
+.dashboard-panel-card:hover {
+  border-color: color-mix(in srgb, var(--accent) 28%, var(--border));
 }

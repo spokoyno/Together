@@ -3,11 +3,13 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ZodError } from "zod";
+import { useLanguage } from "@/components/providers/language-provider";
 import { createClient } from "@/lib/supabase/client";
 import { updatePasswordSchema } from "@/lib/validation/auth";
 
 export function UpdatePasswordForm() {
   const router = useRouter();
+  const { t } = useLanguage();
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
@@ -29,7 +31,7 @@ export function UpdatePasswordForm() {
       });
 
       if (updateError) {
-        setError("Не удалось обновить пароль. Запросите новую ссылку.");
+        setError(t("authPasswordUpdateError"));
         return;
       }
 
@@ -48,7 +50,7 @@ export function UpdatePasswordForm() {
         return;
       }
 
-      setError("Не удалось обновить пароль.");
+      setError(t("authPasswordUpdateErrorGeneric"));
     } finally {
       setLoading(false);
     }
@@ -57,7 +59,7 @@ export function UpdatePasswordForm() {
   return (
     <form className="mt-8 grid gap-4" onSubmit={handleSubmit}>
       <label className="grid gap-2">
-        <span className="text-sm font-medium">Новый пароль</span>
+        <span className="text-sm font-medium">{t("authNewPassword")}</span>
         <input
           autoComplete="new-password"
           className="rounded-2xl surface-input px-4 py-3"
@@ -73,7 +75,7 @@ export function UpdatePasswordForm() {
       </label>
 
       <label className="grid gap-2">
-        <span className="text-sm font-medium">Повторите пароль</span>
+        <span className="text-sm font-medium">{t("authRepeatPassword")}</span>
         <input
           autoComplete="new-password"
           className="rounded-2xl surface-input px-4 py-3"
@@ -99,7 +101,7 @@ export function UpdatePasswordForm() {
         disabled={loading}
         type="submit"
       >
-        {loading ? "Сохраняем..." : "Сохранить пароль"}
+        {loading ? t("profileSaving") : t("authSavePassword")}
       </button>
     </form>
   );

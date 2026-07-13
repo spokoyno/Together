@@ -1,8 +1,9 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
+import { useLanguage } from "@/components/providers/language-provider";
 import { EmptyState } from "@/components/ui/empty-state";
-import { formatDateRu } from "@/lib/dates";
+import { formatDateLocalized } from "@/lib/dates";
 import { buildPeriodDaySet, monthGrid } from "@/lib/cycle/calendar";
 import { saveMenstrualCycle } from "@/lib/cycle/actions";
 import type { MenstrualCycleData } from "@/lib/hub/load-data.server";
@@ -13,20 +14,15 @@ type CyclePanelProps = {
   partnerName: string;
 };
 
-const MONTH_NAMES = [
-  "Январь",
-  "Февраль",
-  "Март",
-  "Апрель",
-  "Май",
-  "Июнь",
-  "Июль",
-  "Август",
-  "Сентябрь",
-  "Октябрь",
-  "Ноябрь",
-  "Декабрь",
-];
+const WEEKDAY_KEYS = [
+  "calendarWeekdayMon",
+  "calendarWeekdayTue",
+  "calendarWeekdayWed",
+  "calendarWeekdayThu",
+  "calendarWeekdayFri",
+  "calendarWeekdaySat",
+  "calendarWeekdaySun",
+] as const;
 
 export function CyclePanel({ cycle, userGender, partnerName }: CyclePanelProps) {
   const today = new Date();
@@ -36,11 +32,13 @@ export function CyclePanel({ cycle, userGender, partnerName }: CyclePanelProps) 
   const [periodLength, setPeriodLength] = useState(String(cycle?.period_length_days ?? 5));
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
+  const { locale, t } = useLanguage();
 
   const canEdit = userGender === "female";
   const viewMonth = new Date(today.getFullYear(), today.getMonth() + monthOffset, 1);
   const year = viewMonth.getFullYear();
   const month = viewMonth.getMonth();
+  const monthLabel = new Intl.DateTimeFormat(locale, { month: "long", year: "numeric" }).format(viewMonth);
 
   const periodDays = useMemo(() => {
     if (!cycle?.last_period_start) {
@@ -71,7 +69,7 @@ export function CyclePanel({ cycle, userGender, partnerName }: CyclePanelProps) 
         periodLengthDays: Number(periodLength),
       });
       if (!result.ok) {
-        setError(result.error ?? "Не удалось сохранить.");
+        setError(result.error ?? t("hubErrorSave"));
       }
     });
   }
@@ -79,8 +77,8 @@ export function CyclePanel({ cycle, userGender, partnerName }: CyclePanelProps) 
   if (!cycle?.last_period_start && !canEdit) {
     return (
       <EmptyState
-        description={`${partnerName} ещё не указала данные цикла.`}
-        title="Календарь недоступен"
+        description={t("hubCycleNoData", { name: partnerName })}
+        title={t("hubCycleUnavailable")}
       />
     );
   }
@@ -96,9 +94,7 @@ export function CyclePanel({ cycle, userGender, partnerName }: CyclePanelProps) 
           >
             ←
           </button>
-          <p className="font-bold">
-            {MONTH_NAMES[month]} {year}
-          </p>
+          <p className="font-bold capitalize">{monthLabel}</p>
           <button
             className="rounded-xl surface-input px-3 py-2 text-sm font-semibold"
             onClick={() => setMonthOffset((value) => value + 1)}
@@ -109,8 +105,8 @@ export function CyclePanel({ cycle, userGender, partnerName }: CyclePanelProps) 
         </div>
 
         <div className="grid grid-cols-7 gap-1 text-center text-xs text-[var(--muted)]">
-          {["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"].map((label) => (
-            <span key={label}>{label}</span>
+          {WEEKDAY_KEYS.map((key) => (
+            <span key={key}>{t(key)}</span>
           ))}
         </div>
 
@@ -130,16 +126,14 @@ export function CyclePanel({ cycle, userGender, partnerName }: CyclePanelProps) 
           })}
         </div>
 
-        <p className="mt-4 text-xs leading-5 text-[var(--muted)]">
-          Розовым отмечены примерные дни месячных. Прогноз ориентировочный.
-        </p>
+        <p className="mt-4 text-xs leading-5 text-[var(--muted)]">{t("hubCycleLegend")}</p>
       </section>
 
       {canEdit ? (
         <form className="grid gap-3 rounded-3xl surface-panel p-5" onSubmit={submit}>
-          <p className="font-bold">Настройки цикла</p>
+          <p className="font-bold">{t("hubCycleSettings")}</p>
           <label className="grid gap-2">
-            <span className="text-sm font-semibold">Начало последних месячных</span>
+            <span className="text-sm font-semibold">{t("hubCycleLastPeriodStart")}</span>
             <input
               className="rounded-2xl surface-input px-4 py-3"
               onChange={(event) => setLastStart(event.target.value)}
@@ -149,7 +143,7 @@ export function CyclePanel({ cycle, userGender, partnerName }: CyclePanelProps) 
             />
           </label>
           <label className="grid gap-2">
-            <span className="text-sm font-semibold">Длина цикла (дней)</span>
+            <span className="text-sm font-semibold">{t("hubCycleLengthDays")}</span>
             <input
               className="rounded-2xl surface-input px-4 py-3"
               max={45}
@@ -161,7 +155,7 @@ export function CyclePanel({ cycle, userGender, partnerName }: CyclePanelProps) 
             />
           </label>
           <label className="grid gap-2">
-            <span className="text-sm font-semibold">Длительность месячных (дней)</span>
+            <span className="text-sm font-semibold">{t("hubCyclePeriodLengthDays")}</span>
             <input
               className="rounded-2xl surface-input px-4 py-3"
               max={10}
@@ -174,7 +168,9 @@ export function CyclePanel({ cycle, userGender, partnerName }: CyclePanelProps) 
           </label>
           {cycle?.updated_at ? (
             <p className="text-xs text-[var(--muted)]">
-              Обновлено {formatDateRu(cycle.updated_at.slice(0, 10))}
+              {t("hubUpdatedAt", {
+                date: formatDateLocalized(locale, cycle.updated_at.slice(0, 10)),
+              })}
             </p>
           ) : null}
           {error ? <p className="alert-error rounded-xl px-3 py-2 text-sm">{error}</p> : null}
@@ -183,16 +179,19 @@ export function CyclePanel({ cycle, userGender, partnerName }: CyclePanelProps) 
             disabled={isPending}
             type="submit"
           >
-            Сохранить
+            {t("commonSave")}
           </button>
         </form>
       ) : cycle?.last_period_start ? (
         <section className="rounded-3xl surface-panel p-5 text-sm text-[var(--muted)]">
           <p>
-            Последнее начало: {formatDateRu(cycle.last_period_start)}
+            {t("hubLastStart", { date: formatDateLocalized(locale, cycle.last_period_start) })}
           </p>
           <p className="mt-2">
-            Цикл ~{cycle.cycle_length_days} дн., месячные ~{cycle.period_length_days} дн.
+            {t("hubCycleInfo", {
+              cycleDays: cycle.cycle_length_days,
+              periodDays: cycle.period_length_days,
+            })}
           </p>
         </section>
       ) : null}

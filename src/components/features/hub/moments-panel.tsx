@@ -2,12 +2,13 @@
 
 import { Plus, Send, Trash2 } from "lucide-react";
 import { useState, useTransition } from "react";
+import { useLanguage } from "@/components/providers/language-provider";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PhotoSourcePicker } from "@/components/ui/photo-source-picker";
 import type { HubMemory } from "@/components/features/hub/types";
 import { addMomentComment } from "@/lib/hub/actions";
 import { createMoment, deleteMemory } from "@/lib/memories/actions";
-import { formatDateRu } from "@/lib/dates";
+import { formatDateLocalized } from "@/lib/dates";
 import { compressImageFile } from "@/lib/media/compress-image.client";
 import { uploadCoupleMediaClient } from "@/lib/media/upload.client";
 
@@ -26,6 +27,7 @@ export function MomentsPanel({ memories, userId, coupleId }: MomentsPanelProps) 
   const [error, setError] = useState("");
   const [isPreparingPhoto, setIsPreparingPhoto] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const { locale, t } = useLanguage();
 
   async function handleFilePick(file: File) {
     setError("");
@@ -39,7 +41,7 @@ export function MomentsPanel({ memories, userId, coupleId }: MomentsPanelProps) 
       setMediaFile(prepared);
       setPreviewUrl(URL.createObjectURL(prepared));
     } catch {
-      setError("Не удалось обработать фото.");
+      setError(t("hubErrorPhoto"));
     } finally {
       setIsPreparingPhoto(false);
     }
@@ -61,7 +63,7 @@ export function MomentsPanel({ memories, userId, coupleId }: MomentsPanelProps) 
     setError("");
 
     if (!caption.trim() && !mediaFile) {
-      setError("Добавьте фото или описание.");
+      setError(t("hubMomentsErrorPhotoOrDesc"));
       return;
     }
 
@@ -82,7 +84,7 @@ export function MomentsPanel({ memories, userId, coupleId }: MomentsPanelProps) 
 
       const result = await createMoment(formData);
       if (!result.ok) {
-        setError(result.error ?? "Не удалось создать момент.");
+        setError(result.error ?? t("hubMomentsErrorCreate"));
         return;
       }
       resetCreate();
@@ -98,7 +100,7 @@ export function MomentsPanel({ memories, userId, coupleId }: MomentsPanelProps) 
     startTransition(async () => {
       const result = await addMomentComment(memoryId, body);
       if (!result.ok) {
-        setError(result.error ?? "Не удалось отправить комментарий.");
+        setError(result.error ?? t("hubErrorComment"));
         return;
       }
       setCommentDrafts((current) => ({ ...current, [memoryId]: "" }));
@@ -127,13 +129,13 @@ export function MomentsPanel({ memories, userId, coupleId }: MomentsPanelProps) 
                       <p className="leading-7">{memory.body}</p>
                     ) : null}
                     <p className="mt-2 text-xs text-[var(--muted)]">
-                      {formatDateRu(memory.happened_on ?? memory.created_at.slice(0, 10))} ·{" "}
+                      {formatDateLocalized(locale, memory.happened_on ?? memory.created_at.slice(0, 10))} ·{" "}
                       {memory.author_name}
                     </p>
                   </div>
                   <form action={deleteMemory.bind(null, memory.id)}>
                     <button
-                      aria-label="Удалить"
+                      aria-label={t("commonDelete")}
                       className="grid size-9 place-items-center rounded-full text-[var(--muted)]"
                       type="submit"
                     >
@@ -162,11 +164,11 @@ export function MomentsPanel({ memories, userId, coupleId }: MomentsPanelProps) 
                         [memory.id]: event.target.value,
                       }))
                     }
-                    placeholder="Комментарий..."
+                    placeholder={t("hubGalleryCommentPlaceholder")}
                     value={commentDrafts[memory.id] ?? ""}
                   />
                   <button
-                    aria-label="Отправить"
+                    aria-label={t("commonSend")}
                     className="grid size-11 shrink-0 place-items-center rounded-2xl bg-[var(--accent)] text-white disabled:opacity-60"
                     disabled={isPending}
                     onClick={() => submitComment(memory.id)}
@@ -179,15 +181,12 @@ export function MomentsPanel({ memories, userId, coupleId }: MomentsPanelProps) 
             </article>
           ))
         ) : (
-          <EmptyState
-            description="Добавьте фото с описанием — как в ленте воспоминаний."
-            title="Пока нет моментов"
-          />
+          <EmptyState description={t("hubMomentsEmptyDesc")} title={t("hubMomentsEmpty")} />
         )}
       </section>
 
       <button
-        aria-label="Новый момент"
+        aria-label={t("hubMomentsNew")}
         className="fixed bottom-[calc(max(0.75rem,env(safe-area-inset-bottom))+5.25rem)] right-5 z-30 grid size-14 place-items-center rounded-full bg-[var(--accent)] text-white shadow-lg active:scale-95"
         onClick={() => setShowCreate(true)}
         type="button"
@@ -201,7 +200,7 @@ export function MomentsPanel({ memories, userId, coupleId }: MomentsPanelProps) 
             className="max-h-[85vh] w-full overflow-y-auto rounded-3xl surface-panel p-5 shadow-xl"
             onSubmit={handleCreate}
           >
-            <p className="text-lg font-bold">Новый момент</p>
+            <p className="text-lg font-bold">{t("hubMomentsNew")}</p>
             <div className="mt-4 grid gap-3">
               {previewUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -217,7 +216,7 @@ export function MomentsPanel({ memories, userId, coupleId }: MomentsPanelProps) 
                       onClick={open}
                       type="button"
                     >
-                      {isPreparingPhoto ? "Обрабатываем..." : "Добавить фото"}
+                      {isPreparingPhoto ? t("commonLoading") : t("photoAdd")}
                     </button>
                   )}
                 />
@@ -225,7 +224,7 @@ export function MomentsPanel({ memories, userId, coupleId }: MomentsPanelProps) 
               <textarea
                 className="min-h-24 rounded-2xl surface-input px-4 py-3"
                 onChange={(event) => setCaption(event.target.value)}
-                placeholder="Описание воспоминания"
+                placeholder={t("hubMomentsDescPlaceholder")}
                 value={caption}
               />
               {error ? <p className="alert-error rounded-xl px-3 py-2 text-sm">{error}</p> : null}
@@ -235,14 +234,14 @@ export function MomentsPanel({ memories, userId, coupleId }: MomentsPanelProps) 
                   onClick={resetCreate}
                   type="button"
                 >
-                  Отмена
+                  {t("commonCancel")}
                 </button>
                 <button
                   className="rounded-2xl bg-[var(--accent)] px-4 py-3 font-semibold text-white disabled:opacity-60"
                   disabled={isPending || isPreparingPhoto}
                   type="submit"
                 >
-                  {isPending ? "Сохраняем..." : "Опубликовать"}
+                  {isPending ? t("commonPublishing") : t("hubMomentsPublish")}
                 </button>
               </div>
             </div>

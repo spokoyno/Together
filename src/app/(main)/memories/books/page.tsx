@@ -8,7 +8,7 @@ export default async function HubBooksPage() {
 
   return (
     <main className="mx-auto min-h-screen max-w-md px-5 pb-32 pt-8">
-      <HubPanelHeader subtitle="Что прочитали вдвоём" title="Книги" />
+      <HubPanelHeader subtitleKey="panelBooksDesc" titleKey="panelBooks" />
       <BooksPanel
         books={books}
         partnerId={ctx.partnerId}

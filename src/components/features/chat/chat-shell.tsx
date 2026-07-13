@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useLanguage } from "@/components/providers/language-provider";
 import { ChatPanel } from "@/components/features/chat/chat-panel";
 import { ChatPersonalPanel } from "@/components/features/chat/chat-personal-panel";
 import type { ChatMessage, ChatNote, ChatSavedMessage } from "@/types/domain";
@@ -32,6 +33,7 @@ export function ChatShell({
   const [savedIds, setSavedIds] = useState(() => new Set(initialSavedIds));
   const [savedMessages, setSavedMessages] = useState(initialSavedMessages);
   const [notes, setNotes] = useState(initialNotes);
+  const { t } = useLanguage();
 
   function handleSavedChange(messageId: string, saved: boolean, message?: ChatMessage) {
     setSavedIds((current) => {
@@ -70,7 +72,7 @@ export function ChatShell({
             onClick={() => setTab("chat")}
             type="button"
           >
-            Чат
+            {t("chatTitle")}
           </button>
           <button
             className={`flex-1 rounded-full px-3 py-2 text-sm font-semibold transition-colors ${
@@ -81,7 +83,7 @@ export function ChatShell({
             onClick={() => setTab("personal")}
             type="button"
           >
-            Личное
+            {t("chatPersonal")}
           </button>
         </div>
       </div>

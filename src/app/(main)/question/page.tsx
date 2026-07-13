@@ -1,8 +1,8 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
-import { saveAnswer, getOrCreateDailyQuestion } from "@/lib/question/actions";
+import { QuestionScreen } from "@/components/features/question/question-screen";
 import { requireUser } from "@/lib/auth/session";
 import { getCoupleContextForUser } from "@/lib/couple/context.server";
+import { getOrCreateDailyQuestion } from "@/lib/question/actions";
 
 export default async function QuestionPage() {
   const { supabase, user } = await requireUser();
@@ -17,65 +17,36 @@ export default async function QuestionPage() {
   if (!dailyQuestion) {
     return (
       <main className="mx-auto min-h-screen max-w-md px-5 pb-28 pt-8">
-        <h1 className="text-3xl font-bold">Вопрос дня</h1>
-        <p className="mt-4 text-[var(--muted)]">Вопросы пока не загружены. Примените seed.sql в Supabase.</p>
+        <QuestionScreen
+          dailyQuestionId=""
+          myAnswer={null}
+          partnerAnswer={null}
+          partnerName={context.partner?.display_name ?? ""}
+          prompt=""
+        />
       </main>
     );
   }
 
   const { data: answers } = await supabase
     .from("answers")
-    .select("user_id, answer, profiles(display_name)")
+    .select("user_id, answer")
     .eq("daily_question_id", dailyQuestion.id);
 
-  const myAnswer = answers?.find((answer) => answer.user_id === user.id);
+  const myAnswer = answers?.find((answer) => answer.user_id === user.id)?.answer ?? null;
   const partnerAnswer = context.partner
-    ? answers?.find((answer) => answer.user_id === context.partner?.id)
+    ? (answers?.find((answer) => answer.user_id === context.partner?.id)?.answer ?? null)
     : null;
-
-  const bothAnswered = Boolean(myAnswer && partnerAnswer);
 
   return (
     <main className="mx-auto min-h-screen max-w-md px-5 pb-28 pt-8">
-      <Link className="text-sm text-[var(--accent)]" href="/dashboard">
-        ← На главную
-      </Link>
-      <p className="mt-5 text-sm font-semibold text-[var(--accent)]">Вопрос дня</p>
-      <h1 className="mt-2 text-3xl font-bold">{dailyQuestion.questions?.prompt}</h1>
-
-      {!myAnswer ? (
-        <form action={saveAnswer} className="mt-8 grid gap-3">
-          <input name="dailyQuestionId" type="hidden" value={dailyQuestion.id} />
-          <textarea
-            className="rounded-2xl surface-input px-4 py-3"
-            name="answer"
-            placeholder="Ваш ответ"
-            required
-            rows={5}
-          />
-          <button className="rounded-2xl bg-[var(--accent)] px-4 py-3 font-semibold text-white" type="submit">
-            Отправить
-          </button>
-        </form>
-      ) : (
-        <section className="mt-8 rounded-3xl surface-panel p-5">
-          <p className="text-sm text-[var(--muted)]">Ваш ответ</p>
-          <p className="mt-2 leading-7">{myAnswer.answer}</p>
-        </section>
-      )}
-
-      {myAnswer && !partnerAnswer ? (
-        <p className="mt-6 rounded-2xl surface-input px-4 py-3 text-sm text-[var(--muted)]">
-          Ответ партнёра откроется, когда {context.partner?.display_name} тоже ответит.
-        </p>
-      ) : null}
-
-      {bothAnswered && partnerAnswer ? (
-        <section className="mt-6 rounded-3xl surface-panel p-5">
-          <p className="text-sm text-[var(--muted)]">{context.partner?.display_name}</p>
-          <p className="mt-2 leading-7">{partnerAnswer.answer}</p>
-        </section>
-      ) : null}
+      <QuestionScreen
+        dailyQuestionId={dailyQuestion.id}
+        myAnswer={myAnswer}
+        partnerAnswer={partnerAnswer}
+        partnerName={context.partner?.display_name ?? ""}
+        prompt={dailyQuestion.questions?.prompt ?? ""}
+      />
     </main>
   );
 }

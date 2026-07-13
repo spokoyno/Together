@@ -8,7 +8,7 @@ export default async function HubGalleryPage() {
 
   return (
     <main className="mx-auto min-h-screen max-w-md px-5 pb-32 pt-8">
-      <HubPanelHeader subtitle="Общие фото пары" title="Галерея" />
+      <HubPanelHeader subtitleKey="panelGalleryDesc" titleKey="panelGallery" />
       <GalleryPanel coupleId={ctx.coupleId} items={items} userId={ctx.userId} />
     </main>
   );

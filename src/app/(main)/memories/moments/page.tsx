@@ -8,7 +8,7 @@ export default async function HubMomentsPage() {
 
   return (
     <main className="mx-auto min-h-screen max-w-md px-5 pb-32 pt-8">
-      <HubPanelHeader subtitle="Фото, описания и комментарии" title="Наши моменты" />
+      <HubPanelHeader subtitleKey="panelMomentsDesc" titleKey="panelMoments" />
       <MomentsPanel coupleId={ctx.coupleId} memories={memories} userId={ctx.userId} />
     </main>
   );

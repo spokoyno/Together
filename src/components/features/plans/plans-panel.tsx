@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { CalendarClock, Check, Clock, Plus, Trash2, X } from "lucide-react";
+import { useLanguage } from "@/components/providers/language-provider";
 import { completePlan, createPlan, deletePlan, reschedulePlan } from "@/lib/plans/actions";
 import { formatDateTimeRu } from "@/lib/dates";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -28,6 +29,7 @@ export function PlansPanel({ activePlans, completedPlans }: PlansPanelProps) {
   const [rescheduleValue, setRescheduleValue] = useState("");
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
+  const { t } = useLanguage();
 
   const visibleCompleted = showCompleted ? completedPlans : completedPlans.slice(0, 5);
 
@@ -39,7 +41,7 @@ export function PlansPanel({ activePlans, completedPlans }: PlansPanelProps) {
     startTransition(async () => {
       const result = await createPlan(formData);
       if (!result.ok) {
-        setError(result.error ?? "Не удалось создать план.");
+        setError(result.error ?? t("plansCreateError"));
         return;
       }
       setShowCreate(false);
@@ -55,7 +57,7 @@ export function PlansPanel({ activePlans, completedPlans }: PlansPanelProps) {
     startTransition(async () => {
       const result = await reschedulePlan(planId, rescheduleValue);
       if (!result.ok) {
-        setError(result.error ?? "Не удалось перенести.");
+        setError(result.error ?? t("plansRescheduleError"));
         return;
       }
       setRescheduleId(null);
@@ -82,7 +84,7 @@ export function PlansPanel({ activePlans, completedPlans }: PlansPanelProps) {
                     </p>
                   ) : null}
                   {plan.remind_enabled ? (
-                    <p className="mt-1 text-xs font-medium text-[var(--accent)]">Напоминание включено</p>
+                    <p className="mt-1 text-xs font-medium text-[var(--accent)]">{t("plansReminderOn")}</p>
                   ) : null}
                 </div>
               </div>
@@ -102,14 +104,14 @@ export function PlansPanel({ activePlans, completedPlans }: PlansPanelProps) {
                       onClick={() => handleReschedule(plan.id)}
                       type="button"
                     >
-                      Перенести
+                      {t("plansReschedule")}
                     </button>
                     <button
                       className="rounded-xl surface-input px-3 py-2 text-xs font-semibold"
                       onClick={() => setRescheduleId(null)}
                       type="button"
                     >
-                      Отмена
+                      {t("commonCancel")}
                     </button>
                   </div>
                 </div>
@@ -122,7 +124,7 @@ export function PlansPanel({ activePlans, completedPlans }: PlansPanelProps) {
                     type="button"
                   >
                     <Check aria-hidden className="size-4" />
-                    Готово
+                    {t("plansDone")}
                   </button>
                   <button
                     className="inline-flex items-center gap-1 rounded-xl surface-input px-3 py-2 text-sm font-semibold"
@@ -134,7 +136,7 @@ export function PlansPanel({ activePlans, completedPlans }: PlansPanelProps) {
                     type="button"
                   >
                     <CalendarClock aria-hidden className="size-4" />
-                    Перенести
+                    {t("plansReschedule")}
                   </button>
                   <button
                     className="inline-flex items-center gap-1 rounded-xl surface-input px-3 py-2 text-sm text-[var(--muted)]"
@@ -149,7 +151,7 @@ export function PlansPanel({ activePlans, completedPlans }: PlansPanelProps) {
             </article>
           ))
         ) : (
-          <EmptyState description="Добавьте первый план — кнопка «+» внизу." title="Тут пока нет планов" />
+          <EmptyState description={t("plansEmptyHint")} title={t("plansEmptyTitle")} />
         )}
       </section>
 
@@ -160,10 +162,10 @@ export function PlansPanel({ activePlans, completedPlans }: PlansPanelProps) {
             onClick={() => setShowCompleted((current) => !current)}
             type="button"
           >
-            <h2 className="text-lg font-bold">Выполненные планы</h2>
+            <h2 className="text-lg font-bold">{t("plansCompletedTitle")}</h2>
             <span className="text-sm text-[var(--muted)]">
               {completedPlans.length}
-              {!showCompleted && completedPlans.length > 5 ? " · показать все" : ""}
+              {!showCompleted && completedPlans.length > 5 ? ` · ${t("plansShowAll")}` : ""}
             </span>
           </button>
           <div className="mt-3 grid gap-2">
@@ -177,7 +179,7 @@ export function PlansPanel({ activePlans, completedPlans }: PlansPanelProps) {
       ) : null}
 
       <button
-        aria-label="Добавить план"
+        aria-label={t("plansAdd")}
         className="fixed bottom-[calc(max(0.75rem,env(safe-area-inset-bottom))+5.25rem)] right-5 z-30 grid size-14 place-items-center rounded-full bg-[var(--accent)] text-white shadow-lg transition-transform active:scale-95"
         onClick={() => setShowCreate(true)}
         type="button"
@@ -192,9 +194,9 @@ export function PlansPanel({ activePlans, completedPlans }: PlansPanelProps) {
             onSubmit={handleCreate}
           >
             <div className="mb-4 flex items-center justify-between">
-              <p className="text-lg font-bold">Новый план</p>
+              <p className="text-lg font-bold">{t("plansNewTitle")}</p>
               <button
-                aria-label="Закрыть"
+                aria-label={t("commonClose")}
                 className="grid size-9 place-items-center rounded-full surface-input"
                 onClick={() => setShowCreate(false)}
                 type="button"
@@ -207,18 +209,18 @@ export function PlansPanel({ activePlans, completedPlans }: PlansPanelProps) {
               <input
                 className="rounded-2xl surface-input px-4 py-3"
                 name="title"
-                placeholder="Название"
+                placeholder={t("plansTitlePlaceholder")}
                 required
               />
               <textarea
                 className="min-h-24 rounded-2xl surface-input px-4 py-3"
                 name="details"
-                placeholder="Описание"
+                placeholder={t("plansDetailsPlaceholder")}
                 rows={3}
               />
               <input className="rounded-2xl surface-input px-4 py-3" name="dueAt" type="datetime-local" />
               <label className="flex items-center justify-between rounded-2xl surface-input px-4 py-3">
-                <span className="font-medium">Напомнить</span>
+                <span className="font-medium">{t("plansRemind")}</span>
                 <input className="size-5 accent-[var(--accent)]" name="remindEnabled" type="checkbox" />
               </label>
               {error ? <p className="alert-error rounded-xl px-3 py-2 text-sm">{error}</p> : null}
@@ -227,7 +229,7 @@ export function PlansPanel({ activePlans, completedPlans }: PlansPanelProps) {
                 disabled={isPending}
                 type="submit"
               >
-                {isPending ? "Сохраняем..." : "Создать план"}
+                {isPending ? t("commonSaving") : t("plansCreate")}
               </button>
             </div>
           </form>

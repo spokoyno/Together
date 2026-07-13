@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState, useTransition } from "react";
+import { useLanguage } from "@/components/providers/language-provider";
 import { leaveAndAcceptInvitation } from "@/lib/couple/actions";
 import { LeaveCoupleButton } from "@/components/features/pair/leave-couple-button";
 
@@ -11,6 +12,7 @@ type InviteConflictPanelProps = {
 };
 
 export function InviteConflictPanel({ token, isComplete }: InviteConflictPanelProps) {
+  const { t } = useLanguage();
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
 
@@ -27,18 +29,15 @@ export function InviteConflictPanel({ token, isComplete }: InviteConflictPanelPr
   if (isComplete) {
     return (
       <div className="grid gap-4">
-        <p className="leading-7 text-[var(--muted)]">
-          Вы уже состоите в полной паре. Чтобы принять другое приглашение, сначала отвяжите текущую
-          пару в профиле.
-        </p>
+        <p className="leading-7 text-[var(--muted)]">{t("pairConflictFull")}</p>
         <Link
           className="block rounded-2xl bg-[var(--accent-soft)] px-5 py-4 text-center font-semibold text-[var(--accent)]"
           href="/profile"
         >
-          Перейти в профиль
+          {t("pairGoToProfile")}
         </Link>
         <Link className="text-center text-sm text-[var(--muted)]" href="/dashboard">
-          На главную
+          {t("pairGoHome")}
         </Link>
       </div>
     );
@@ -46,10 +45,7 @@ export function InviteConflictPanel({ token, isComplete }: InviteConflictPanelPr
 
   return (
     <div className="grid gap-4">
-      <p className="leading-7 text-[var(--muted)]">
-        Вы уже создали пару и ждёте партнёра. Можно отвязать текущую пару и принять это приглашение,
-        или остаться и отправить партнёру свою ссылку.
-      </p>
+      <p className="leading-7 text-[var(--muted)]">{t("pairConflictWaiting")}</p>
 
       <button
         className="rounded-2xl bg-[var(--accent)] px-5 py-4 font-semibold text-white disabled:opacity-60"
@@ -57,14 +53,14 @@ export function InviteConflictPanel({ token, isComplete }: InviteConflictPanelPr
         onClick={handleSwitch}
         type="button"
       >
-        {isPending ? "Подключаем..." : "Отвязать и принять приглашение"}
+        {isPending ? t("pairConnecting") : t("pairUnlinkAndAccept")}
       </button>
 
       <Link
         className="block rounded-2xl surface-panel px-5 py-4 text-center font-semibold"
         href="/pair"
       >
-        Оставить мою пару
+        {t("pairKeepMyCouple")}
       </Link>
 
       <LeaveCoupleButton variant="solo" />

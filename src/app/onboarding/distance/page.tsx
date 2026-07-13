@@ -1,6 +1,6 @@
 import { requireUser } from "@/lib/auth/session";
 import { redirect } from "next/navigation";
-import { DistanceOnboardingForm } from "@/components/features/onboarding/distance-form";
+import { OnboardingDistanceIntro } from "@/components/features/onboarding/onboarding-distance-intro";
 
 export default async function DistanceOnboardingPage() {
   const { supabase, user } = await requireUser();
@@ -23,11 +23,7 @@ export default async function DistanceOnboardingPage() {
 
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-5 py-10">
-      <h1 className="text-2xl font-bold">Как вы сейчас?</h1>
-      <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-        Это поможет подстроить подсказки и разделы под ваш формат отношений.
-      </p>
-      <DistanceOnboardingForm />
+      <OnboardingDistanceIntro />
     </main>
   );
 }

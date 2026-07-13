@@ -12,7 +12,7 @@ export default async function HubCyclePage() {
 
   return (
     <main className="mx-auto min-h-screen max-w-md px-5 pb-32 pt-8">
-      <HubPanelHeader subtitle="Календарь цикла" title="Месячные" />
+      <HubPanelHeader subtitleKey="panelCycleDesc" titleKey="panelCycle" />
       <CyclePanel
         cycle={cycle}
         partnerName={ctx.partnerName}

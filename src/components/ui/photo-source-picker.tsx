@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Camera, ImageIcon } from "lucide-react";
+import { useLanguage } from "@/components/providers/language-provider";
 
 type PhotoSourcePickerProps = {
   accept?: string;
@@ -23,6 +24,7 @@ export function PhotoSourcePicker({
   onSelectMany,
   renderTrigger,
 }: PhotoSourcePickerProps) {
+  const { t } = useLanguage();
   const [open, setOpen] = useState(false);
   const galleryRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
@@ -71,10 +73,10 @@ export function PhotoSourcePicker({
         className="surface-panel w-full max-w-md rounded-3xl p-3 shadow-xl"
         onClick={(event) => event.stopPropagation()}
         role="dialog"
-        aria-label="Выбор источника фото"
+        aria-label={t("photoSourcePicker")}
       >
         <p className="px-2 py-2 text-center text-sm font-semibold text-[var(--muted)]">
-          Добавить фото
+          {t("photoAdd")}
         </p>
         <button
           className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left font-semibold transition-colors hover:bg-[var(--input-bg)]"
@@ -84,7 +86,7 @@ export function PhotoSourcePicker({
           <span className="grid size-10 place-items-center rounded-full bg-[var(--accent-soft)] text-[var(--accent)]">
             <Camera aria-hidden className="size-5" />
           </span>
-          С камеры
+          {t("photoFromCamera")}
         </button>
         <button
           className="mt-1 flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left font-semibold transition-colors hover:bg-[var(--input-bg)]"
@@ -94,14 +96,14 @@ export function PhotoSourcePicker({
           <span className="grid size-10 place-items-center rounded-full bg-[var(--accent-soft)] text-[var(--accent)]">
             <ImageIcon aria-hidden className="size-5" />
           </span>
-          Из галереи
+          {t("photoFromGallery")}
         </button>
         <button
           className="mt-2 w-full rounded-2xl surface-input px-4 py-3 font-semibold"
           onClick={close}
           type="button"
         >
-          Отмена
+          {t("commonCancel")}
         </button>
       </div>
     </div>
