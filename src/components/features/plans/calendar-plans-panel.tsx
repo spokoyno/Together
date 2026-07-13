@@ -4,6 +4,7 @@ import { useMemo, useState, useTransition } from "react";
 import { ChevronLeft, ChevronRight, Gift, Plus, X } from "lucide-react";
 import { completePlan, createPlan, deletePlan } from "@/lib/plans/actions";
 import { formatDateRu } from "@/lib/dates";
+import { holidaysForDay, type CoupleHoliday } from "@/lib/plans/holidays";
 
 export type CalendarPlanItem = {
   id: string;
@@ -19,6 +20,7 @@ export type CalendarPlanItem = {
 type CalendarPlansPanelProps = {
   plans: CalendarPlanItem[];
   userId: string;
+  holidays: CoupleHoliday[];
 };
 
 const WEEKDAYS = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
@@ -39,7 +41,7 @@ function addMonths(date: Date, count: number) {
   return new Date(date.getFullYear(), date.getMonth() + count, 1);
 }
 
-export function CalendarPlansPanel({ plans, userId }: CalendarPlansPanelProps) {
+export function CalendarPlansPanel({ plans, userId, holidays }: CalendarPlansPanelProps) {
   const [month, setMonth] = useState(() => startOfMonth(new Date()));
   const [selectedDay, setSelectedDay] = useState(() => toDateKey(new Date()));
   const [showCreate, setShowCreate] = useState(false);
@@ -92,6 +94,7 @@ export function CalendarPlansPanel({ plans, userId }: CalendarPlansPanelProps) {
   }, [month]);
 
   const selectedPlans = plansByDay.get(selectedDay) ?? [];
+  const selectedHolidays = holidaysForDay(holidays, selectedDay);
 
   function handleCreate(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -153,6 +156,7 @@ export function CalendarPlansPanel({ plans, userId }: CalendarPlansPanelProps) {
             }
 
             const hasPlans = (plansByDay.get(cell.key)?.length ?? 0) > 0;
+            const dayHolidays = holidaysForDay(holidays, cell.key);
             const isSelected = cell.key === selectedDay;
             const isToday = cell.key === toDateKey(new Date());
 
@@ -170,6 +174,11 @@ export function CalendarPlansPanel({ plans, userId }: CalendarPlansPanelProps) {
                 type="button"
               >
                 {cell.day}
+                {dayHolidays.length ? (
+                  <span className="absolute right-1 top-1 text-[10px] leading-none">
+                    {dayHolidays[0]?.emoji}
+                  </span>
+                ) : null}
                 {hasPlans ? (
                   <span
                     className={`absolute bottom-1 size-1.5 rounded-full ${
@@ -195,6 +204,19 @@ export function CalendarPlansPanel({ plans, userId }: CalendarPlansPanelProps) {
             Добавить
           </button>
         </div>
+
+        {selectedHolidays.length ? (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {selectedHolidays.map((holiday) => (
+              <span
+                className="inline-flex items-center gap-1 rounded-full bg-[var(--accent-soft)] px-3 py-1 text-xs font-semibold text-[var(--accent)]"
+                key={holiday.key}
+              >
+                {holiday.emoji} {holiday.label}
+              </span>
+            ))}
+          </div>
+        ) : null}
 
         <div className="mt-3 grid gap-3">
           {selectedPlans.length ? (

@@ -32,7 +32,9 @@ const tabRoutes = [
   "/memories/moments",
   "/memories/movies",
   "/memories/cooking",
-  "/memories/compliments",
+  "/memories/shopping",
+  "/memories/wishlist",
+  "/memories/tiers",
   "/profile",
   "/chat",
 ] as const;

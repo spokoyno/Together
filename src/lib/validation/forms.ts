@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { MoodLevel } from "@/types/domain";
 
-const moodLevels = ["great", "good", "neutral", "low", "hard"] as const satisfies readonly MoodLevel[];
+const moodLevels = ["great", "good", "neutral", "low", "hard", "irritated"] as const satisfies readonly MoodLevel[];
 
 export const createCoupleSchema = z.object({
   relationshipStartedOn: z

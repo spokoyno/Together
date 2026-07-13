@@ -75,6 +75,7 @@ export async function addMovieEntry(payload: {
       tmdb_id: payload.tmdbId,
       title: payload.title,
       poster_path: payload.posterPath,
+      status: "want",
       ratings: { [user.id]: payload.rating },
     });
 

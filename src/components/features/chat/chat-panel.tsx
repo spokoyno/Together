@@ -9,12 +9,12 @@ import {
   useState,
   useTransition,
 } from "react";
-import { Bookmark, BookmarkCheck, ImagePlus, Loader2, Send, Sparkles, StickyNote } from "lucide-react";
+import { ImagePlus, Loader2, Send } from "lucide-react";
+import { MessageContextMenu } from "@/components/features/chat/message-context-menu";
 import {
   createChatNote,
   loadOlderMessages,
   markChatRead,
-  postMessageToMoments,
   sendMessage,
   toggleSaveMessage,
 } from "@/lib/chat/actions";
@@ -362,15 +362,6 @@ export function ChatPanel({
     void deliverMessage(message.clientId, message.body ?? "", message.imagePath);
   }
 
-  function handlePostToMoments(messageId: string) {
-    startTransition(async () => {
-      const result = await postMessageToMoments(messageId);
-      if (!result.ok) {
-        setError(result.error ?? "Не удалось добавить в моменты.");
-      }
-    });
-  }
-
   function handleToggleSave(message: ChatMessage) {
     startTransition(async () => {
       const result = await toggleSaveMessage(message.id);
@@ -491,47 +482,19 @@ export function ChatPanel({
                             isMine ? "text-white/75" : "text-[var(--muted)]"
                           }`}
                         >
-                          <button
-                            aria-label={isSaved ? "Убрать из сохранённых" : "Сохранить в личное"}
-                            className={`grid size-7 place-items-center rounded-full transition-colors ${
-                              isMine ? "hover:bg-white/15" : "hover:bg-[var(--input-bg)]"
-                            } ${isSaved ? "text-[var(--accent)]" : ""}`}
-                            disabled={isPending || isSending || isFailed}
-                            onClick={() => handleToggleSave(message)}
-                            type="button"
-                          >
-                            {isSaved ? (
-                              <BookmarkCheck aria-hidden className="size-4" />
-                            ) : (
-                              <Bookmark aria-hidden className="size-4" />
-                            )}
-                          </button>
-                          <button
-                            aria-label="Добавить заметку"
-                            className={`grid size-7 place-items-center rounded-full transition-colors ${
-                              isMine ? "hover:bg-white/15" : "hover:bg-[var(--input-bg)]"
-                            } ${isNoteOpen ? "text-[var(--accent)]" : ""}`}
-                            disabled={isPending || isSending || isFailed}
-                            onClick={() => {
-                              setNoteTargetId(isNoteOpen ? null : message.id);
-                              setNoteDraft("");
-                            }}
-                            type="button"
-                          >
-                            <StickyNote aria-hidden className="size-4" />
-                          </button>
-                          {message.imagePath && isMine && !isSending && !isFailed ? (
-                            <button
-                              aria-label="Добавить в моменты"
-                              className={`grid size-7 place-items-center rounded-full transition-colors ${
-                                isMine ? "hover:bg-white/15" : "hover:bg-[var(--input-bg)]"
-                              }`}
+                          {!isSending && !isFailed ? (
+                            <MessageContextMenu
                               disabled={isPending}
-                              onClick={() => handlePostToMoments(message.id)}
-                              type="button"
-                            >
-                              <Sparkles aria-hidden className="size-4" />
-                            </button>
+                              isMine={isMine}
+                              isSaved={isSaved}
+                              message={message}
+                              onError={setError}
+                              onOpenNote={() => {
+                                setNoteTargetId(isNoteOpen ? null : message.id);
+                                setNoteDraft("");
+                              }}
+                              onToggleSave={() => handleToggleSave(message)}
+                            />
                           ) : null}
                           {isSending ? (
                             <Loader2

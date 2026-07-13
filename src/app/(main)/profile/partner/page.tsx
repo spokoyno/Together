@@ -4,6 +4,7 @@ import { requireUser } from "@/lib/auth/session";
 import { getCoupleContextForUser } from "@/lib/couple/context.server";
 import { daysBetween } from "@/lib/dates";
 import { signMediaPaths } from "@/lib/media/actions";
+import { loadCoupleGallery, loadPartnerFacts } from "@/lib/hub/load-data.server";
 
 export default async function PartnerProfilePage() {
   const { supabase, user } = await requireUser();
@@ -13,25 +14,15 @@ export default async function PartnerProfilePage() {
     redirect("/profile");
   }
 
-  const [stats, nicknames, profile, partnerProfile] = await Promise.all([
-    Promise.all([
-      supabase
-        .from("moods")
-        .select("id", { count: "exact", head: true })
-        .eq("couple_id", context.coupleId),
-      supabase
-        .from("plans")
-        .select("id", { count: "exact", head: true })
-        .eq("couple_id", context.coupleId),
-      supabase
-        .from("memories")
-        .select("id", { count: "exact", head: true })
-        .eq("couple_id", context.coupleId),
-      supabase
-        .from("answers")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", user.id),
-    ]),
+  const hubCtx = {
+    supabase,
+    userId: user.id,
+    coupleId: context.coupleId,
+    partnerId: context.partner.id,
+    partnerName: context.partner.display_name,
+  };
+
+  const [nicknames, profile, partnerProfile, facts, gallery] = await Promise.all([
     supabase
       .from("partner_nicknames")
       .select("id, nickname, created_at")
@@ -48,6 +39,8 @@ export default async function PartnerProfilePage() {
       .select("avatar_path")
       .eq("id", context.partner.id)
       .single(),
+    loadPartnerFacts(hubCtx, context.partner.id),
+    loadCoupleGallery(hubCtx),
   ]);
 
   const signed = await signMediaPaths(
@@ -63,19 +56,17 @@ export default async function PartnerProfilePage() {
 
   return (
     <PartnerProfileScreen
+      coupleId={context.coupleId}
       daysTogether={daysTogether}
+      facts={facts}
+      gallery={gallery}
       nicknames={nicknames.data ?? []}
       notificationsEnabled={profile.data?.notifications_enabled ?? true}
       partnerAvatarUrl={partnerAvatarUrl}
       partnerId={context.partner.id}
       partnerName={context.partner.display_name}
       relationshipStartedOn={context.relationshipStartedOn}
-      stats={{
-        moods: stats[0].count ?? 0,
-        plans: stats[1].count ?? 0,
-        memories: stats[2].count ?? 0,
-        answers: stats[3].count ?? 0,
-      }}
+      userId={user.id}
     />
   );
 }

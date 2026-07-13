@@ -17,6 +17,7 @@ export const config = {
     "/question/:path*",
     "/pair/:path*",
     "/invite/:path*",
+    "/onboarding/:path*",
     "/auth/:path*",
   ],
 };

@@ -1,4 +1,4 @@
-export type MoodLevel = "great" | "good" | "neutral" | "low" | "hard";
+export type MoodLevel = "great" | "good" | "neutral" | "low" | "hard" | "irritated";
 export type PlanStatus = "active" | "completed" | "cancelled";
 
 export type ProfileSummary = {

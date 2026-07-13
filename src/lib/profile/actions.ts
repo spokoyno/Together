@@ -120,3 +120,28 @@ export async function exportCoupleData() {
 
   return { ok: true as const, json: JSON.stringify(payload, null, 2) };
 }
+
+export async function saveBirthday(birthday: string) {
+  const { supabase, user } = await requireUser();
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(birthday)) {
+    return actionError("Укажите корректную дату.");
+  }
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({
+      birthday,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", user.id);
+
+  if (error) {
+    return actionError("Не удалось сохранить дату рождения.");
+  }
+
+  revalidatePath("/dashboard");
+  revalidatePath("/plans");
+  revalidatePath("/onboarding/birthday");
+  return { ok: true as const };
+}

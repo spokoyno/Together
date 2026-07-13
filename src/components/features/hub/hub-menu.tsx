@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ChefHat, Clapperboard, Heart, Sparkles } from "lucide-react";
+import { ChefHat, Clapperboard, Heart, ShoppingBag, Sparkles, Star, Trophy } from "lucide-react";
 import type { HubMenuCounts } from "@/lib/hub/load-data.server";
 
 type HubMenuProps = {
@@ -7,38 +7,13 @@ type HubMenuProps = {
 };
 
 const tiles = [
-  {
-    href: "/memories/moments",
-    label: "Наши моменты",
-    description: "Фото и воспоминания",
-    icon: Sparkles,
-    countKey: "moments" as const,
-    tone: "from-violet-500/20 to-violet-500/5",
-  },
-  {
-    href: "/memories/movies",
-    label: "Фильмы",
-    description: "Смотрим вместе",
-    icon: Clapperboard,
-    countKey: "movies" as const,
-    tone: "from-sky-500/20 to-sky-500/5",
-  },
-  {
-    href: "/memories/cooking",
-    label: "Готовка",
-    description: "Блюда и рецепты",
-    icon: ChefHat,
-    countKey: "cooking" as const,
-    tone: "from-amber-500/20 to-amber-500/5",
-  },
-  {
-    href: "/memories/compliments",
-    label: "Комплименты",
-    description: "Банка теплых слов",
-    icon: Heart,
-    countKey: "compliments" as const,
-    tone: "from-pink-500/20 to-pink-500/5",
-  },
+  { href: "/memories/moments", label: "Наши моменты", description: "Фото и воспоминания", icon: Sparkles, countKey: "moments" as const, tone: "from-violet-500/20 to-violet-500/5" },
+  { href: "/memories/movies", label: "Фильмы", description: "Смотрим вместе", icon: Clapperboard, countKey: "movies" as const, tone: "from-sky-500/20 to-sky-500/5" },
+  { href: "/memories/cooking", label: "Готовка", description: "Блюда и рецепты", icon: ChefHat, countKey: "cooking" as const, tone: "from-amber-500/20 to-amber-500/5" },
+  { href: "/memories/compliments", label: "Комплименты", description: "Банка тёплых слов", icon: Heart, countKey: "compliments" as const, tone: "from-pink-500/20 to-pink-500/5" },
+  { href: "/memories/shopping", label: "Покупки", description: "Общий список", icon: ShoppingBag, countKey: "shopping" as const, tone: "from-lime-500/20 to-lime-500/5" },
+  { href: "/memories/wishlist", label: "Wishlist", description: "Желания и хотелки", icon: Star, countKey: "wishlist" as const, tone: "from-fuchsia-500/20 to-fuchsia-500/5" },
+  { href: "/memories/tiers", label: "Тир-листы", description: "TierMaker вместе", icon: Trophy, countKey: "tiers" as const, tone: "from-orange-500/20 to-orange-500/5" },
 ] as const;
 
 export function HubMenu({ counts }: HubMenuProps) {

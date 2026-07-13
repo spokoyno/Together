@@ -16,6 +16,15 @@ export async function saveMood(formData: FormData): Promise<void> {
     return;
   }
 
+  const today = new Date().toISOString().slice(0, 10);
+
+  await supabase
+    .from("moods")
+    .delete()
+    .eq("couple_id", context.coupleId)
+    .eq("user_id", user.id)
+    .gte("created_at", `${today}T00:00:00`);
+
   const { error } = await supabase.from("moods").insert({
     couple_id: context.coupleId,
     user_id: user.id,
