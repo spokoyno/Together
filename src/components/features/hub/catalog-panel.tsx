@@ -5,11 +5,11 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { RatingDisplay, RatingInput } from "@/components/ui/rating-stars";
-import type { CatalogConfig, CatalogEntry, CatalogSearchResult } from "@/lib/hub/catalog";
+import type { CatalogPanelConfig, CatalogEntry, CatalogSearchResult } from "@/lib/hub/catalog";
 import { addCatalogEntry, markCatalogCompleted, saveCatalogReview } from "@/lib/hub/catalog-actions";
 
 type CatalogPanelProps = {
-  config: CatalogConfig;
+  config: CatalogPanelConfig;
   entries: CatalogEntry[];
   userId: string;
   partnerId: string;
@@ -45,7 +45,7 @@ function Poster({ url, emoji }: { url: string | null; emoji: string }) {
   );
 }
 
-const KIND_EMOJI: Record<CatalogConfig["kind"], string> = {
+const KIND_EMOJI: Record<CatalogPanelConfig["kind"], string> = {
   game: "🎮",
   tv_series: "📺",
   cartoon_series: "🎨",

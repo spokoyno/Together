@@ -11,10 +11,10 @@ export function HubPanelHeader({ title, subtitle }: HubPanelHeaderProps) {
     <header className="mb-6">
       <Link
         className="mb-4 inline-flex min-h-11 items-center gap-1 rounded-2xl px-1 text-sm font-semibold text-[var(--accent)]"
-        href="/memories"
+        href="/dashboard"
       >
         <ChevronLeft aria-hidden className="size-5" />
-        Лента
+        Главная
       </Link>
       <h1 className="text-2xl font-bold">{title}</h1>
       {subtitle ? <p className="mt-1 text-sm text-[var(--muted)]">{subtitle}</p> : null}

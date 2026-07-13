@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { fetchJsonWithTimeout } from "@/lib/api/fetch-json";
 
 type RawgGame = {
   id: number;
@@ -28,13 +29,15 @@ export async function GET(request: Request) {
   url.searchParams.set("search", query);
   url.searchParams.set("page_size", "12");
 
-  const response = await fetch(url, { next: { revalidate: 3600 } });
+  const response = await fetchJsonWithTimeout<{ results?: RawgGame[] }>(url.toString(), {
+    next: { revalidate: 3600 },
+  });
 
   if (!response.ok) {
     return NextResponse.json({ results: [], error: "Ошибка поиска игр" }, { status: 502 });
   }
 
-  const payload = (await response.json()) as { results?: RawgGame[] };
+  const payload = response.data;
 
   const results =
     payload.results?.slice(0, 12).map((game) => ({

@@ -2,12 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { getAuthContext } from "@/lib/couple/context.server";
-import type { CatalogKind } from "@/lib/hub/catalog";
-import { CATALOG_CONFIGS } from "@/lib/hub/catalog";
+import { CATALOG_HREFS, type CatalogKind } from "@/lib/hub/catalog";
 import { actionError } from "@/lib/validation/forms";
 
 function revalidateCatalog(kind: CatalogKind) {
-  revalidatePath(CATALOG_CONFIGS[kind].href);
+  revalidatePath(CATALOG_HREFS[kind]);
   revalidatePath("/memories");
   revalidatePath("/dashboard");
 }

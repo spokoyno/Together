@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { fetchJsonWithTimeout } from "@/lib/api/fetch-json";
 
 type AniListMedia = {
   id: number;
@@ -15,7 +16,9 @@ export async function GET(request: Request) {
     return NextResponse.json({ results: [] });
   }
 
-  const response = await fetch("https://graphql.anilist.co", {
+  const response = await fetchJsonWithTimeout<{
+    data?: { Page?: { media?: AniListMedia[] } };
+  }>("https://graphql.anilist.co", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -40,9 +43,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ results: [], error: "Ошибка поиска аниме" }, { status: 502 });
   }
 
-  const payload = (await response.json()) as {
-    data?: { Page?: { media?: AniListMedia[] } };
-  };
+  const payload = response.data;
 
   const results =
     payload.data?.Page?.media?.map((item) => ({

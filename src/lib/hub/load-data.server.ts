@@ -701,12 +701,16 @@ export async function loadHubHabits(ctx: HubContext) {
 }
 
 export async function loadHubCatalog(ctx: HubContext, kind: CatalogKind): Promise<CatalogEntry[]> {
-  const { data: rows } = await ctx.supabase
+  const { data: rows, error } = await ctx.supabase
     .from("catalog_entries")
     .select("id, external_id, title, poster_url, status, ratings, reviews, added_by, completed_at, created_at")
     .eq("couple_id", ctx.coupleId)
     .eq("kind", kind)
     .order("created_at", { ascending: false });
+
+  if (error) {
+    return [];
+  }
 
   const profileMap = await loadProfileMap(
     ctx.supabase,

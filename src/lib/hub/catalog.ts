@@ -23,13 +23,9 @@ export type CatalogEntry = {
   created_at: string;
 };
 
-export type CatalogConfig = {
+/** Serializable config passed from Server Components to CatalogPanel. */
+export type CatalogPanelConfig = {
   kind: CatalogKind;
-  label: string;
-  subtitle: string;
-  href: string;
-  icon: LucideIcon;
-  tone: string;
   searchPath: string;
   wantTab: string;
   completedTab: string;
@@ -37,7 +33,35 @@ export type CatalogConfig = {
   searchPlaceholder: string;
   emptyWant: string;
   emptyCompleted: string;
+};
+
+export type CatalogConfig = CatalogPanelConfig & {
+  label: string;
+  subtitle: string;
+  href: string;
+  icon: LucideIcon;
+  tone: string;
   completedSubtitle: string;
+};
+
+export function toCatalogPanelConfig(config: CatalogConfig): CatalogPanelConfig {
+  return {
+    kind: config.kind,
+    searchPath: config.searchPath,
+    wantTab: config.wantTab,
+    completedTab: config.completedTab,
+    completedAction: config.completedAction,
+    searchPlaceholder: config.searchPlaceholder,
+    emptyWant: config.emptyWant,
+    emptyCompleted: config.emptyCompleted,
+  };
+}
+
+export const CATALOG_HREFS: Record<CatalogKind, string> = {
+  game: "/memories/games",
+  tv_series: "/memories/series",
+  cartoon_series: "/memories/cartoons",
+  anime: "/memories/anime",
 };
 
 export const CATALOG_CONFIGS: Record<CatalogKind, CatalogConfig> = {

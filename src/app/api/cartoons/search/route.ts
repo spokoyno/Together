@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { fetchJsonWithTimeout } from "@/lib/api/fetch-json";
 
 type TmdbTv = {
   id: number;
@@ -32,13 +33,15 @@ export async function GET(request: Request) {
   url.searchParams.set("language", "ru-RU");
   url.searchParams.set("include_adult", "false");
 
-  const response = await fetch(url, { next: { revalidate: 3600 } });
+  const response = await fetchJsonWithTimeout<{ results?: TmdbTv[] }>(url.toString(), {
+    next: { revalidate: 3600 },
+  });
 
   if (!response.ok) {
     return NextResponse.json({ results: [], error: "Ошибка поиска мультсериалов" }, { status: 502 });
   }
 
-  const payload = (await response.json()) as { results?: TmdbTv[] };
+  const payload = response.data;
 
   const results =
     payload.results
