@@ -2,7 +2,6 @@
 
 import { revalidatePath } from "next/cache";
 import { getAuthContext } from "@/lib/couple/context.server";
-import { uploadCoupleImage } from "@/lib/media/actions";
 import {
   eventSchema,
   memorySchema,
@@ -42,19 +41,7 @@ export async function createMoment(formData: FormData) {
   }
 
   const meta = parseMeta(parsed.data.meta);
-  const mediaFile = formData.get("mediaFile");
-
-  let mediaPath: string | null = null;
-
-  if (mediaFile instanceof File && mediaFile.size > 0) {
-    const uploadData = new FormData();
-    uploadData.set("file", mediaFile);
-    const uploaded = await uploadCoupleImage(uploadData);
-    if (!uploaded.ok) {
-      return uploaded;
-    }
-    mediaPath = uploaded.path;
-  }
+  const mediaPath = parsed.data.mediaPath || null;
 
   const title =
     parsed.data.title ||

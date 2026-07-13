@@ -32,6 +32,7 @@ export const memorySchema = z.object({
   tags: z.string().trim().max(200).optional(),
   momentType: momentTypeSchema.default("memory"),
   meta: z.string().optional(),
+  mediaPath: z.string().trim().optional(),
 });
 
 export const nicknameSchema = z.object({

@@ -1,8 +1,12 @@
 import type { Metadata, Viewport } from "next";
+import { cookies } from "next/headers";
 import Script from "next/script";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { PwaInstallBanner } from "@/components/pwa/pwa-install-banner";
 import { PwaRegister } from "@/components/pwa/pwa-register";
+import { getThemePreference } from "@/lib/profile/theme";
+import { isTheme, THEME_COOKIE_NAME } from "@/lib/theme/constants";
+import type { ThemePreference } from "@/types/domain";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -34,35 +38,59 @@ export const viewport: Viewport = {
   viewportFit: "cover",
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#fffafc" },
-    { media: "(prefers-color-scheme: dark)", color: "#0f1115" },
+    { media: "(prefers-color-scheme: dark)", color: "#110c0f" },
   ],
 };
 
 const themeInitScript = `
 (() => {
   try {
-    const stored = localStorage.getItem("together-theme");
-    const theme = stored === "dark" || stored === "light"
-      ? stored
+    const key = "together-theme";
+    const cookieTheme = document.cookie.match(/(?:^|; )together-theme=(dark|light)(?:;|$)/)?.[1];
+    const stored = localStorage.getItem(key);
+    const domTheme = document.documentElement.dataset.theme;
+    const theme =
+      stored === "dark" || stored === "light" ? stored
+      : domTheme === "dark" || domTheme === "light" ? domTheme
+      : cookieTheme === "dark" || cookieTheme === "light" ? cookieTheme
       : (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    localStorage.setItem(key, theme);
     document.documentElement.dataset.theme = theme;
     document.documentElement.style.colorScheme = theme;
+    document.cookie = "together-theme=" + theme + "; path=/; max-age=31536000; samesite=lax";
   } catch {}
 })();
 `;
 
-export default function RootLayout({
+async function resolveServerTheme(): Promise<ThemePreference | undefined> {
+  const cookieStore = await cookies();
+  const cookieTheme = cookieStore.get(THEME_COOKIE_NAME)?.value;
+  if (isTheme(cookieTheme)) {
+    return cookieTheme;
+  }
+
+  const dbTheme = await getThemePreference();
+  if (dbTheme) {
+    return dbTheme;
+  }
+
+  return undefined;
+}
+
+export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  const serverTheme = await resolveServerTheme();
+
   return (
-    <html lang="ru" suppressHydrationWarning>
+    <html data-theme={serverTheme} lang="ru" suppressHydrationWarning>
       <head>
         <Script id="theme-init" strategy="beforeInteractive">
           {themeInitScript}
         </Script>
       </head>
       <body>
-        <ThemeProvider>
+        <ThemeProvider initialTheme={serverTheme ?? null}>
           <PwaInstallBanner />
           {children}
           <PwaRegister />

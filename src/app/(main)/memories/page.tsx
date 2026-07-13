@@ -49,6 +49,7 @@ export default async function MemoriesPage() {
       <h1 className="text-2xl font-bold">Моменты</h1>
       <p className="mt-1 text-sm text-[var(--muted)]">Лента ваших воспоминаний вместе</p>
       <MemoriesFeed
+        coupleId={context.coupleId}
         memories={memories}
         partnerId={context.partner.id}
         partnerName={context.partner.display_name}

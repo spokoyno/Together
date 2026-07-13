@@ -1,4 +1,4 @@
-const CACHE_NAME = "together-shell-v5";
+const CACHE_NAME = "together-shell-v6";
 const SHELL_URLS = [
   "/",
   "/manifest.webmanifest",
@@ -9,6 +9,14 @@ const SHELL_URLS = [
   "/screenshots/mobile.png",
   "/screenshots/desktop.png",
 ];
+
+function isShellAsset(pathname: string): boolean {
+  return (
+    SHELL_URLS.includes(pathname) ||
+    pathname.startsWith("/icons/") ||
+    pathname.startsWith("/screenshots/")
+  );
+}
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -78,10 +86,21 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
+  // Dynamic RSC payloads and API must always hit the network.
+  if (url.search.includes("_rsc") || url.pathname.startsWith("/api/")) {
+    event.respondWith(fetch(event.request));
+    return;
+  }
+
   if (event.request.mode === "navigate") {
     event.respondWith(
       fetch(event.request).catch(() => caches.match("/") ?? Response.error()),
     );
+    return;
+  }
+
+  if (!isShellAsset(url.pathname)) {
+    event.respondWith(fetch(event.request));
     return;
   }
 

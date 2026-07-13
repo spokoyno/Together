@@ -139,6 +139,45 @@ textarea::placeholder {
   animation: fade-up 0.28s ease-out;
 }
 
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.page-enter {
+  animation: page-enter 0.18s ease-out;
+}
+
+@keyframes nav-progress {
+  from {
+    transform: scaleX(0);
+  }
+
+  to {
+    transform: scaleX(0.92);
+  }
+}
+
+.nav-progress {
+  animation: nav-progress 0.9s ease-out forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-enter,
+  .fade-up,
+  .message-enter,
+  .nav-progress {
+    animation: none;
+  }
+}
+
 .surface-card {
   background: var(--surface);
   border: 1px solid var(--border);

@@ -8,6 +8,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { applyThemeToDocument, persistThemeLocally, resolveClientTheme } from "@/lib/theme/client";
 import { saveThemePreference } from "@/lib/profile/theme";
 import type { ThemePreference } from "@/types/domain";
 
@@ -19,48 +20,35 @@ type ThemeContextValue = {
   toggleTheme: () => void;
 };
 
-const STORAGE_KEY = "together-theme";
-
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
-function applyTheme(theme: Theme) {
-  document.documentElement.dataset.theme = theme;
-  document.documentElement.style.colorScheme = theme;
+function readTheme(initialTheme?: Theme | null): Theme {
+  if (typeof window === "undefined") {
+    return initialTheme ?? "light";
+  }
+
+  return resolveClientTheme();
 }
 
-function readInitialTheme(): Theme {
-  if (typeof document === "undefined") {
-    return "light";
-  }
-
-  const fromDom = document.documentElement.dataset.theme;
-  if (fromDom === "light" || fromDom === "dark") {
-    return fromDom;
-  }
-
-  const stored = localStorage.getItem(STORAGE_KEY);
-  if (stored === "light" || stored === "dark") {
-    return stored;
-  }
-
-  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-}
-
-export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>(readInitialTheme);
+export function ThemeProvider({
+  children,
+  initialTheme,
+}: {
+  children: ReactNode;
+  initialTheme?: Theme | null;
+}) {
+  const [theme, setThemeState] = useState<Theme>(() => readTheme(initialTheme));
 
   const setTheme = useCallback((next: Theme) => {
     setThemeState(next);
-    localStorage.setItem(STORAGE_KEY, next);
-    applyTheme(next);
+    persistThemeLocally(next);
     void saveThemePreference(next);
   }, []);
 
   const toggleTheme = useCallback(() => {
     setThemeState((current) => {
       const next = current === "dark" ? "light" : "dark";
-      localStorage.setItem(STORAGE_KEY, next);
-      applyTheme(next);
+      persistThemeLocally(next);
       void saveThemePreference(next);
       return next;
     });
@@ -85,3 +73,5 @@ export function useTheme() {
   }
   return context;
 }
+
+export { applyThemeToDocument as applyTheme };

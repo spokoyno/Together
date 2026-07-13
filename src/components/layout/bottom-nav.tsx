@@ -1,8 +1,7 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useTransition } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import {
   Home,
   Image,
@@ -26,11 +25,25 @@ const navLinks = [
   { href: "/profile", label: "Профиль", icon: UserRound },
 ] as const;
 
+const tabRoutes = ["/dashboard", "/plans", "/memories", "/profile", "/chat"] as const;
+
 export function BottomNav({ coupleId, userId, initialUnread }: BottomNavProps) {
+  const router = useRouter();
   const pathname = usePathname();
-  const isChatActive = pathname === "/chat";
+  const [pendingPath, setPendingPath] = useState<string | null>(null);
+  const [, startTransition] = useTransition();
   const [liveUnread, setLiveUnread] = useState(0);
+
+  const isChatActive = pathname === "/chat";
   const visibleUnread = isChatActive ? 0 : initialUnread + liveUnread;
+  const activePath = pendingPath !== null && pendingPath !== pathname ? pendingPath : pathname;
+  const isNavigating = pendingPath !== null && pendingPath !== pathname;
+
+  useEffect(() => {
+    for (const href of tabRoutes) {
+      router.prefetch(href);
+    }
+  }, [router]);
 
   useEffect(() => {
     setAppBadgeCount(visibleUnread);
@@ -69,58 +82,88 @@ export function BottomNav({ coupleId, userId, initialUnread }: BottomNavProps) {
     };
   }, [coupleId, isChatActive, userId]);
 
+  function navigate(href: string) {
+    if (pathname === href) {
+      return;
+    }
+
+    setPendingPath(href);
+    startTransition(() => {
+      router.push(href);
+    });
+  }
+
+  function isActive(href: string) {
+    return activePath === href;
+  }
+
   return (
-    <nav className="nav-shell fixed bottom-[max(0.75rem,env(safe-area-inset-bottom))] left-1/2 z-40 flex w-[calc(100%-1.5rem)] max-w-md -translate-x-1/2 items-end justify-between rounded-[28px] px-2 py-2 shadow-lg">
-      {navLinks.slice(0, 2).map((link) => {
-        const Icon = link.icon;
-        const active = pathname === link.href;
+    <>
+      {isNavigating ? (
+        <div
+          aria-hidden
+          className="nav-progress fixed left-0 right-0 top-0 z-50 h-0.5 origin-left bg-[var(--accent)]"
+        />
+      ) : null}
 
-        return (
-          <Link
-            aria-label={link.label}
-            className={`grid min-h-12 min-w-12 flex-1 place-items-center rounded-2xl transition-colors ${
-              active ? "text-[var(--accent)]" : "text-[var(--muted)]"
-            }`}
-            href={link.href}
-            key={link.href}
-          >
-            <Icon aria-hidden className="size-6" strokeWidth={active ? 2.4 : 2} />
-          </Link>
-        );
-      })}
+      <nav className="nav-shell fixed bottom-[max(0.75rem,env(safe-area-inset-bottom))] left-1/2 z-40 flex w-[calc(100%-1.5rem)] max-w-md -translate-x-1/2 items-end justify-between rounded-[28px] px-2 py-2 shadow-lg">
+        {navLinks.slice(0, 2).map((link) => {
+          const Icon = link.icon;
+          const active = isActive(link.href);
 
-      <Link
-        aria-label="Чат"
-        className={`relative grid size-14 -translate-y-4 place-items-center rounded-full bg-[var(--accent)] text-white shadow-lg transition-transform active:scale-95 ${
-          isChatActive ? "ring-4 ring-[var(--accent-soft)]" : ""
-        }`}
-        href="/chat"
-      >
-        <MessageCircle aria-hidden className="size-7" strokeWidth={2.2} />
-        {visibleUnread > 0 ? (
-          <span className="absolute -right-0.5 -top-0.5 grid min-w-5 place-items-center rounded-full bg-[var(--badge-bg)] px-1.5 py-0.5 text-[11px] font-bold leading-none text-[var(--badge-text)]">
-            {visibleUnread > 99 ? "99+" : visibleUnread}
-          </span>
-        ) : null}
-      </Link>
+          return (
+            <button
+              aria-current={active ? "page" : undefined}
+              aria-label={link.label}
+              className={`grid min-h-12 min-w-12 flex-1 place-items-center rounded-2xl transition-all duration-200 ${
+                active ? "scale-105 text-[var(--accent)]" : "text-[var(--muted)]"
+              }`}
+              key={link.href}
+              onClick={() => navigate(link.href)}
+              type="button"
+            >
+              <Icon aria-hidden className="size-6" strokeWidth={active ? 2.4 : 2} />
+            </button>
+          );
+        })}
 
-      {navLinks.slice(2).map((link) => {
-        const Icon = link.icon;
-        const active = pathname === link.href;
+        <button
+          aria-current={isActive("/chat") ? "page" : undefined}
+          aria-label="Чат"
+          className={`relative grid size-14 -translate-y-4 place-items-center rounded-full bg-[var(--accent)] text-white shadow-lg transition-all duration-200 active:scale-95 ${
+            isActive("/chat") ? "ring-4 ring-[var(--accent-soft)]" : ""
+          }`}
+          onClick={() => navigate("/chat")}
+          type="button"
+        >
+          <MessageCircle aria-hidden className="size-7" strokeWidth={2.2} />
+          {visibleUnread > 0 ? (
+            <span className="absolute -right-0.5 -top-0.5 grid min-w-5 place-items-center rounded-full bg-[var(--badge-bg)] px-1.5 py-0.5 text-[11px] font-bold leading-none text-[var(--badge-text)]">
+              {visibleUnread > 99 ? "99+" : visibleUnread}
+            </span>
+          ) : null}
+        </button>
 
-        return (
-          <Link
-            aria-label={link.label}
-            className={`grid min-h-12 min-w-12 flex-1 place-items-center rounded-2xl transition-colors ${
-              active ? "text-[var(--accent)]" : "text-[var(--muted)]"
-            }`}
-            href={link.href}
-            key={link.href}
-          >
-            <Icon aria-hidden className="size-6" strokeWidth={active ? 2.4 : 2} />
-          </Link>
-        );
-      })}
-    </nav>
+        {navLinks.slice(2).map((link) => {
+          const Icon = link.icon;
+          const active = isActive(link.href);
+
+          return (
+            <button
+              aria-current={active ? "page" : undefined}
+              aria-label={link.label}
+              className={`grid min-h-12 min-w-12 flex-1 place-items-center rounded-2xl transition-all duration-200 ${
+                active ? "scale-105 text-[var(--accent)]" : "text-[var(--muted)]"
+              }`}
+              key={link.href}
+              onClick={() => navigate(link.href)}
+              type="button"
+            >
+              <Icon aria-hidden className="size-6" strokeWidth={active ? 2.4 : 2} />
+            </button>
+          );
+        })}
+      </nav>
+    </>
   );
 }

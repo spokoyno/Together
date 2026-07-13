@@ -13,6 +13,8 @@ import {
 } from "lucide-react";
 import { createMoment, deleteMemory, rateMoment } from "@/lib/memories/actions";
 import { formatDateRu } from "@/lib/dates";
+import { compressImageFile } from "@/lib/media/compress-image.client";
+import { uploadCoupleMediaClient } from "@/lib/media/upload.client";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PhotoSourcePicker } from "@/components/ui/photo-source-picker";
 import type { MomentMeta, MomentType } from "@/types/domain";
@@ -39,6 +41,7 @@ type MovieSearchResult = {
 type MemoriesFeedProps = {
   memories: MemoryFeedItem[];
   userId: string;
+  coupleId: string;
   partnerId: string;
   partnerName: string;
 };
@@ -50,7 +53,13 @@ const momentTypes: { id: MomentType; label: string; icon: typeof Sparkles }[] = 
   { id: "photo", label: "Фото", icon: Camera },
 ];
 
-export function MemoriesFeed({ memories, userId, partnerId, partnerName }: MemoriesFeedProps) {
+export function MemoriesFeed({
+  memories,
+  userId,
+  coupleId,
+  partnerId,
+  partnerName,
+}: MemoriesFeedProps) {
   const [dateFilter, setDateFilter] = useState("");
   const [showCreate, setShowCreate] = useState(false);
   const [momentType, setMomentType] = useState<MomentType>("memory");
@@ -63,6 +72,7 @@ export function MemoriesFeed({ memories, userId, partnerId, partnerName }: Memor
   const [selectedMovie, setSelectedMovie] = useState<MovieSearchResult | null>(null);
   const [rating, setRating] = useState(8);
   const [error, setError] = useState("");
+  const [isPreparingPhoto, setIsPreparingPhoto] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   const filtered = useMemo(() => {
@@ -86,13 +96,22 @@ export function MemoriesFeed({ memories, userId, partnerId, partnerName }: Memor
     setMovieResults(payload.results ?? []);
   }
 
-  function handleFilePick(file: File) {
-    if (previewUrl) {
-      URL.revokeObjectURL(previewUrl);
-    }
+  async function handleFilePick(file: File) {
+    setError("");
+    setIsPreparingPhoto(true);
 
-    setMediaFile(file);
-    setPreviewUrl(URL.createObjectURL(file));
+    try {
+      const prepared = await compressImageFile(file);
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+      setMediaFile(prepared);
+      setPreviewUrl(URL.createObjectURL(prepared));
+    } catch {
+      setError("Не удалось обработать фото. Попробуйте другое изображение.");
+    } finally {
+      setIsPreparingPhoto(false);
+    }
   }
 
   function resetCreateForm() {
@@ -137,11 +156,16 @@ export function MemoriesFeed({ memories, userId, partnerId, partnerName }: Memor
       formData.set("title", selectedMovie.title);
     }
 
-    if (mediaFile) {
-      formData.set("mediaFile", mediaFile);
-    }
-
     startTransition(async () => {
+      if (mediaFile) {
+        const uploaded = await uploadCoupleMediaClient(coupleId, userId, mediaFile);
+        if (!uploaded.ok) {
+          setError(uploaded.error);
+          return;
+        }
+        formData.set("mediaPath", uploaded.path);
+      }
+
       const result = await createMoment(formData);
       if (!result.ok) {
         setError(result.error ?? "Не удалось создать момент.");
@@ -363,8 +387,8 @@ export function MemoriesFeed({ memories, userId, partnerId, partnerName }: Memor
                 <span className="text-sm font-semibold">Фото</span>
                 <PhotoSourcePicker
                   accept="image/jpeg,image/png,image/webp,image/gif"
-                  disabled={isPending}
-                  onSelect={handleFilePick}
+                  disabled={isPending || isPreparingPhoto}
+                  onSelect={(file) => void handleFilePick(file)}
                   renderTrigger={({ open, disabled }) => (
                     <button
                       className="rounded-2xl surface-input px-4 py-3 text-left text-sm font-semibold disabled:opacity-60"
@@ -372,7 +396,11 @@ export function MemoriesFeed({ memories, userId, partnerId, partnerName }: Memor
                       onClick={open}
                       type="button"
                     >
-                      {previewUrl ? "Заменить фото" : "Добавить фото"}
+                      {isPreparingPhoto
+                        ? "Обрабатываем фото..."
+                        : previewUrl
+                          ? "Заменить фото"
+                          : "Добавить фото"}
                     </button>
                   )}
                 />
