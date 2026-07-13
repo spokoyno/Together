@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { cookies } from "next/headers";
 import Script from "next/script";
+import { Analytics } from "@vercel/analytics/next";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { PwaRegister } from "@/components/pwa/pwa-register";
 import { getThemePreference } from "@/lib/profile/theme";
@@ -93,6 +94,7 @@ export default async function RootLayout({
           {children}
           <PwaRegister />
         </ThemeProvider>
+        <Analytics />
       </body>
     </html>
   );
