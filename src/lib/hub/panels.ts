@@ -220,7 +220,7 @@ export function defaultDashboardPreferences(): DashboardPanelPreference[] {
 export function resolveDashboardPanels(
   stored: DashboardPanelPreference[] | null | undefined,
 ): DashboardPanelConfig[] {
-  const prefs = stored?.length ? stored : defaultDashboardPreferences();
+  const prefs = normalizeDashboardPreferences(stored);
   const panelMap = new Map(DASHBOARD_PANELS.map((panel) => [panel.id, panel]));
   const ordered: DashboardPanelConfig[] = [];
 

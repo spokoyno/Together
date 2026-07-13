@@ -1,6 +1,5 @@
 "use client";
 
-import { Plus } from "lucide-react";
 import { useState, useTransition } from "react";
 import { EmptyState } from "@/components/ui/empty-state";
 import type { HubShoppingNote } from "@/components/features/hub/types";

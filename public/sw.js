@@ -1,4 +1,4 @@
-const CACHE_NAME = "together-shell-v6";
+const CACHE_NAME = "together-shell-v7";
 const SHELL_URLS = [
   "/",
   "/manifest.webmanifest",

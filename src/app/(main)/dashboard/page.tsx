@@ -14,6 +14,8 @@ import { getPushServerConfig } from "@/lib/push/config";
 import { signMediaPaths } from "@/lib/media/actions";
 import type { OnboardingStep } from "@/lib/onboarding/actions";
 import type { DashboardPanelPreference } from "@/lib/hub/panels";
+import { DASHBOARD_PANELS, normalizeDashboardPreferences } from "@/lib/hub/panels";
+import { saveDashboardPanels } from "@/lib/profile/actions";
 import type { MoodLevel } from "@/types/domain";
 
 export default async function DashboardPage() {
@@ -137,8 +139,17 @@ export default async function DashboardPage() {
     ? profilesResult.data?.find((row) => row.id === partner.id)
     : null;
 
-  const panelPreferences =
+  const rawPanelPreferences =
     (profileSettings?.dashboard_panels as DashboardPanelPreference[] | null) ?? [];
+  const panelPreferences = normalizeDashboardPreferences(rawPanelPreferences);
+
+  const missingNewPanels =
+    rawPanelPreferences.length > 0 &&
+    DASHBOARD_PANELS.some((panel) => !rawPanelPreferences.some((item) => item.id === panel.id));
+
+  if (missingNewPanels) {
+    await saveDashboardPanels(panelPreferences);
+  }
 
   const nearestCountdown = partner
     ? await loadNearestCountdown({
