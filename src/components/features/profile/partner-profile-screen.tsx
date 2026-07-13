@@ -15,6 +15,7 @@ type NicknameRow = {
 
 type PartnerProfileScreenProps = {
   partnerName: string;
+  partnerAvatarUrl?: string | null;
   partnerId: string;
   relationshipStartedOn: string | null;
   daysTogether: number | null;
@@ -25,6 +26,7 @@ type PartnerProfileScreenProps = {
 
 export function PartnerProfileScreen({
   partnerName,
+  partnerAvatarUrl,
   partnerId,
   relationshipStartedOn,
   daysTogether,
@@ -73,7 +75,7 @@ export function PartnerProfileScreen({
       </Link>
 
       <section className="mt-6 flex flex-col items-center text-center">
-        <UserAvatar name={partnerName} size="lg" />
+        <UserAvatar imageUrl={partnerAvatarUrl} name={partnerName} size="lg" />
         <h1 className="mt-4 text-2xl font-bold">{partnerName}</h1>
         {relationshipStartedOn ? (
           <p className="mt-2 text-sm text-[var(--muted)]">

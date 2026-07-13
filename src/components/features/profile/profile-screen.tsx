@@ -9,12 +9,15 @@ import { ThemeToggle } from "@/components/features/profile/theme-toggle";
 import { PushNotificationsSetup } from "@/components/pwa/push-notifications-setup";
 import { PwaInstallHelp } from "@/components/pwa/pwa-install-help";
 import { LeaveCoupleButton } from "@/components/features/pair/leave-couple-button";
+import { AvatarUpload } from "@/components/features/profile/avatar-upload";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { updateProfile } from "@/lib/profile/actions";
 
 type ProfileScreenProps = {
   email: string;
   displayName: string;
+  avatarUrl?: string | null;
+  partnerAvatarUrl?: string | null;
   relationshipStartedOn: string | null;
   partnerName: string | null;
   partnerId: string | null;
@@ -36,6 +39,8 @@ type Tab = "settings" | "account";
 export function ProfileScreen({
   email,
   displayName,
+  avatarUrl,
+  partnerAvatarUrl,
   relationshipStartedOn,
   partnerName,
   partnerId,
@@ -68,7 +73,7 @@ export function ProfileScreen({
   return (
     <main className="mx-auto min-h-screen max-w-md px-5 pb-32 pt-8">
       <section className="flex items-center gap-4">
-        <UserAvatar name={displayName} size="lg" />
+        <AvatarUpload imageUrl={avatarUrl} name={displayName} size="lg" />
         <div className="min-w-0 flex-1">
           <h1 className="truncate text-2xl font-bold">{displayName}</h1>
           <p className="truncate text-sm text-[var(--muted)]">{email}</p>
@@ -86,9 +91,9 @@ export function ProfileScreen({
 
       {isComplete && partnerName && partnerId ? (
         <section className="mt-6 flex items-center justify-center gap-4">
-          <UserAvatar name={displayName} />
+          <UserAvatar imageUrl={avatarUrl} name={displayName} />
           <Heart aria-hidden className="size-6 fill-[var(--accent)] text-[var(--accent)]" />
-          <UserAvatar href="/profile/partner" name={partnerName} />
+          <UserAvatar href="/profile/partner" imageUrl={partnerAvatarUrl} name={partnerName} />
         </section>
       ) : null}
 

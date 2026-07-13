@@ -2,6 +2,7 @@ import { ProfileScreen } from "@/components/features/profile/profile-screen";
 import { requireUser } from "@/lib/auth/session";
 import { getCoupleContextForUser } from "@/lib/couple/context.server";
 import { daysBetween } from "@/lib/dates";
+import { signMediaPaths } from "@/lib/media/actions";
 import { getPushStatus } from "@/lib/push/actions";
 import { getPushServerConfig } from "@/lib/push/config";
 
@@ -11,9 +12,29 @@ export default async function ProfilePage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("display_name")
+    .select("display_name, avatar_path")
     .eq("id", user.id)
     .single();
+
+  let partnerAvatarPath: string | null = null;
+
+  if (context?.partner) {
+    const { data: partnerProfile } = await supabase
+      .from("profiles")
+      .select("avatar_path")
+      .eq("id", context.partner.id)
+      .single();
+
+    partnerAvatarPath = partnerProfile?.avatar_path ?? null;
+  }
+
+  const signed = await signMediaPaths(
+    supabase,
+    [profile?.avatar_path, partnerAvatarPath].filter((path): path is string => Boolean(path)),
+  );
+
+  const avatarUrl = profile?.avatar_path ? signed[profile.avatar_path] ?? null : null;
+  const partnerAvatarUrl = partnerAvatarPath ? signed[partnerAvatarPath] ?? null : null;
 
   const stats = context?.isComplete
     ? await Promise.all([
@@ -43,11 +64,13 @@ export default async function ProfilePage() {
 
   return (
     <ProfileScreen
+      avatarUrl={avatarUrl}
       daysTogether={daysTogether}
       displayName={profile?.display_name ?? "Пользователь"}
       email={user.email ?? ""}
       hasCouple={Boolean(context)}
       isComplete={Boolean(context?.isComplete)}
+      partnerAvatarUrl={partnerAvatarUrl}
       partnerId={context?.partner?.id ?? null}
       partnerName={context?.partner?.display_name ?? null}
       pushConfig={{

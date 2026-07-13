@@ -3,6 +3,7 @@ import { PartnerProfileScreen } from "@/components/features/profile/partner-prof
 import { requireUser } from "@/lib/auth/session";
 import { getCoupleContextForUser } from "@/lib/couple/context.server";
 import { daysBetween } from "@/lib/dates";
+import { signMediaPaths } from "@/lib/media/actions";
 
 export default async function PartnerProfilePage() {
   const { supabase, user } = await requireUser();
@@ -12,7 +13,7 @@ export default async function PartnerProfilePage() {
     redirect("/profile");
   }
 
-  const [stats, nicknames, profile] = await Promise.all([
+  const [stats, nicknames, profile, partnerProfile] = await Promise.all([
     Promise.all([
       supabase
         .from("moods")
@@ -42,7 +43,20 @@ export default async function PartnerProfilePage() {
       .select("notifications_enabled")
       .eq("id", user.id)
       .single(),
+    supabase
+      .from("profiles")
+      .select("avatar_path")
+      .eq("id", context.partner.id)
+      .single(),
   ]);
+
+  const signed = await signMediaPaths(
+    supabase,
+    partnerProfile.data?.avatar_path ? [partnerProfile.data.avatar_path] : [],
+  );
+  const partnerAvatarUrl = partnerProfile.data?.avatar_path
+    ? signed[partnerProfile.data.avatar_path] ?? null
+    : null;
 
   const daysTogether =
     context.relationshipStartedOn ? daysBetween(context.relationshipStartedOn) : null;
@@ -52,6 +66,7 @@ export default async function PartnerProfilePage() {
       daysTogether={daysTogether}
       nicknames={nicknames.data ?? []}
       notificationsEnabled={profile.data?.notifications_enabled ?? true}
+      partnerAvatarUrl={partnerAvatarUrl}
       partnerId={context.partner.id}
       partnerName={context.partner.display_name}
       relationshipStartedOn={context.relationshipStartedOn}

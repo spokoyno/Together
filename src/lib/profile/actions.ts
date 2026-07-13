@@ -3,11 +3,15 @@
 import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth/session";
 import { getAuthContext, getCoupleContextForUser } from "@/lib/couple/context.server";
+import { signMediaPath } from "@/lib/media/actions";
 import {
   actionError,
   parseFormData,
   profileSchema,
 } from "@/lib/validation/forms";
+
+const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
+const ALLOWED_AVATAR_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
 export async function updateProfile(formData: FormData): Promise<void> {
   const { supabase, user } = await requireUser();
@@ -41,6 +45,71 @@ export async function updateProfile(formData: FormData): Promise<void> {
 
   revalidatePath("/profile");
   revalidatePath("/dashboard");
+}
+
+type UploadAvatarResult =
+  | { ok: true; avatarUrl: string | null }
+  | { ok: false; error: string };
+
+export async function uploadAvatar(formData: FormData): Promise<UploadAvatarResult> {
+  const { supabase, user } = await requireUser();
+
+  const file = formData.get("file");
+  if (!(file instanceof File) || file.size === 0) {
+    return actionError("Выберите изображение.");
+  }
+
+  if (file.size > MAX_AVATAR_BYTES) {
+    return actionError("Аватар слишком большой (макс. 2 МБ).");
+  }
+
+  if (!ALLOWED_AVATAR_TYPES.has(file.type)) {
+    return actionError("Поддерживаются JPEG, PNG и WebP.");
+  }
+
+  const extension = file.type.split("/")[1]?.replace("jpeg", "jpg") ?? "jpg";
+  const objectPath = `avatars/${user.id}/current.${extension}`;
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("avatar_path")
+    .eq("id", user.id)
+    .single();
+
+  if (profile?.avatar_path && profile.avatar_path !== objectPath) {
+    await supabase.storage.from("couple-media").remove([profile.avatar_path]);
+  }
+
+  const { error: uploadError } = await supabase.storage
+    .from("couple-media")
+    .upload(objectPath, file, {
+      contentType: file.type,
+      upsert: true,
+    });
+
+  if (uploadError) {
+    return actionError("Не удалось загрузить аватар.");
+  }
+
+  const { error: updateError } = await supabase
+    .from("profiles")
+    .update({
+      avatar_path: objectPath,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", user.id);
+
+  if (updateError) {
+    return actionError("Не удалось сохранить аватар.");
+  }
+
+  revalidatePath("/profile");
+  revalidatePath("/profile/partner");
+  revalidatePath("/chat");
+  revalidatePath("/dashboard");
+
+  const avatarUrl = await signMediaPath(objectPath);
+  return { ok: true, avatarUrl };
 }
 
 export async function exportCoupleData() {
