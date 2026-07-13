@@ -3,13 +3,16 @@ import { DashboardHome } from "@/components/features/dashboard/dashboard-home";
 import { DashboardTopBanners } from "@/components/features/dashboard/dashboard-top-banners";
 import { PairWaitingPanel } from "@/components/features/pair/pair-waiting-panel";
 import { requireUser } from "@/lib/auth/session";
+import { getOnboardingPath } from "@/lib/auth/routes";
 import { getCoupleContextForUser } from "@/lib/couple/context.server";
 import { createInvitationUrl } from "@/lib/couple/invitation";
 import { daysBetween, greeting, todayIso } from "@/lib/dates";
+import { loadNearestCountdown } from "@/lib/hub/load-data.server";
 import { getOrCreateDailyQuestion } from "@/lib/question/actions";
 import { getPushStatus } from "@/lib/push/actions";
 import { getPushServerConfig } from "@/lib/push/config";
 import { signMediaPaths } from "@/lib/media/actions";
+import type { OnboardingStep } from "@/lib/onboarding/actions";
 import type { DashboardPanelPreference } from "@/lib/hub/panels";
 import type { MoodLevel } from "@/types/domain";
 
@@ -22,7 +25,7 @@ export default async function DashboardPage() {
 
   const { data: profileSettings, error: profileError } = await supabase
     .from("profiles")
-    .select("notifications_enabled, birthday, dashboard_panels")
+    .select("notifications_enabled, birthday, dashboard_panels, onboarding_step")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -38,8 +41,12 @@ export default async function DashboardPage() {
         .maybeSingle()
     : { data: profileSettings };
 
-  if (!profileFallback?.birthday) {
-    redirect("/onboarding/birthday");
+  const onboardingStep =
+    (profileSettings?.onboarding_step as OnboardingStep | null | undefined) ??
+    (profileFallback?.birthday ? "done" : "profile");
+
+  if (onboardingStep !== "done") {
+    redirect(getOnboardingPath(onboardingStep));
   }
 
   const profileNotificationsEnabled = profileFallback?.notifications_enabled ?? true;
@@ -82,6 +89,11 @@ export default async function DashboardPage() {
 
   const me = context.members.find((member) => member.id === user.id);
   const partner = context.partner;
+
+  if (!partner) {
+    redirect("/pair");
+  }
+
   const daysTogether = context.relationshipStartedOn
     ? daysBetween(context.relationshipStartedOn)
     : null;
@@ -128,6 +140,16 @@ export default async function DashboardPage() {
   const panelPreferences =
     (profileSettings?.dashboard_panels as DashboardPanelPreference[] | null) ?? [];
 
+  const nearestCountdown = partner
+    ? await loadNearestCountdown({
+        supabase,
+        userId: user.id,
+        coupleId: context.coupleId,
+        partnerId: partner.id,
+        partnerName: partner.display_name,
+      })
+    : null;
+
   return (
     <main className="mx-auto min-h-screen max-w-md px-5 pb-28 pt-7">
       <DashboardTopBanners
@@ -143,6 +165,7 @@ export default async function DashboardPage() {
           myAvatarUrl={myProfile?.avatar_path ? signed[myProfile.avatar_path] ?? null : null}
           myMood={(myMoodResult.data?.level as MoodLevel | undefined) ?? null}
           myName={me?.display_name ?? "Вы"}
+          nearestCountdown={nearestCountdown}
           panelPreferences={panelPreferences}
           partnerAvatarUrl={
             partnerProfile?.avatar_path ? signed[partnerProfile.avatar_path] ?? null : null

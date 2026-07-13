@@ -383,7 +383,7 @@ export async function loadHubTierChallenges(ctx: HubContext) {
 export async function loadHubBooks(ctx: HubContext) {
   const { data: rows } = await ctx.supabase
     .from("book_entries")
-    .select("id, title, author, rating, review, finished_on, added_by, created_at")
+    .select("id, title, author, ratings, reviews, added_by, status, read_at, created_at")
     .eq("couple_id", ctx.coupleId)
     .order("created_at", { ascending: false });
 
@@ -397,10 +397,12 @@ export async function loadHubBooks(ctx: HubContext) {
       id: row.id,
       title: row.title,
       author: row.author,
-      rating: row.rating,
-      review: row.review,
-      finished_on: row.finished_on,
+      ratings: (row.ratings ?? {}) as Record<string, number>,
+      reviews: (row.reviews ?? {}) as Record<string, string>,
+      added_by: row.added_by,
       author_name: profileMap.get(row.added_by) ?? "Пользователь",
+      status: (row.status ?? "want") as "want" | "read",
+      read_at: row.read_at,
       created_at: row.created_at,
     })) ?? []
   );
@@ -567,4 +569,132 @@ export async function loadMovieCollections(ctx: HubContext) {
         movie_entry_id: item.movie_entry_id,
       })) ?? [],
   }));
+}
+
+export async function loadHubTravel(ctx: HubContext) {
+  const { data: rows } = await ctx.supabase
+    .from("travel_plans")
+    .select("id, country, description, planned_date, status, created_by, completed_at, created_at")
+    .eq("couple_id", ctx.coupleId)
+    .order("created_at", { ascending: false });
+
+  const profileMap = await loadProfileMap(
+    ctx.supabase,
+    [...new Set((rows ?? []).map((row) => row.created_by))],
+  );
+
+  return (
+    rows?.map((row) => ({
+      id: row.id,
+      country: row.country,
+      description: row.description,
+      planned_date: row.planned_date,
+      status: row.status as "planned" | "completed",
+      author_name: profileMap.get(row.created_by) ?? "Пользователь",
+      completed_at: row.completed_at,
+      created_at: row.created_at,
+    })) ?? []
+  );
+}
+
+export async function loadHubChores(ctx: HubContext) {
+  const { data: rows } = await ctx.supabase
+    .from("household_chores")
+    .select("id, title, due_date, assigned_to, status, created_by, completed_by, completed_at, created_at")
+    .eq("couple_id", ctx.coupleId)
+    .order("created_at", { ascending: false });
+
+  const profileMap = await loadProfileMap(ctx.supabase, [
+    ...new Set([
+      ...(rows ?? []).map((row) => row.created_by),
+      ...(rows ?? []).map((row) => row.assigned_to).filter(Boolean) as string[],
+      ...(rows ?? []).map((row) => row.completed_by).filter(Boolean) as string[],
+    ]),
+  ]);
+
+  return (
+    rows?.map((row) => ({
+      id: row.id,
+      title: row.title,
+      due_date: row.due_date,
+      assigned_to_name: row.assigned_to ? profileMap.get(row.assigned_to) ?? null : null,
+      status: row.status as "pending" | "done",
+      author_name: profileMap.get(row.created_by) ?? "Пользователь",
+      completed_by_name: row.completed_by ? profileMap.get(row.completed_by) ?? null : null,
+      completed_at: row.completed_at,
+      created_at: row.created_at,
+    })) ?? []
+  );
+}
+
+export async function loadHubCountdowns(ctx: HubContext) {
+  const { data: rows } = await ctx.supabase
+    .from("countdown_events")
+    .select("id, title, target_date, created_by, created_at")
+    .eq("couple_id", ctx.coupleId)
+    .order("target_date", { ascending: true });
+
+  const profileMap = await loadProfileMap(
+    ctx.supabase,
+    [...new Set((rows ?? []).map((row) => row.created_by))],
+  );
+
+  return (
+    rows?.map((row) => ({
+      id: row.id,
+      title: row.title,
+      target_date: row.target_date,
+      author_name: profileMap.get(row.created_by) ?? "Пользователь",
+      created_at: row.created_at,
+    })) ?? []
+  );
+}
+
+export async function loadNearestCountdown(ctx: HubContext) {
+  const today = new Date().toISOString().slice(0, 10);
+  const { data: row } = await ctx.supabase
+    .from("countdown_events")
+    .select("id, title, target_date")
+    .eq("couple_id", ctx.coupleId)
+    .eq("show_on_dashboard", true)
+    .gte("target_date", today)
+    .order("target_date", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  if (!row) {
+    return null;
+  }
+
+  return {
+    id: row.id,
+    title: row.title,
+    target_date: row.target_date,
+  };
+}
+
+export async function loadHubHabits(ctx: HubContext) {
+  const { data: rows } = await ctx.supabase
+    .from("habits")
+    .select("id, title, description, motivation, planned_date, status, created_by, created_at")
+    .eq("couple_id", ctx.coupleId)
+    .order("created_at", { ascending: false });
+
+  const profileMap = await loadProfileMap(
+    ctx.supabase,
+    [...new Set((rows ?? []).map((row) => row.created_by))],
+  );
+
+  return (
+    rows?.map((row) => ({
+      id: row.id,
+      title: row.title,
+      description: row.description,
+      motivation: row.motivation,
+      planned_date: row.planned_date,
+      status: row.status as "active" | "completed",
+      author_name: profileMap.get(row.created_by) ?? "Пользователь",
+      created_at: row.created_at,
+    })) ?? []
+  );
 }

@@ -91,10 +91,12 @@ export type HubBook = {
   id: string;
   title: string;
   author: string | null;
-  rating: number | null;
-  review: string | null;
-  finished_on: string | null;
+  ratings: Record<string, number>;
+  reviews: Record<string, string>;
+  added_by: string;
   author_name: string;
+  status: "want" | "read";
+  read_at: string | null;
   created_at: string;
 };
 
@@ -162,4 +164,46 @@ export type MovieSearchResult = {
   title: string;
   releaseDate: string | null;
   posterPath: string | null;
+};
+
+export type HubTravelDestination = {
+  id: string;
+  country: string;
+  description: string | null;
+  planned_date: string | null;
+  status: "planned" | "completed";
+  author_name: string;
+  completed_at: string | null;
+  created_at: string;
+};
+
+export type HubChore = {
+  id: string;
+  title: string;
+  due_date: string | null;
+  assigned_to_name: string | null;
+  status: "pending" | "done";
+  author_name: string;
+  completed_by_name: string | null;
+  completed_at: string | null;
+  created_at: string;
+};
+
+export type HubCountdownEvent = {
+  id: string;
+  title: string;
+  target_date: string;
+  author_name: string;
+  created_at: string;
+};
+
+export type HubHabit = {
+  id: string;
+  title: string;
+  description: string | null;
+  motivation: string | null;
+  planned_date: string | null;
+  status: "active" | "completed";
+  author_name: string;
+  created_at: string;
 };

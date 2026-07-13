@@ -1,13 +1,21 @@
 "use client";
 
 import Link from "next/link";
+import { Timer } from "lucide-react";
 import { useTransition } from "react";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { DashboardPanels } from "@/components/features/dashboard/dashboard-panels";
 import { saveMood } from "@/lib/mood/actions";
 import { DASHBOARD_MOODS, MOOD_EMOJI, MOOD_LABELS } from "@/lib/mood/labels";
+import { daysUntil, formatDateRu } from "@/lib/dates";
 import type { DashboardPanelPreference } from "@/lib/hub/panels";
 import type { MoodLevel } from "@/types/domain";
+
+type NearestCountdown = {
+  id: string;
+  title: string;
+  target_date: string;
+};
 
 type DashboardHomeProps = {
   myName: string;
@@ -19,6 +27,7 @@ type DashboardHomeProps = {
   partnerMood: MoodLevel | null;
   dailyQuestionPrompt: string;
   panelPreferences: DashboardPanelPreference[];
+  nearestCountdown: NearestCountdown | null;
 };
 
 export function DashboardHome({
@@ -31,6 +40,7 @@ export function DashboardHome({
   partnerMood,
   dailyQuestionPrompt,
   panelPreferences,
+  nearestCountdown,
 }: DashboardHomeProps) {
   const [isPending, startTransition] = useTransition();
 
@@ -99,6 +109,26 @@ export function DashboardHome({
           </div>
         </div>
       </section>
+
+      {nearestCountdown ? (
+        <Link
+          className="mt-5 block rounded-3xl bg-gradient-to-r from-rose-500 to-orange-500 p-5 text-white transition-transform active:scale-[0.99]"
+          href="/memories/countdown"
+        >
+          <div className="flex items-center gap-2 text-sm opacity-90">
+            <Timer aria-hidden className="size-4" />
+            <span>
+              {daysUntil(nearestCountdown.target_date) === 0
+                ? "Сегодня"
+                : daysUntil(nearestCountdown.target_date) === 1
+                  ? "Завтра"
+                  : `Через ${daysUntil(nearestCountdown.target_date)} дн.`}
+            </span>
+          </div>
+          <p className="mt-2 text-lg font-bold leading-snug">{nearestCountdown.title}</p>
+          <p className="mt-1 text-sm opacity-90">{formatDateRu(nearestCountdown.target_date)}</p>
+        </Link>
+      ) : null}
 
       <DashboardPanels preferences={panelPreferences} />
 

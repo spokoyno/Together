@@ -77,18 +77,11 @@ export function ProfileScreen({
 
   const unreadCount = notifications.filter((item) => !item.read_at).length;
 
-  const tabButtons: { id: Tab; label: string; icon: typeof Settings; badge?: number }[] =
-    unreadCount > 0
-      ? [
-          { id: "notifications", label: "Уведомления", icon: Bell, badge: unreadCount },
-          { id: "settings", label: "Настройки", icon: Settings },
-          { id: "account", label: "Аккаунт", icon: Shield },
-        ]
-      : [
-          { id: "settings", label: "Настройки", icon: Settings },
-          { id: "notifications", label: "Уведомления", icon: Bell },
-          { id: "account", label: "Аккаунт", icon: Shield },
-        ];
+  const tabButtons: { id: Tab; label: string; shortLabel: string; icon: typeof Settings; badge?: boolean }[] = [
+    { id: "settings", label: "Настройки", shortLabel: "Настр.", icon: Settings },
+    { id: "notifications", label: "Уведомления", shortLabel: "Увед.", icon: Bell, badge: unreadCount > 0 },
+    { id: "account", label: "Аккаунт", shortLabel: "Аккаунт", icon: Shield },
+  ];
 
   return (
     <main className="mx-auto min-h-screen max-w-md px-5 pb-32 pt-8">
@@ -121,23 +114,30 @@ export function ProfileScreen({
         <p className="mt-4 text-center text-sm text-[var(--muted)]">Вместе {daysTogether} дней</p>
       ) : null}
 
-      <div className="mt-8 flex gap-1 rounded-full bg-[var(--input-bg)] p-1">
-        {tabButtons.map(({ id, label, icon: Icon, badge }) => (
+      <div className="mt-8 flex rounded-full bg-[var(--input-bg)] p-1">
+        {tabButtons.map(({ id, label, shortLabel, icon: Icon, badge }) => (
           <button
-            className={`flex flex-1 items-center justify-center gap-1.5 rounded-full px-2 py-2 text-sm font-semibold ${
+            aria-label={label}
+            className={`relative flex min-h-[52px] flex-1 flex-col items-center justify-center gap-0.5 rounded-full px-2 py-2 text-sm font-semibold ${
               tab === id ? "bg-[var(--surface)] shadow-sm" : "text-[var(--muted)]"
             }`}
             key={id}
             onClick={() => setTab(id)}
             type="button"
           >
-            <Icon aria-hidden className="size-4 shrink-0" />
-            <span className="truncate">{label}</span>
-            {badge ? (
-              <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-[var(--accent)] px-1.5 text-xs font-bold text-white">
-                {badge}
-              </span>
-            ) : null}
+            <span className="relative inline-flex">
+              <Icon aria-hidden className="size-5 shrink-0" />
+              {badge ? (
+                <span
+                  aria-hidden
+                  className="absolute -right-0.5 -top-0.5 size-2 rounded-full bg-[var(--accent)]"
+                />
+              ) : null}
+            </span>
+            <span className="hidden w-full truncate text-center text-[11px] min-[380px]:inline min-[380px]:text-xs">
+              <span className="min-[430px]:hidden">{shortLabel}</span>
+              <span className="hidden min-[430px]:inline">{label}</span>
+            </span>
           </button>
         ))}
       </div>

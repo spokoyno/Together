@@ -2,7 +2,12 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-export type NotificationType = "tier_challenge" | "poll_invite" | "mood_change" | "event_reminder";
+export type NotificationType =
+  | "tier_challenge"
+  | "poll_invite"
+  | "mood_change"
+  | "event_reminder"
+  | "daily_answer";
 
 type CreateNotificationInput = {
   supabase: SupabaseClient;

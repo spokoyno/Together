@@ -38,6 +38,10 @@ const tabRoutes = [
   "/memories/tiers",
   "/memories/books",
   "/memories/polls",
+  "/memories/travel",
+  "/memories/chores",
+  "/memories/countdown",
+  "/memories/habits",
   "/profile",
   "/chat",
 ] as const;

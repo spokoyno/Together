@@ -59,9 +59,10 @@ export async function loadActivityFeed(ctx: HubContext): Promise<ActivityFeedIte
       .limit(30),
     ctx.supabase
       .from("book_entries")
-      .select("id, title, author, created_at, added_by")
+      .select("id, title, author, read_at, created_at, added_by")
       .eq("couple_id", ctx.coupleId)
-      .order("created_at", { ascending: false })
+      .eq("status", "read")
+      .order("read_at", { ascending: false, nullsFirst: false })
       .limit(30),
   ]);
 
@@ -166,7 +167,7 @@ export async function loadActivityFeed(ctx: HubContext): Promise<ActivityFeedIte
       actor_name: nameMap.get(row.added_by) ?? "Партнёр",
       media_url: null,
       link_path: "/memories/books",
-      happened_at: row.created_at,
+      happened_at: row.read_at ?? row.created_at,
     });
   }
 

@@ -5,10 +5,14 @@ import {
   ChefHat,
   Clapperboard,
   Heart,
+  Home,
   ListChecks,
+  Plane,
+  Repeat,
   ShoppingBag,
   Sparkles,
   Star,
+  Timer,
   Trophy,
   type LucideIcon,
 } from "lucide-react";
@@ -22,7 +26,11 @@ export type DashboardPanelId =
   | "shopping"
   | "wishlist"
   | "tiers"
-  | "polls";
+  | "polls"
+  | "travel"
+  | "chores"
+  | "countdown"
+  | "habits";
 
 export type DashboardPanelConfig = {
   id: DashboardPanelId;
@@ -110,6 +118,38 @@ export const DASHBOARD_PANELS: DashboardPanelConfig[] = [
     href: "/memories/moments",
     icon: Sparkles,
     tone: "from-violet-500/20 to-violet-500/5",
+  },
+  {
+    id: "travel",
+    label: "Путешествия",
+    description: "Куда хотим",
+    href: "/memories/travel",
+    icon: Plane,
+    tone: "from-cyan-500/20 to-cyan-500/5",
+  },
+  {
+    id: "chores",
+    label: "Дела",
+    description: "Домашние задачи",
+    href: "/memories/chores",
+    icon: Home,
+    tone: "from-teal-500/20 to-teal-500/5",
+  },
+  {
+    id: "countdown",
+    label: "Отсчёт",
+    description: "Важные даты",
+    href: "/memories/countdown",
+    icon: Timer,
+    tone: "from-rose-500/20 to-rose-500/5",
+  },
+  {
+    id: "habits",
+    label: "Привычки",
+    description: "Вместе каждый день",
+    href: "/memories/habits",
+    icon: Repeat,
+    tone: "from-blue-500/20 to-blue-500/5",
   },
 ];
 
