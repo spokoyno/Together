@@ -10,7 +10,7 @@ import { getOrCreateDailyQuestion } from "@/lib/question/actions";
 import { getPushStatus } from "@/lib/push/actions";
 import { getPushServerConfig } from "@/lib/push/config";
 import { signMediaPaths } from "@/lib/media/actions";
-import { resolveDashboardPanels, type DashboardPanelPreference } from "@/lib/hub/panels";
+import type { DashboardPanelPreference } from "@/lib/hub/panels";
 import type { MoodLevel } from "@/types/domain";
 
 export default async function DashboardPage() {
@@ -20,17 +20,29 @@ export default async function DashboardPage() {
   const pushStatus = await getPushStatus();
   const today = todayIso();
 
-  const { data: profileSettings } = await supabase
+  const { data: profileSettings, error: profileError } = await supabase
     .from("profiles")
     .select("notifications_enabled, birthday, dashboard_panels")
     .eq("id", user.id)
     .maybeSingle();
 
-  if (!profileSettings?.birthday) {
+  if (profileError && profileError.code !== "42703") {
+    throw profileError;
+  }
+
+  const { data: profileFallback } = profileError
+    ? await supabase
+        .from("profiles")
+        .select("notifications_enabled, birthday")
+        .eq("id", user.id)
+        .maybeSingle()
+    : { data: profileSettings };
+
+  if (!profileFallback?.birthday) {
     redirect("/onboarding/birthday");
   }
 
-  const profileNotificationsEnabled = profileSettings?.notifications_enabled ?? true;
+  const profileNotificationsEnabled = profileFallback?.notifications_enabled ?? true;
 
   if (!context) {
     redirect("/pair");
@@ -113,8 +125,8 @@ export default async function DashboardPage() {
     ? profilesResult.data?.find((row) => row.id === partner.id)
     : null;
 
-  const panelPreferences = (profileSettings?.dashboard_panels as DashboardPanelPreference[] | null) ?? null;
-  const panels = resolveDashboardPanels(panelPreferences);
+  const panelPreferences =
+    (profileSettings?.dashboard_panels as DashboardPanelPreference[] | null) ?? [];
 
   return (
     <main className="mx-auto min-h-screen max-w-md px-5 pb-28 pt-7">
@@ -131,8 +143,7 @@ export default async function DashboardPage() {
           myAvatarUrl={myProfile?.avatar_path ? signed[myProfile.avatar_path] ?? null : null}
           myMood={(myMoodResult.data?.level as MoodLevel | undefined) ?? null}
           myName={me?.display_name ?? "Вы"}
-          panelPreferences={panelPreferences ?? []}
-          panels={panels}
+          panelPreferences={panelPreferences}
           partnerAvatarUrl={
             partnerProfile?.avatar_path ? signed[partnerProfile.avatar_path] ?? null : null
           }

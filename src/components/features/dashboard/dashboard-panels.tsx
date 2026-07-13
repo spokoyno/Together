@@ -2,17 +2,17 @@
 
 import Link from "next/link";
 import { Settings2 } from "lucide-react";
-import { useState, useTransition } from "react";
-import type { DashboardPanelConfig, DashboardPanelPreference } from "@/lib/hub/panels";
-import { DASHBOARD_PANELS, normalizeDashboardPreferences } from "@/lib/hub/panels";
+import { useMemo, useState, useTransition } from "react";
+import type { DashboardPanelPreference } from "@/lib/hub/panels";
+import { DASHBOARD_PANELS, normalizeDashboardPreferences, resolveDashboardPanels } from "@/lib/hub/panels";
 import { saveDashboardPanels } from "@/lib/profile/actions";
 
 type DashboardPanelsProps = {
-  panels: DashboardPanelConfig[];
   preferences: DashboardPanelPreference[];
 };
 
-export function DashboardPanels({ panels, preferences }: DashboardPanelsProps) {
+export function DashboardPanels({ preferences }: DashboardPanelsProps) {
+  const panels = useMemo(() => resolveDashboardPanels(preferences), [preferences]);
   const [showEditor, setShowEditor] = useState(false);
   const [draft, setDraft] = useState(normalizeDashboardPreferences(preferences));
   const [isPending, startTransition] = useTransition();
