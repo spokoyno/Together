@@ -6,7 +6,8 @@ import { Heart, Pencil, Settings, Shield, LogOut, Bell } from "lucide-react";
 import { signOut } from "@/app/auth/actions";
 import { ExportDataButton } from "@/components/features/profile/export-data-button";
 import { NotificationsPanel, type InAppNotification } from "@/components/features/profile/notifications-panel";
-import { ThemeToggle } from "@/components/features/profile/theme-toggle";
+import { PalettePicker } from "@/components/features/profile/palette-picker";
+import { LanguagePicker } from "@/components/features/profile/language-picker";
 import { PushNotificationsSetup } from "@/components/pwa/push-notifications-setup";
 import { PwaInstallHelp } from "@/components/pwa/pwa-install-help";
 import { LeaveCoupleButton } from "@/components/features/pair/leave-couple-button";
@@ -15,6 +16,7 @@ import { GenderSelect } from "@/components/features/profile/gender-select";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { genderLabel } from "@/lib/profile/gender";
 import { updateProfile } from "@/lib/profile/actions";
+import { useLanguage } from "@/components/providers/language-provider";
 import type { ProfileGender } from "@/types/domain";
 
 type ProfileScreenProps = {
@@ -60,7 +62,8 @@ export function ProfileScreen({
   pushConfig,
   notifications,
 }: ProfileScreenProps) {
-  const [tab, setTab] = useState<Tab>("settings");
+  const [tab, setTab] = useState<Tab>("notifications");
+  const { t } = useLanguage();
   const [showEdit, setShowEdit] = useState(false);
   const [name, setName] = useState(displayName);
   const [profileGender, setProfileGender] = useState<ProfileGender | "">(gender ?? "");
@@ -87,9 +90,9 @@ export function ProfileScreen({
   const unreadCount = notifications.filter((item) => !item.read_at).length;
 
   const tabButtons: { id: Tab; label: string; shortLabel: string; icon: typeof Settings; badge?: boolean }[] = [
-    { id: "settings", label: "Настройки", shortLabel: "Настр.", icon: Settings },
-    { id: "notifications", label: "Уведомления", shortLabel: "Увед.", icon: Bell, badge: unreadCount > 0 },
-    { id: "account", label: "Аккаунт", shortLabel: "Аккаунт", icon: Shield },
+    { id: "settings", label: t("profileSettings"), shortLabel: t("profileSettingsShort"), icon: Settings },
+    { id: "notifications", label: t("profileNotifications"), shortLabel: t("profileNotificationsShort"), icon: Bell, badge: unreadCount > 0 },
+    { id: "account", label: t("profileAccount"), shortLabel: t("profileAccount"), icon: Shield },
   ];
 
   return (
@@ -104,13 +107,13 @@ export function ProfileScreen({
           ) : null}
         </div>
         <button
-          aria-label="Редактировать профиль"
+          aria-label={t("profileEdit")}
           className="inline-flex items-center gap-1 rounded-2xl surface-input px-3 py-2 text-sm font-semibold"
           onClick={() => setShowEdit(true)}
           type="button"
         >
           <Pencil aria-hidden className="size-4" />
-          Редактировать
+          {t("profileEdit")}
         </button>
       </section>
 
@@ -123,7 +126,9 @@ export function ProfileScreen({
       ) : null}
 
       {daysTogether !== null ? (
-        <p className="mt-4 text-center text-sm text-[var(--muted)]">Вместе {daysTogether} дней</p>
+        <p className="mt-4 text-center text-sm text-[var(--muted)]">
+          {t("profileTogetherDays", { days: daysTogether })}
+        </p>
       ) : null}
 
       <div className="mt-8 flex rounded-full bg-[var(--input-bg)] p-1">
@@ -156,7 +161,8 @@ export function ProfileScreen({
 
       {tab === "settings" ? (
         <section className="mt-5 grid gap-4">
-          <ThemeToggle />
+          <PalettePicker />
+          <LanguagePicker />
 
           <PwaInstallHelp />
 
@@ -172,21 +178,21 @@ export function ProfileScreen({
 
           {stats ? (
             <div className="rounded-3xl surface-panel p-5">
-              <p className="font-semibold">Статистика</p>
+              <p className="font-semibold">{t("profileStats")}</p>
               <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
-                <p>Настроений: {stats.moods}</p>
-                <p>Планов: {stats.plans}</p>
-                <p>Моментов: {stats.memories}</p>
-                <p>Ответов: {stats.answers}</p>
+                <p>{t("profileStatsMoods")}: {stats.moods}</p>
+                <p>{t("profileStatsPlans")}: {stats.plans}</p>
+                <p>{t("profileStatsMoments")}: {stats.memories}</p>
+                <p>{t("profileStatsAnswers")}: {stats.answers}</p>
               </div>
             </div>
           ) : null}
 
           {!isComplete && hasCouple ? (
             <div className="rounded-3xl surface-panel border-dashed p-5">
-              <p className="font-semibold">Ожидаем партнёра</p>
+              <p className="font-semibold">{t("profileWaitingPartner")}</p>
               <Link className="mt-3 inline-block text-[var(--accent)]" href="/pair">
-                Управление приглашением
+                {t("profileManageInvite")}
               </Link>
             </div>
           ) : null}
@@ -194,7 +200,7 @@ export function ProfileScreen({
           {!hasCouple ? (
             <div className="rounded-3xl surface-panel border-dashed p-5">
               <Link className="text-[var(--accent)]" href="/pair">
-                Создать или принять приглашение
+                {t("profileCreatePair")}
               </Link>
             </div>
           ) : null}
@@ -210,10 +216,8 @@ export function ProfileScreen({
           {isComplete ? <LeaveCoupleButton variant="complete" /> : hasCouple ? <LeaveCoupleButton variant="solo" /> : null}
 
           <div className="rounded-3xl surface-panel p-5">
-            <p className="font-semibold">Удаление аккаунта</p>
-            <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-              Полное удаление — через Supabase Dashboard. Перед этим экспортируйте данные.
-            </p>
+            <p className="font-semibold">{t("profileDeleteAccount")}</p>
+            <p className="mt-2 text-sm leading-6 text-[var(--muted)]">{t("profileDeleteHint")}</p>
           </div>
 
           <form action={signOut}>
@@ -222,7 +226,7 @@ export function ProfileScreen({
               type="submit"
             >
               <LogOut aria-hidden className="size-5" />
-              Выйти
+              {t("profileSignOut")}
             </button>
           </form>
         </section>
@@ -234,10 +238,10 @@ export function ProfileScreen({
             className="w-full max-w-md rounded-3xl surface-panel p-5 shadow-xl"
             onSubmit={handleSaveProfile}
           >
-            <p className="text-lg font-bold">Редактировать профиль</p>
+            <p className="text-lg font-bold">{t("profileEditTitle")}</p>
             <div className="mt-4 grid gap-3">
               <label className="grid gap-2">
-                <span className="text-sm font-semibold">Имя</span>
+                <span className="text-sm font-semibold">{t("profileName")}</span>
                 <input
                   className="rounded-2xl surface-input px-4 py-3"
                   onChange={(event) => setName(event.target.value)}
@@ -246,7 +250,7 @@ export function ProfileScreen({
                 />
               </label>
               <div className="grid gap-2">
-                <span className="text-sm font-semibold">Пол</span>
+                <span className="text-sm font-semibold">{t("profileGender")}</span>
                 <GenderSelect
                   disabled={isPending}
                   onChange={setProfileGender}
@@ -266,14 +270,14 @@ export function ProfileScreen({
                 disabled={isPending}
                 type="submit"
               >
-                {isPending ? "Сохраняем..." : "Сохранить"}
+                {isPending ? t("profileSaving") : t("profileSave")}
               </button>
               <button
                 className="rounded-2xl surface-input px-4 py-3 font-semibold"
                 onClick={() => setShowEdit(false)}
                 type="button"
               >
-                Отмена
+                {t("profileCancel")}
               </button>
             </div>
           </form>

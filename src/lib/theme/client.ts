@@ -1,48 +1,45 @@
 "use client";
 
-import type { ThemePreference } from "@/lib/theme/constants";
-import { THEME_COOKIE_NAME, THEME_STORAGE_KEY, themeCookieValue } from "@/lib/theme/constants";
+import type { ColorPalette } from "@/lib/theme/constants";
+import {
+  DEFAULT_COLOR_PALETTE,
+  THEME_COOKIE_NAME,
+  THEME_STORAGE_KEY,
+  isColorPalette,
+  normalizeColorPalette,
+  themeCookieValue,
+} from "@/lib/theme/constants";
 
-export function applyThemeToDocument(theme: ThemePreference) {
-  document.documentElement.dataset.theme = theme;
-  document.documentElement.style.colorScheme = theme;
+export function applyThemeToDocument(palette: ColorPalette) {
+  document.documentElement.dataset.theme = palette;
+  document.documentElement.style.colorScheme = "dark";
 }
 
-export function persistThemeLocally(theme: ThemePreference) {
-  localStorage.setItem(THEME_STORAGE_KEY, theme);
-  document.cookie = themeCookieValue(theme);
-  applyThemeToDocument(theme);
+export function persistThemeLocally(palette: ColorPalette) {
+  localStorage.setItem(THEME_STORAGE_KEY, palette);
+  document.cookie = themeCookieValue(palette);
+  applyThemeToDocument(palette);
 }
 
-export function readThemeFromDocument(): ThemePreference | null {
+export function readThemeFromDocument(): ColorPalette | null {
   const fromDom = document.documentElement.dataset.theme;
-  if (fromDom === "light" || fromDom === "dark") {
-    return fromDom;
-  }
-  return null;
+  return isColorPalette(fromDom) ? fromDom : null;
 }
 
-export function readThemeFromStorage(): ThemePreference | null {
+export function readThemeFromStorage(): ColorPalette | null {
   const stored = localStorage.getItem(THEME_STORAGE_KEY);
-  if (stored === "light" || stored === "dark") {
-    return stored;
-  }
-  return null;
+  return isColorPalette(stored) ? stored : null;
 }
 
-export function readThemeFromCookie(): ThemePreference | null {
-  const match = document.cookie.match(new RegExp(`(?:^|; )${THEME_COOKIE_NAME}=(dark|light)(?:;|$)`));
-  if (match?.[1] === "light" || match?.[1] === "dark") {
-    return match[1];
-  }
-  return null;
+export function readThemeFromCookie(): ColorPalette | null {
+  const match = document.cookie.match(
+    new RegExp(`(?:^|; )${THEME_COOKIE_NAME}=(pink|blue|purple|emerald|amber)(?:;|$)`),
+  );
+  return isColorPalette(match?.[1]) ? match[1] : null;
 }
 
-export function resolveClientTheme(): ThemePreference {
-  return (
-    readThemeFromDocument() ??
-    readThemeFromStorage() ??
-    readThemeFromCookie() ??
-    (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")
+export function resolveClientTheme(): ColorPalette {
+  return normalizeColorPalette(
+    readThemeFromDocument() ?? readThemeFromStorage() ?? readThemeFromCookie() ?? DEFAULT_COLOR_PALETTE,
   );
 }

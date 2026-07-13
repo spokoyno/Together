@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { EmptyState } from "@/components/ui/empty-state";
+import { useLanguage } from "@/components/providers/language-provider";
 import type { NotificationType } from "@/lib/notifications/actions";
 import { markAllNotificationsRead, markNotificationRead } from "@/lib/notifications/actions";
 import { formatDateRu } from "@/lib/dates";
@@ -42,6 +43,7 @@ function notificationIcon(type: NotificationType) {
 export function NotificationsPanel({ notifications }: NotificationsPanelProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const { t } = useLanguage();
 
   const unreadCount = notifications.filter((item) => !item.read_at).length;
 
@@ -78,7 +80,7 @@ export function NotificationsPanel({ notifications }: NotificationsPanelProps) {
           type="button"
         >
           <Check aria-hidden className="size-4" />
-          Прочитать все
+          {t("profileMarkAllRead")}
         </button>
       ) : null}
 
@@ -142,8 +144,8 @@ export function NotificationsPanel({ notifications }: NotificationsPanelProps) {
         })
       ) : (
         <EmptyState
-          description="Здесь появятся вызовы, опросы и напоминания."
-          title="Уведомлений пока нет"
+          description=""
+          title={t("profileNoNotifications")}
         />
       )}
 

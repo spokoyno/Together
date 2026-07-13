@@ -4,13 +4,14 @@ import { useEffect, useState, useTransition } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import {
   Home,
-  Image,
+  Activity,
   ListTodo,
   MessageCircle,
   UserRound,
 } from "lucide-react";
 import { setAppBadgeCount } from "@/lib/pwa/app-badge";
 import { createClient } from "@/lib/supabase/client";
+import { useLanguage } from "@/components/providers/language-provider";
 
 type BottomNavProps = {
   coupleId: string | null;
@@ -19,16 +20,17 @@ type BottomNavProps = {
   initialUnreadNotifications: number;
 };
 
-const navLinks = [
-  { href: "/dashboard", label: "Главная", icon: Home },
-  { href: "/plans", label: "Планы", icon: ListTodo },
-  { href: "/memories", label: "Лента", icon: Image },
-  { href: "/profile", label: "Профиль", icon: UserRound },
+const navLinkDefs = [
+  { href: "/dashboard", labelKey: "navHome" as const, icon: Home },
+  { href: "/plans", labelKey: "navPlans" as const, icon: ListTodo },
+  { href: "/memories", labelKey: "navFeed" as const, icon: Activity },
+  { href: "/profile", labelKey: "navProfile" as const, icon: UserRound },
 ] as const;
 
 export function BottomNav({ coupleId, userId, initialUnread, initialUnreadNotifications }: BottomNavProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const { t } = useLanguage();
   const [pendingPath, setPendingPath] = useState<string | null>(null);
   const [, startTransition] = useTransition();
   const [liveUnread, setLiveUnread] = useState(0);
@@ -40,7 +42,7 @@ export function BottomNav({ coupleId, userId, initialUnread, initialUnreadNotifi
 
   useEffect(() => {
     const prefetchMainTabs = () => {
-      for (const link of navLinks) {
+      for (const link of navLinkDefs) {
         router.prefetch(link.href);
       }
     };
@@ -119,14 +121,15 @@ export function BottomNav({ coupleId, userId, initialUnread, initialUnreadNotifi
       ) : null}
 
       <nav className="nav-shell fixed bottom-[max(0.75rem,env(safe-area-inset-bottom))] left-1/2 z-40 flex w-[calc(100%-1.5rem)] max-w-md -translate-x-1/2 items-end justify-between rounded-[28px] px-2 py-2 shadow-lg">
-        {navLinks.slice(0, 2).map((link) => {
+        {navLinkDefs.slice(0, 2).map((link) => {
           const Icon = link.icon;
           const active = isActive(link.href);
+          const label = t(link.labelKey);
 
           return (
             <button
               aria-current={active ? "page" : undefined}
-              aria-label={link.label}
+              aria-label={label}
               className={`grid min-h-12 min-w-12 flex-1 place-items-center rounded-2xl transition-all duration-200 ${
                 active ? "scale-105 text-[var(--accent)]" : "text-[var(--muted)]"
               }`}
@@ -141,7 +144,7 @@ export function BottomNav({ coupleId, userId, initialUnread, initialUnreadNotifi
 
         <button
           aria-current={isActive("/chat") ? "page" : undefined}
-          aria-label="Чат"
+          aria-label={t("navChat")}
           className={`relative grid size-14 -translate-y-4 place-items-center rounded-full bg-[var(--accent)] text-white shadow-lg transition-all duration-200 active:scale-95 ${
             isActive("/chat") ? "ring-4 ring-[var(--accent-soft)]" : ""
           }`}
@@ -156,15 +159,16 @@ export function BottomNav({ coupleId, userId, initialUnread, initialUnreadNotifi
           ) : null}
         </button>
 
-        {navLinks.slice(2).map((link) => {
+        {navLinkDefs.slice(2).map((link) => {
           const Icon = link.icon;
           const active = isActive(link.href);
+          const label = t(link.labelKey);
           const showNotificationBadge = link.href === "/profile" && initialUnreadNotifications > 0;
 
           return (
             <button
               aria-current={active ? "page" : undefined}
-              aria-label={link.label}
+              aria-label={label}
               className={`relative grid min-h-12 min-w-12 flex-1 place-items-center rounded-2xl transition-all duration-200 ${
                 active ? "scale-105 text-[var(--accent)]" : "text-[var(--muted)]"
               }`}

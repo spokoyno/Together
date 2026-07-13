@@ -2,9 +2,10 @@
 
 import { getSessionUser } from "@/lib/auth/session";
 import { themePreferenceSchema } from "@/lib/validation/theme";
-import type { ThemePreference } from "@/types/domain";
+import type { ColorPalette } from "@/lib/theme/constants";
+import { normalizeColorPalette } from "@/lib/theme/constants";
 
-export async function getThemePreference(): Promise<ThemePreference | null> {
+export async function getThemePreference(): Promise<ColorPalette | null> {
   const { supabase, user } = await getSessionUser();
 
   if (!user) {
@@ -17,12 +18,16 @@ export async function getThemePreference(): Promise<ThemePreference | null> {
     .eq("id", user.id)
     .maybeSingle();
 
-  const parsed = themePreferenceSchema.safeParse(data?.theme_preference);
-  return parsed.success ? parsed.data : null;
+  if (!data?.theme_preference) {
+    return null;
+  }
+
+  const parsed = themePreferenceSchema.safeParse(data.theme_preference);
+  return parsed.success ? parsed.data : normalizeColorPalette(data.theme_preference);
 }
 
-export async function saveThemePreference(theme: ThemePreference): Promise<void> {
-  const parsed = themePreferenceSchema.safeParse(theme);
+export async function saveThemePreference(palette: ColorPalette): Promise<void> {
+  const parsed = themePreferenceSchema.safeParse(palette);
   if (!parsed.success) {
     return;
   }

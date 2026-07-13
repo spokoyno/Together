@@ -59,4 +59,4 @@ export type ChatNote = {
   linkedMessage: ChatMessage | null;
 };
 
-export type ThemePreference = "light" | "dark";
+export type ColorPalette = import("@/lib/theme/constants").ColorPalette;

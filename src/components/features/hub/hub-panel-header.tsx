@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
+import { useLanguage } from "@/components/providers/language-provider";
 
 type HubPanelHeaderProps = {
   title: string;
@@ -7,6 +10,8 @@ type HubPanelHeaderProps = {
 };
 
 export function HubPanelHeader({ title, subtitle }: HubPanelHeaderProps) {
+  const { t } = useLanguage();
+
   return (
     <header className="mb-6">
       <Link
@@ -14,7 +19,7 @@ export function HubPanelHeader({ title, subtitle }: HubPanelHeaderProps) {
         href="/dashboard"
       >
         <ChevronLeft aria-hidden className="size-5" />
-        Главная
+        {t("backHome")}
       </Link>
       <h1 className="text-2xl font-bold">{title}</h1>
       {subtitle ? <p className="mt-1 text-sm text-[var(--muted)]">{subtitle}</p> : null}
