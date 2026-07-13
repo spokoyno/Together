@@ -24,8 +24,20 @@ export type ChatMessage = {
   coupleId: string;
   senderId: string;
   senderName: string;
-  body: string;
+  body: string | null;
+  imagePath: string | null;
+  imageUrl: string | null;
   createdAt: string;
+};
+
+export type MomentType = "memory" | "movie" | "cooking" | "photo";
+
+export type MomentMeta = {
+  movieId?: number;
+  movieTitle?: string;
+  posterPath?: string | null;
+  ratings?: Record<string, number>;
+  caption?: string;
 };
 
 export type ChatSavedMessage = ChatMessage & {

@@ -93,9 +93,19 @@ export function ChatPersonalPanel({
                       <p className="text-xs font-medium text-[var(--muted)]">
                         {isMine ? "Вы" : partnerName} · {formatMessageTime(message.createdAt)}
                       </p>
-                      <p className="mt-1 whitespace-pre-wrap break-words text-sm leading-6">
-                        {message.body}
-                      </p>
+                      {message.imageUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          alt=""
+                          className="mb-1 max-h-40 w-full rounded-xl object-cover"
+                          src={message.imageUrl}
+                        />
+                      ) : null}
+                      {message.body ? (
+                        <p className="mt-1 whitespace-pre-wrap break-words text-sm leading-6">
+                          {message.body}
+                        </p>
+                      ) : null}
                     </div>
                     <button
                       aria-label="Убрать из сохранённых"
@@ -152,8 +162,9 @@ export function ChatPersonalPanel({
                   <div className="min-w-0 flex-1">
                     {note.linkedMessage ? (
                       <p className="mb-2 rounded-xl bg-[var(--input-bg)] px-3 py-2 text-xs leading-5 text-[var(--muted)]">
-                        К сообщению: «{note.linkedMessage.body.slice(0, 120)}
-                        {note.linkedMessage.body.length > 120 ? "…" : ""}»
+                        К сообщению: «
+                        {(note.linkedMessage.body ?? "📷 Фото").slice(0, 120)}
+                        {(note.linkedMessage.body?.length ?? 0) > 120 ? "…" : ""}»
                       </p>
                     ) : null}
                     <p className="whitespace-pre-wrap break-words text-sm leading-6">{note.body}</p>

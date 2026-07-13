@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { signMediaPaths } from "@/lib/media/actions";
 import type { ChatMessage } from "@/types/domain";
 
 export const CHAT_PAGE_SIZE = 40;
@@ -7,7 +8,8 @@ type MessageRow = {
   id: string;
   couple_id: string;
   sender_id: string;
-  body: string;
+  body: string | null;
+  image_path: string | null;
   created_at: string;
 };
 
@@ -19,6 +21,7 @@ export type ChatMessagesPage = {
 export function mapMessageRow(
   row: MessageRow,
   memberNames: Record<string, string>,
+  signedUrls: Record<string, string>,
 ): ChatMessage {
   return {
     id: row.id,
@@ -26,24 +29,31 @@ export function mapMessageRow(
     senderId: row.sender_id,
     senderName: memberNames[row.sender_id] ?? "Пользователь",
     body: row.body,
+    imagePath: row.image_path,
+    imageUrl: row.image_path ? signedUrls[row.image_path] ?? null : null,
     createdAt: row.created_at,
   };
 }
 
-function mapPage(
+async function mapPage(
+  supabase: SupabaseClient,
   rows: MessageRow[],
   memberNames: Record<string, string>,
   pageSize: number,
-): ChatMessagesPage {
+): Promise<ChatMessagesPage> {
   const hasMore = rows.length > pageSize;
   const slice = hasMore ? rows.slice(0, pageSize) : rows;
+  const signedUrls = await signMediaPaths(
+    supabase,
+    slice.map((row) => row.image_path).filter((path): path is string => Boolean(path)),
+  );
 
   return {
     hasMore,
     messages: slice
       .slice()
       .reverse()
-      .map((row) => mapMessageRow(row, memberNames)),
+      .map((row) => mapMessageRow(row, memberNames, signedUrls)),
   };
 }
 
@@ -55,7 +65,7 @@ export async function getRecentCoupleMessages(
 ): Promise<ChatMessagesPage> {
   const { data, error } = await supabase
     .from("messages")
-    .select("id, couple_id, sender_id, body, created_at")
+    .select("id, couple_id, sender_id, body, image_path, created_at")
     .eq("couple_id", coupleId)
     .order("created_at", { ascending: false })
     .order("id", { ascending: false })
@@ -65,7 +75,7 @@ export async function getRecentCoupleMessages(
     return { messages: [], hasMore: false };
   }
 
-  return mapPage(data, memberNames, pageSize);
+  return mapPage(supabase, data, memberNames, pageSize);
 }
 
 export async function getOlderCoupleMessages(
@@ -77,7 +87,7 @@ export async function getOlderCoupleMessages(
 ): Promise<ChatMessagesPage> {
   const { data, error } = await supabase
     .from("messages")
-    .select("id, couple_id, sender_id, body, created_at")
+    .select("id, couple_id, sender_id, body, image_path, created_at")
     .eq("couple_id", coupleId)
     .or(
       `created_at.lt."${before.createdAt}",and(created_at.eq."${before.createdAt}",id.lt.${before.id})`,
@@ -90,7 +100,7 @@ export async function getOlderCoupleMessages(
     return { messages: [], hasMore: false };
   }
 
-  return mapPage(data, memberNames, pageSize);
+  return mapPage(supabase, data, memberNames, pageSize);
 }
 
 /** @deprecated Use getRecentCoupleMessages */

@@ -20,13 +20,23 @@ export const planSchema = z.object({
   details: z.string().trim().max(2000).optional(),
   category: z.string().trim().min(1).max(40).default("other"),
   dueAt: z.string().optional(),
+  remindEnabled: z.coerce.boolean().optional(),
 });
+
+export const momentTypeSchema = z.enum(["memory", "movie", "cooking", "photo"]);
 
 export const memorySchema = z.object({
   title: z.string().trim().max(160).optional(),
   body: z.string().trim().max(4000).optional(),
   happenedOn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   tags: z.string().trim().max(200).optional(),
+  momentType: momentTypeSchema.default("memory"),
+  meta: z.string().optional(),
+});
+
+export const nicknameSchema = z.object({
+  nickname: z.string().trim().min(1).max(40),
+  targetUserId: z.string().uuid(),
 });
 
 export const eventSchema = z.object({
@@ -47,9 +57,15 @@ export const profileSchema = z.object({
     .optional(),
 });
 
-export const messageSchema = z.object({
-  body: z.string().trim().min(1, "Напишите сообщение").max(2000, "Слишком длинное сообщение"),
-});
+export const messageSchema = z
+  .object({
+    body: z.string().trim().max(2000).optional(),
+    imagePath: z.string().trim().optional(),
+  })
+  .refine(
+    (value) => Boolean(value.body && value.body.length > 0) || Boolean(value.imagePath),
+    { message: "Напишите сообщение или прикрепите фото" },
+  );
 
 export const chatNoteSchema = z.object({
   body: z.string().trim().min(1, "Напишите заметку").max(2000, "Слишком длинная заметка"),

@@ -9,16 +9,18 @@ import {
   useState,
   useTransition,
 } from "react";
-import { Bookmark, BookmarkCheck, Loader2, Send, StickyNote } from "lucide-react";
+import { Bookmark, BookmarkCheck, ImagePlus, Loader2, Send, Sparkles, StickyNote } from "lucide-react";
 import {
   createChatNote,
   loadOlderMessages,
   markChatRead,
+  postMessageToMoments,
   sendMessage,
   toggleSaveMessage,
 } from "@/lib/chat/actions";
 import { mergeMessages, prependMessages } from "@/lib/chat/messages";
 import { formatChatDayHeader, formatMessageTime, getChatDayKey } from "@/lib/dates";
+import { uploadCoupleImage, signMediaPath } from "@/lib/media/actions";
 import { createClient } from "@/lib/supabase/client";
 import type { ChatMessage, ChatNote } from "@/types/domain";
 
@@ -52,6 +54,10 @@ export function ChatPanel({
   const [hasMore, setHasMore] = useState(initialHasMore);
   const [isLoadingOlder, setIsLoadingOlder] = useState(false);
   const [draft, setDraft] = useState("");
+  const [pendingImagePath, setPendingImagePath] = useState<string | null>(null);
+  const [pendingImagePreview, setPendingImagePreview] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState("");
   const [noteTargetId, setNoteTargetId] = useState<string | null>(null);
   const [noteDraft, setNoteDraft] = useState("");
@@ -188,24 +194,31 @@ export function ChatPanel({
             id: string;
             couple_id: string;
             sender_id: string;
-            body: string;
+            body: string | null;
+            image_path: string | null;
             created_at: string;
           };
 
-          setMessages((current) =>
-            mergeMessages(current, {
-              id: row.id,
-              coupleId: row.couple_id,
-              senderId: row.sender_id,
-              senderName: row.sender_id === userId ? "Вы" : partnerName,
-              body: row.body,
-              createdAt: row.created_at,
-            }),
-          );
+          void (async () => {
+            const imageUrl = row.image_path ? await signMediaPath(row.image_path) : null;
 
-          if (row.sender_id !== userId) {
-            void markChatRead();
-          }
+            setMessages((current) =>
+              mergeMessages(current, {
+                id: row.id,
+                coupleId: row.couple_id,
+                senderId: row.sender_id,
+                senderName: row.sender_id === userId ? "Вы" : partnerName,
+                body: row.body,
+                imagePath: row.image_path,
+                imageUrl,
+                createdAt: row.created_at,
+              }),
+            );
+
+            if (row.sender_id !== userId) {
+              void markChatRead();
+            }
+          })();
         },
       )
       .subscribe();
@@ -215,19 +228,59 @@ export function ChatPanel({
     };
   }, [coupleId, partnerName, userId]);
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const text = draft.trim();
-    if (!text || isPending) {
+  function clearPendingImage() {
+    setPendingImagePath(null);
+    if (pendingImagePreview) {
+      URL.revokeObjectURL(pendingImagePreview);
+    }
+    setPendingImagePreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  }
+
+  async function handleImagePick(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) {
       return;
     }
 
     setError("");
+    setIsUploading(true);
+
+    const preview = URL.createObjectURL(file);
+    setPendingImagePreview(preview);
+
+    const formData = new FormData();
+    formData.set("file", file);
+    const result = await uploadCoupleImage(formData);
+
+    setIsUploading(false);
+
+    if (!result.ok) {
+      setError(result.error);
+      clearPendingImage();
+      return;
+    }
+
+    setPendingImagePath(result.path);
+  }
+
+  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const text = draft.trim();
+    if ((!text && !pendingImagePath) || isPending || isUploading) {
+      return;
+    }
+
+    setError("");
+    const imagePath = pendingImagePath;
     setDraft("");
+    clearPendingImage();
     stickToBottomRef.current = true;
 
     startTransition(async () => {
-      const result = await sendMessage(text);
+      const result = await sendMessage(text, imagePath);
       if (!result.ok) {
         setError(result.error);
         setDraft(text);
@@ -235,6 +288,15 @@ export function ChatPanel({
       }
 
       setMessages((current) => mergeMessages(current, result.message));
+    });
+  }
+
+  function handlePostToMoments(messageId: string) {
+    startTransition(async () => {
+      const result = await postMessageToMoments(messageId);
+      if (!result.ok) {
+        setError(result.error ?? "Не удалось добавить в моменты.");
+      }
     });
   }
 
@@ -294,7 +356,7 @@ export function ChatPanel({
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div
-        className="min-h-0 flex-1 overflow-y-auto px-3 py-4"
+        className="min-h-0 flex-1 overflow-y-auto px-3 py-4 pb-[calc(7.5rem+max(0.75rem,env(safe-area-inset-bottom))+5.25rem)]"
         onScroll={handleScroll}
         ref={scrollRef}
       >
@@ -338,9 +400,19 @@ export function ChatPanel({
                             : "rounded-[18px] rounded-bl-[6px] bg-[var(--chat-incoming)] text-[var(--foreground)]"
                         }`}
                       >
-                        <p className="whitespace-pre-wrap break-words text-[15px] leading-6">
-                          {message.body}
-                        </p>
+                        {message.imageUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            alt=""
+                            className="mb-1 max-h-64 w-full rounded-xl object-cover"
+                            src={message.imageUrl}
+                          />
+                        ) : null}
+                        {message.body ? (
+                          <p className="whitespace-pre-wrap break-words text-[15px] leading-6">
+                            {message.body}
+                          </p>
+                        ) : null}
                         <div
                           className={`mt-1 flex items-center justify-end gap-1 ${
                             isMine ? "text-white/75" : "text-[var(--muted)]"
@@ -375,6 +447,19 @@ export function ChatPanel({
                           >
                             <StickyNote aria-hidden className="size-4" />
                           </button>
+                          {message.imagePath && isMine ? (
+                            <button
+                              aria-label="Добавить в моменты"
+                              className={`grid size-7 place-items-center rounded-full transition-colors ${
+                                isMine ? "hover:bg-white/15" : "hover:bg-[var(--input-bg)]"
+                              }`}
+                              disabled={isPending}
+                              onClick={() => handlePostToMoments(message.id)}
+                              type="button"
+                            >
+                              <Sparkles aria-hidden className="size-4" />
+                            </button>
+                          ) : null}
                           <span className="text-[11px]">{formatMessageTime(message.createdAt)}</span>
                         </div>
                       </div>
@@ -431,13 +516,51 @@ export function ChatPanel({
       </div>
 
       <form
-        className="border-t border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-3 pb-[calc(4.75rem+env(safe-area-inset-bottom))]"
+        className="fixed bottom-[calc(max(0.75rem,env(safe-area-inset-bottom))+5.25rem)] left-1/2 z-30 w-[calc(100%-1.5rem)] max-w-md -translate-x-1/2 px-1"
         onSubmit={handleSubmit}
       >
+        {pendingImagePreview ? (
+          <div className="mb-2 flex items-center gap-2">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              alt=""
+              className="size-16 rounded-2xl object-cover shadow-md"
+              src={pendingImagePreview}
+            />
+            {isUploading ? (
+              <Loader2 aria-hidden className="size-5 animate-spin text-[var(--muted)]" />
+            ) : (
+              <button
+                className="rounded-full surface-input px-3 py-1 text-xs font-semibold"
+                onClick={clearPendingImage}
+                type="button"
+              >
+                Убрать
+              </button>
+            )}
+          </div>
+        ) : null}
+
         <div className="flex items-end gap-2">
+          <input
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            className="hidden"
+            onChange={handleImagePick}
+            ref={fileInputRef}
+            type="file"
+          />
+          <button
+            aria-label="Прикрепить фото"
+            className="grid size-11 shrink-0 place-items-center rounded-full bg-[var(--surface)] text-[var(--muted)] shadow-md transition-transform active:scale-95"
+            disabled={isPending || isUploading}
+            onClick={() => fileInputRef.current?.click()}
+            type="button"
+          >
+            <ImagePlus aria-hidden className="size-5" />
+          </button>
           <textarea
-            className="max-h-28 min-h-11 flex-1 resize-none rounded-full surface-input px-4 py-2.5 text-[15px] transition-colors focus:border-[var(--accent)] focus:outline-none"
-            disabled={isPending}
+            className="max-h-28 min-h-11 flex-1 resize-none rounded-[22px] bg-[var(--surface)] px-4 py-2.5 text-[15px] shadow-md transition-colors focus:border-[var(--accent)] focus:outline-none"
+            disabled={isPending || isUploading}
             maxLength={2000}
             onChange={(event) => setDraft(event.target.value)}
             onKeyDown={(event) => {
@@ -452,15 +575,15 @@ export function ChatPanel({
           />
           <button
             aria-label="Отправить сообщение"
-            className="grid size-11 shrink-0 place-items-center rounded-full bg-[var(--accent)] text-white transition-transform active:scale-95 disabled:opacity-50"
-            disabled={isPending || !draft.trim()}
+            className="grid size-11 shrink-0 place-items-center rounded-full bg-[var(--accent)] text-white shadow-md transition-transform active:scale-95 disabled:opacity-50"
+            disabled={isPending || isUploading || (!draft.trim() && !pendingImagePath)}
             type="submit"
           >
             <Send aria-hidden className="size-5" />
           </button>
         </div>
         {error ? (
-          <p className="mt-2 alert-error rounded-xl px-3 py-2 text-sm">{error}</p>
+          <p className="mt-2 alert-error rounded-xl px-3 py-2 text-sm shadow-md">{error}</p>
         ) : null}
       </form>
     </div>

@@ -4,20 +4,27 @@ import { mapMessageSendError } from "@/lib/chat/errors";
 import { getOlderCoupleMessages } from "@/lib/chat/messages";
 import { markChatAsRead } from "@/lib/chat/unread";
 import { getAuthContext } from "@/lib/couple/context.server";
+import { signMediaPath } from "@/lib/media/actions";
 import { previewChatMessage, sendChatPushNotification } from "@/lib/push/send-chat-push";
 import { actionError, chatNoteSchema, messageSchema } from "@/lib/validation/forms";
 import type { ActionResult, ChatMessage, ChatNote } from "@/types/domain";
 
 type SendMessageResult = { ok: true; message: ChatMessage } | { ok: false; error: string };
 
-export async function sendMessage(body: string): Promise<SendMessageResult> {
+export async function sendMessage(
+  body: string,
+  imagePath?: string | null,
+): Promise<SendMessageResult> {
   const { supabase, user, context } = await getAuthContext();
 
   if (!context?.isComplete) {
     return actionError("Чат доступен после подключения партнёра.");
   }
 
-  const parsed = messageSchema.safeParse({ body });
+  const parsed = messageSchema.safeParse({
+    body: body.trim() || undefined,
+    imagePath: imagePath ?? undefined,
+  });
   if (!parsed.success) {
     return actionError(parsed.error.issues[0]?.message ?? "Проверьте сообщение");
   }
@@ -27,9 +34,10 @@ export async function sendMessage(body: string): Promise<SendMessageResult> {
     .insert({
       couple_id: context.coupleId,
       sender_id: user.id,
-      body: parsed.data.body,
+      body: parsed.data.body ?? null,
+      image_path: parsed.data.imagePath ?? null,
     })
-    .select("id, couple_id, sender_id, body, created_at")
+    .select("id, couple_id, sender_id, body, image_path, created_at")
     .single();
 
   if (insertError || !data) {
@@ -39,21 +47,28 @@ export async function sendMessage(body: string): Promise<SendMessageResult> {
   const senderName =
     context.members.find((member) => member.id === user.id)?.display_name ?? "Вы";
 
+  const imageUrl = data.image_path ? await signMediaPath(data.image_path) : null;
+
   const message: ChatMessage = {
     id: data.id,
     coupleId: data.couple_id,
     senderId: data.sender_id,
     senderName,
     body: data.body,
+    imagePath: data.image_path,
+    imageUrl,
     createdAt: data.created_at,
   };
 
   if (context.partner) {
     try {
+      const preview = parsed.data.body
+        ? previewChatMessage(parsed.data.body)
+        : "📷 Фото";
       await sendChatPushNotification({
         partnerId: context.partner.id,
         senderName,
-        preview: previewChatMessage(parsed.data.body),
+        preview,
       });
     } catch {
       // Push must not block message delivery.
@@ -64,6 +79,42 @@ export async function sendMessage(body: string): Promise<SendMessageResult> {
     ok: true,
     message,
   };
+}
+
+export async function postMessageToMoments(messageId: string): Promise<ActionResult> {
+  const { supabase, user, context } = await getAuthContext();
+
+  if (!context?.isComplete) {
+    return actionError("Пара не подключена.");
+  }
+
+  const { data: message } = await supabase
+    .from("messages")
+    .select("id, image_path, body, created_at")
+    .eq("id", messageId)
+    .eq("couple_id", context.coupleId)
+    .maybeSingle();
+
+  if (!message?.image_path) {
+    return actionError("У сообщения нет фото.");
+  }
+
+  const { error } = await supabase.from("memories").insert({
+    couple_id: context.coupleId,
+    created_by: user.id,
+    title: message.body?.slice(0, 160) || null,
+    body: message.body,
+    media_path: message.image_path,
+    moment_type: "photo",
+    happened_on: message.created_at.slice(0, 10),
+    meta: { caption: message.body ?? "" },
+  });
+
+  if (error) {
+    return actionError("Не удалось добавить в моменты.");
+  }
+
+  return { ok: true };
 }
 
 export async function markChatRead(): Promise<void> {
