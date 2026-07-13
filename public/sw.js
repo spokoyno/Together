@@ -1,4 +1,4 @@
-const CACHE_NAME = "together-shell-v7";
+const CACHE_NAME = "together-shell-v8";
 const SHELL_URLS = [
   "/",
   "/manifest.webmanifest",
@@ -92,10 +92,8 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
+  // Document navigation must not be intercepted — a hanging fetch blocks the whole page.
   if (event.request.mode === "navigate") {
-    event.respondWith(
-      fetch(event.request).catch(() => caches.match("/") ?? Response.error()),
-    );
     return;
   }
 

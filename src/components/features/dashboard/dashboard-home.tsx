@@ -8,7 +8,7 @@ import { DashboardPanels } from "@/components/features/dashboard/dashboard-panel
 import { saveMood } from "@/lib/mood/actions";
 import { DASHBOARD_MOODS, MOOD_EMOJI, MOOD_LABELS } from "@/lib/mood/labels";
 import { daysUntil, formatDateRu } from "@/lib/dates";
-import type { DashboardPanelPreference } from "@/lib/hub/panels";
+import type { DashboardPanelPreference } from "@/lib/hub/panels-preferences";
 import type { MoodLevel } from "@/types/domain";
 
 type NearestCountdown = {

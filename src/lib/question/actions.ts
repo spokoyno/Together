@@ -78,6 +78,26 @@ export async function ensureWeekQuestions(
   }
 }
 
+export async function getTodayDailyQuestion(
+  supabase: SupabaseClient,
+  coupleId: string,
+): Promise<DailyQuestion | null> {
+  const today = todayIso();
+
+  const { data: existing } = await supabase
+    .from("daily_questions")
+    .select("id, question_date, question_id, questions(prompt)")
+    .eq("couple_id", coupleId)
+    .eq("question_date", today)
+    .maybeSingle();
+
+  if (existing) {
+    return normalizeDailyQuestion(existing as DailyQuestionRow);
+  }
+
+  return null;
+}
+
 export async function getOrCreateDailyQuestion(
   supabase: SupabaseClient,
   coupleId: string,

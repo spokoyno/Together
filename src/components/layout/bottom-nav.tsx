@@ -26,31 +26,6 @@ const navLinks = [
   { href: "/profile", label: "Профиль", icon: UserRound },
 ] as const;
 
-const tabRoutes = [
-  "/dashboard",
-  "/plans",
-  "/memories",
-  "/memories/moments",
-  "/memories/movies",
-  "/memories/cooking",
-  "/memories/shopping",
-  "/memories/wishlist",
-  "/memories/tiers",
-  "/memories/books",
-  "/memories/polls",
-  "/memories/travel",
-  "/memories/chores",
-  "/memories/countdown",
-  "/memories/games",
-  "/memories/series",
-  "/memories/cartoons",
-  "/memories/anime",
-  "/memories/gallery",
-  "/memories/cycle",
-  "/profile",
-  "/chat",
-] as const;
-
 export function BottomNav({ coupleId, userId, initialUnread, initialUnreadNotifications }: BottomNavProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -64,9 +39,19 @@ export function BottomNav({ coupleId, userId, initialUnread, initialUnreadNotifi
   const isNavigating = pendingPath !== null && pendingPath !== pathname;
 
   useEffect(() => {
-    for (const href of tabRoutes) {
-      router.prefetch(href);
+    const prefetchMainTabs = () => {
+      for (const link of navLinks) {
+        router.prefetch(link.href);
+      }
+    };
+
+    if (typeof window.requestIdleCallback === "function") {
+      const idleId = window.requestIdleCallback(prefetchMainTabs);
+      return () => window.cancelIdleCallback(idleId);
     }
+
+    const timeoutId = globalThis.setTimeout(prefetchMainTabs, 1500);
+    return () => globalThis.clearTimeout(timeoutId);
   }, [router]);
 
   useEffect(() => {

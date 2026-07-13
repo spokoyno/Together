@@ -22,27 +22,14 @@ import {
   Wand2,
   type LucideIcon,
 } from "lucide-react";
+import {
+  DASHBOARD_PANEL_IDS,
+  normalizeDashboardPreferences as normalizePanelPreferences,
+  type DashboardPanelId,
+  type DashboardPanelPreference,
+} from "@/lib/hub/panels-preferences";
 
-export type DashboardPanelId =
-  | "moments"
-  | "movies"
-  | "games"
-  | "series"
-  | "cartoons"
-  | "anime"
-  | "books"
-  | "cooking"
-  | "compliments"
-  | "shopping"
-  | "wishlist"
-  | "tiers"
-  | "polls"
-  | "gallery"
-  | "cycle"
-  | "travel"
-  | "chores"
-  | "countdown"
-  | "habits";
+export type { DashboardPanelId, DashboardPanelPreference };
 
 export type DashboardPanelConfig = {
   id: DashboardPanelId;
@@ -51,11 +38,6 @@ export type DashboardPanelConfig = {
   href: string;
   icon: LucideIcon;
   tone: string;
-};
-
-export type DashboardPanelPreference = {
-  id: DashboardPanelId;
-  visible: boolean;
 };
 
 export const DASHBOARD_PANELS: DashboardPanelConfig[] = [
@@ -213,14 +195,16 @@ export const DASHBOARD_PANELS: DashboardPanelConfig[] = [
   },
 ];
 
-export function defaultDashboardPreferences(): DashboardPanelPreference[] {
-  return DASHBOARD_PANELS.map((panel) => ({ id: panel.id, visible: true }));
+export function normalizeDashboardPreferences(
+  stored: DashboardPanelPreference[] | null | undefined,
+): DashboardPanelPreference[] {
+  return normalizePanelPreferences(stored);
 }
 
 export function resolveDashboardPanels(
   stored: DashboardPanelPreference[] | null | undefined,
 ): DashboardPanelConfig[] {
-  const prefs = normalizeDashboardPreferences(stored);
+  const prefs = normalizePanelPreferences(stored);
   const panelMap = new Map(DASHBOARD_PANELS.map((panel) => [panel.id, panel]));
   const ordered: DashboardPanelConfig[] = [];
 
@@ -234,7 +218,11 @@ export function resolveDashboardPanels(
     }
   }
 
-  for (const panel of DASHBOARD_PANELS) {
+  for (const id of DASHBOARD_PANEL_IDS) {
+    const panel = panelMap.get(id);
+    if (!panel) {
+      continue;
+    }
     if (!ordered.some((item) => item.id === panel.id) && prefs.find((p) => p.id === panel.id)?.visible !== false) {
       if (!prefs.some((p) => p.id === panel.id)) {
         ordered.push(panel);
@@ -243,21 +231,4 @@ export function resolveDashboardPanels(
   }
 
   return ordered;
-}
-
-export function normalizeDashboardPreferences(
-  stored: DashboardPanelPreference[] | null | undefined,
-): DashboardPanelPreference[] {
-  if (!stored?.length) {
-    return defaultDashboardPreferences();
-  }
-
-  const known = new Set(DASHBOARD_PANELS.map((panel) => panel.id));
-  const cleaned = stored.filter((item) => known.has(item.id));
-  for (const panel of DASHBOARD_PANELS) {
-    if (!cleaned.some((item) => item.id === panel.id)) {
-      cleaned.push({ id: panel.id, visible: true });
-    }
-  }
-  return cleaned;
 }
