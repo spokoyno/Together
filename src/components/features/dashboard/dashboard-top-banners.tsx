@@ -2,7 +2,7 @@
 
 import { Bell, Share, X } from "lucide-react";
 import { useEffect, useState, useTransition } from "react";
-import { savePushSubscription } from "@/lib/push/actions";
+import { getPushStatus, savePushSubscription } from "@/lib/push/actions";
 import {
   getPushPermission,
   getServiceWorkerRegistration,
@@ -10,7 +10,6 @@ import {
 } from "@/lib/push/client";
 import {
   isIosDevice,
-  isMobileDevice,
   isStandaloneMode,
   PWA_INSTALL_DISMISS_KEY,
   PWA_NOTIFICATIONS_DISMISS_KEY,
@@ -24,6 +23,14 @@ type BeforeInstallPromptEvent = Event & {
 type DashboardTopBannersProps = {
   vapidPublicKey: string | null;
   initialSubscriptionCount: number;
+};
+
+type ClientBannerState = {
+  permission: NotificationPermission | "unsupported";
+  installDismissed: boolean;
+  notifDismissed: boolean;
+  notificationsEnabled: boolean;
+  standalone: boolean;
 };
 
 function subscriptionToPayload(subscription: PushSubscription) {
@@ -40,10 +47,27 @@ function subscriptionToPayload(subscription: PushSubscription) {
 }
 
 function readDismissed(key: string) {
-  if (typeof window === "undefined") {
+  return localStorage.getItem(key) === "1";
+}
+
+async function detectNotificationsEnabled(initialSubscriptionCount: number) {
+  const permission = getPushPermission();
+  if (permission !== "granted") {
     return false;
   }
-  return localStorage.getItem(key) === "1";
+
+  if (initialSubscriptionCount > 0) {
+    return true;
+  }
+
+  const registration = await getServiceWorkerRegistration();
+  const browserSubscription = await registration?.pushManager.getSubscription();
+  if (browserSubscription) {
+    return true;
+  }
+
+  const status = await getPushStatus();
+  return status.subscriptionCount > 0;
 }
 
 type BannerShellProps = {
@@ -93,42 +117,54 @@ export function DashboardTopBanners({
   vapidPublicKey,
   initialSubscriptionCount,
 }: DashboardTopBannersProps) {
-  const permission = getPushPermission();
-  const [installDismissed, setInstallDismissed] = useState(() =>
-    readDismissed(PWA_INSTALL_DISMISS_KEY),
-  );
-  const [notifDismissed, setNotifDismissed] = useState(() =>
-    readDismissed(PWA_NOTIFICATIONS_DISMISS_KEY),
-  );
+  const [clientState, setClientState] = useState<ClientBannerState | null>(null);
   const [installEvent, setInstallEvent] = useState<BeforeInstallPromptEvent | null>(null);
   const [installing, setInstalling] = useState(false);
   const [showInstallHint, setShowInstallHint] = useState(false);
-  const [notificationsEnabled, setNotificationsEnabled] = useState(
-    permission === "granted" && initialSubscriptionCount > 0,
-  );
   const [notifError, setNotifError] = useState("");
   const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
+    let cancelled = false;
+
+    void (async () => {
+      const notificationsEnabled = await detectNotificationsEnabled(initialSubscriptionCount);
+      if (cancelled) {
+        return;
+      }
+
+      setClientState({
+        permission: getPushPermission(),
+        installDismissed: readDismissed(PWA_INSTALL_DISMISS_KEY),
+        notifDismissed: readDismissed(PWA_NOTIFICATIONS_DISMISS_KEY),
+        notificationsEnabled,
+        standalone: isStandaloneMode(),
+      });
+    })();
+
     function handleBeforeInstall(event: Event) {
       event.preventDefault();
       setInstallEvent(event as BeforeInstallPromptEvent);
     }
 
     window.addEventListener("beforeinstallprompt", handleBeforeInstall);
-    return () => window.removeEventListener("beforeinstallprompt", handleBeforeInstall);
-  }, []);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("beforeinstallprompt", handleBeforeInstall);
+    };
+  }, [initialSubscriptionCount]);
 
-  const showInstall =
-    !isStandaloneMode() &&
-    !installDismissed &&
-    (isMobileDevice() || Boolean(installEvent));
+  if (!clientState) {
+    return null;
+  }
+
+  const showInstall = !clientState.standalone && !clientState.installDismissed;
 
   const showNotifications =
     Boolean(vapidPublicKey) &&
-    permission !== "unsupported" &&
-    !notificationsEnabled &&
-    !notifDismissed;
+    clientState.permission !== "unsupported" &&
+    !clientState.notificationsEnabled &&
+    !clientState.notifDismissed;
 
   if (!showInstall && !showNotifications) {
     return null;
@@ -136,15 +172,15 @@ export function DashboardTopBanners({
 
   function dismissInstall() {
     localStorage.setItem(PWA_INSTALL_DISMISS_KEY, "1");
-    setInstallDismissed(true);
+    setClientState((current) => (current ? { ...current, installDismissed: true } : current));
   }
 
   function dismissNotifications() {
     localStorage.setItem(PWA_NOTIFICATIONS_DISMISS_KEY, "1");
-    setNotifDismissed(true);
+    setClientState((current) => (current ? { ...current, notifDismissed: true } : current));
   }
 
-  async function handleAndroidInstall() {
+  async function handleNativeInstall() {
     if (!installEvent) {
       setShowInstallHint(true);
       return;
@@ -156,7 +192,7 @@ export function DashboardTopBanners({
     setInstalling(false);
 
     if (choice.outcome === "accepted") {
-      setInstallDismissed(true);
+      setClientState((current) => (current ? { ...current, installDismissed: true } : current));
     }
   }
 
@@ -166,7 +202,7 @@ export function DashboardTopBanners({
       return;
     }
 
-    void handleAndroidInstall();
+    void handleNativeInstall();
   }
 
   function enableNotifications() {
@@ -180,6 +216,9 @@ export function DashboardTopBanners({
         const result = await Notification.requestPermission();
         if (result !== "granted") {
           setNotifError("Разрешите уведомления в настройках браузера.");
+          setClientState((current) =>
+            current ? { ...current, permission: result } : current,
+          );
           return;
         }
 
@@ -189,15 +228,13 @@ export function DashboardTopBanners({
           return;
         }
 
-        const existing = await registration.pushManager.getSubscription();
-        if (existing) {
-          await existing.unsubscribe();
+        let subscription = await registration.pushManager.getSubscription();
+        if (!subscription) {
+          subscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
+          });
         }
-
-        const subscription = await registration.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
-        });
 
         const payload = subscriptionToPayload(subscription);
         if (!payload) {
@@ -211,7 +248,11 @@ export function DashboardTopBanners({
           return;
         }
 
-        setNotificationsEnabled(true);
+        setClientState((current) =>
+          current
+            ? { ...current, notificationsEnabled: true, permission: "granted" }
+            : current,
+        );
       } catch {
         setNotifError("Не удалось включить уведомления.");
       }
@@ -245,7 +286,9 @@ export function DashboardTopBanners({
                 </ol>
               ) : (
                 <p className="text-xs leading-5 text-[var(--muted)]">
-                  Меню браузера → «Установить приложение» или «Добавить на главный экран».
+                  {installEvent
+                    ? "Нажмите «Установить» или используйте меню браузера."
+                    : "Меню браузера → «Установить приложение» или «Добавить на главный экран»."}
                 </p>
               )
             ) : null
@@ -258,12 +301,12 @@ export function DashboardTopBanners({
 
       {showNotifications ? (
         <BannerShell
-          actionDisabled={isPending || permission === "denied"}
+          actionDisabled={isPending || clientState.permission === "denied"}
           actionLabel={isPending ? "..." : "Включить"}
           hint={
             notifError ? (
               <p className="text-xs text-red-600">{notifError}</p>
-            ) : permission === "denied" ? (
+            ) : clientState.permission === "denied" ? (
               <p className="text-xs leading-5 text-[var(--muted)]">
                 Разрешите уведомления в настройках браузера или телефона.
               </p>
