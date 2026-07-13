@@ -51,9 +51,17 @@ export function CalendarPlansPanel({ plans, userId }: CalendarPlansPanelProps) {
     [plans],
   );
 
+  const visiblePlans = useMemo(
+    () =>
+      activePlans.filter(
+        (plan) => !plan.is_surprise || plan.created_by === userId,
+      ),
+    [activePlans, userId],
+  );
+
   const plansByDay = useMemo(() => {
     const map = new Map<string, CalendarPlanItem[]>();
-    for (const plan of activePlans) {
+    for (const plan of visiblePlans) {
       if (!plan.due_at) {
         continue;
       }
@@ -63,7 +71,7 @@ export function CalendarPlansPanel({ plans, userId }: CalendarPlansPanelProps) {
       map.set(key, list);
     }
     return map;
-  }, [activePlans]);
+  }, [visiblePlans]);
 
   const calendarCells = useMemo(() => {
     const first = startOfMonth(month);
@@ -100,17 +108,6 @@ export function CalendarPlansPanel({ plans, userId }: CalendarPlansPanelProps) {
       setShowCreate(false);
       event.currentTarget.reset();
     });
-  }
-
-  function visiblePlan(plan: CalendarPlanItem) {
-    if (!plan.is_surprise || plan.created_by === userId) {
-      return plan;
-    }
-    return {
-      ...plan,
-      title: "Сюрприз 🎁",
-      details: "Детали скрыты до даты",
-    };
   }
 
   return (
@@ -201,52 +198,49 @@ export function CalendarPlansPanel({ plans, userId }: CalendarPlansPanelProps) {
 
         <div className="mt-3 grid gap-3">
           {selectedPlans.length ? (
-            selectedPlans.map((rawPlan) => {
-              const plan = visiblePlan(rawPlan);
-              return (
-                <article className="rounded-3xl surface-panel p-4" key={rawPlan.id}>
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="font-semibold">{plan.title}</p>
-                      {plan.details ? (
-                        <p className="mt-1 text-sm leading-6 text-[var(--muted)]">{plan.details}</p>
-                      ) : null}
-                      <div className="mt-2 flex flex-wrap gap-2 text-xs">
-                        {rawPlan.is_surprise ? (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-[var(--accent-soft)] px-2 py-1 text-[var(--accent)]">
-                            <Gift aria-hidden className="size-3" />
-                            Сюрприз
-                          </span>
-                        ) : null}
-                        {rawPlan.remind_enabled ? (
-                          <span className="rounded-full surface-input px-2 py-1">Напоминание</span>
-                        ) : null}
-                      </div>
-                    </div>
-                    {rawPlan.created_by === userId ? (
-                      <div className="flex gap-2">
-                        <button
-                          className="text-xs font-semibold text-[var(--accent)]"
-                          disabled={isPending}
-                          onClick={() => startTransition(() => completePlan(rawPlan.id))}
-                          type="button"
-                        >
-                          Готово
-                        </button>
-                        <button
-                          className="text-xs text-[var(--muted)]"
-                          disabled={isPending}
-                          onClick={() => startTransition(() => deletePlan(rawPlan.id))}
-                          type="button"
-                        >
-                          Удалить
-                        </button>
-                      </div>
+            selectedPlans.map((plan) => (
+              <article className="rounded-3xl surface-panel p-4" key={plan.id}>
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="font-semibold">{plan.title}</p>
+                    {plan.details ? (
+                      <p className="mt-1 text-sm leading-6 text-[var(--muted)]">{plan.details}</p>
                     ) : null}
+                    <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                      {plan.is_surprise ? (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-[var(--accent-soft)] px-2 py-1 text-[var(--accent)]">
+                          <Gift aria-hidden className="size-3" />
+                          Сюрприз
+                        </span>
+                      ) : null}
+                      {plan.remind_enabled ? (
+                        <span className="rounded-full surface-input px-2 py-1">Напоминание</span>
+                      ) : null}
+                    </div>
                   </div>
-                </article>
-              );
-            })
+                  {plan.created_by === userId ? (
+                    <div className="flex gap-2">
+                      <button
+                        className="text-xs font-semibold text-[var(--accent)]"
+                        disabled={isPending}
+                        onClick={() => startTransition(() => completePlan(plan.id))}
+                        type="button"
+                      >
+                        Готово
+                      </button>
+                      <button
+                        className="text-xs text-[var(--muted)]"
+                        disabled={isPending}
+                        onClick={() => startTransition(() => deletePlan(plan.id))}
+                        type="button"
+                      >
+                        Удалить
+                      </button>
+                    </div>
+                  ) : null}
+                </div>
+              </article>
+            ))
           ) : (
             <p className="rounded-3xl surface-panel border-dashed px-4 py-8 text-center text-sm text-[var(--muted)]">
               На этот день пока ничего не запланировано

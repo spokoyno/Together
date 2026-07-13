@@ -25,7 +25,17 @@ const navLinks = [
   { href: "/profile", label: "Профиль", icon: UserRound },
 ] as const;
 
-const tabRoutes = ["/dashboard", "/plans", "/memories", "/profile", "/chat"] as const;
+const tabRoutes = [
+  "/dashboard",
+  "/plans",
+  "/memories",
+  "/memories/moments",
+  "/memories/movies",
+  "/memories/cooking",
+  "/memories/compliments",
+  "/profile",
+  "/chat",
+] as const;
 
 export function BottomNav({ coupleId, userId, initialUnread }: BottomNavProps) {
   const router = useRouter();
@@ -94,6 +104,9 @@ export function BottomNav({ coupleId, userId, initialUnread }: BottomNavProps) {
   }
 
   function isActive(href: string) {
+    if (href === "/memories") {
+      return activePath === href || activePath.startsWith("/memories/");
+    }
     return activePath === href;
   }
 

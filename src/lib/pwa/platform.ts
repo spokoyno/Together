@@ -39,3 +39,4 @@ export function isMobileDevice(): boolean {
 }
 
 export const PWA_INSTALL_DISMISS_KEY = "together-pwa-install-dismissed";
+export const PWA_NOTIFICATIONS_DISMISS_KEY = "together-notifications-banner-dismissed";

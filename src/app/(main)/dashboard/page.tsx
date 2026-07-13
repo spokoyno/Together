@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { NotificationsBanner } from "@/components/features/dashboard/notifications-banner";
+import { DashboardTopBanners } from "@/components/features/dashboard/dashboard-top-banners";
 import { PairWaitingPanel } from "@/components/features/pair/pair-waiting-panel";
 import { requireUser } from "@/lib/auth/session";
 import { getCoupleContextForUser } from "@/lib/couple/context.server";
@@ -15,6 +15,8 @@ import type { MoodLevel } from "@/types/domain";
 export default async function DashboardPage() {
   const { supabase, user } = await requireUser();
   const context = await getCoupleContextForUser(user.id);
+  const pushConfig = getPushServerConfig();
+  const pushStatus = await getPushStatus();
 
   if (!context) {
     redirect("/pair");
@@ -25,6 +27,10 @@ export default async function DashboardPage() {
 
     return (
       <main className="mx-auto min-h-screen max-w-md px-5 pb-28 pt-7">
+        <DashboardTopBanners
+          initialSubscriptionCount={pushStatus.subscriptionCount}
+          vapidPublicKey={pushConfig.vapidPublicKey}
+        />
         <header>
           <p className="text-sm text-[var(--muted)]">{greeting()}</p>
           <h1 className="text-2xl font-bold">Together</h1>
@@ -106,11 +112,13 @@ export default async function DashboardPage() {
   const myMoodsCount = myMoodResult.count ?? 0;
 
   const partnerMoodLevel = partnerMood?.level as MoodLevel | undefined;
-  const pushConfig = getPushServerConfig();
-  const pushStatus = await getPushStatus();
 
   return (
     <main className="mx-auto min-h-screen max-w-md px-5 pb-28 pt-7">
+      <DashboardTopBanners
+        initialSubscriptionCount={pushStatus.subscriptionCount}
+        vapidPublicKey={pushConfig.vapidPublicKey}
+      />
       <header className="flex items-center justify-between">
         <div>
           <p className="text-sm text-[var(--muted)]">{greeting()}</p>
@@ -123,11 +131,6 @@ export default async function DashboardPage() {
           ♥
         </div>
       </header>
-
-      <NotificationsBanner
-        initialSubscriptionCount={pushStatus.subscriptionCount}
-        vapidPublicKey={pushConfig.vapidPublicKey}
-      />
 
       <section className="mt-7 rounded-3xl bg-[var(--accent)] p-5 text-white">
         <p className="text-sm opacity-80">Вместе</p>

@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from "next";
 import { cookies } from "next/headers";
 import Script from "next/script";
 import { ThemeProvider } from "@/components/providers/theme-provider";
-import { PwaInstallBanner } from "@/components/pwa/pwa-install-banner";
 import { PwaRegister } from "@/components/pwa/pwa-register";
 import { getThemePreference } from "@/lib/profile/theme";
 import { isTheme, THEME_COOKIE_NAME } from "@/lib/theme/constants";
@@ -91,7 +90,6 @@ export default async function RootLayout({
       </head>
       <body>
         <ThemeProvider initialTheme={serverTheme ?? null}>
-          <PwaInstallBanner />
           {children}
           <PwaRegister />
         </ThemeProvider>
