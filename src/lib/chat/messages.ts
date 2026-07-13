@@ -138,7 +138,42 @@ export function mergeMessages(current: ChatMessage[], incoming: ChatMessage): Ch
     return current;
   }
 
-  return [...current, incoming].sort(
+  const withoutMatchedPending = incoming.senderId
+    ? current.filter((message) => {
+        if (message.sendStatus !== "sending" || message.senderId !== incoming.senderId) {
+          return true;
+        }
+
+        const bodyMatch = (message.body ?? "") === (incoming.body ?? "");
+        const imageMatch =
+          Boolean(message.imagePath && incoming.imagePath && message.imagePath === incoming.imagePath) ||
+          (!message.imagePath && !incoming.imagePath);
+
+        return !(bodyMatch && imageMatch);
+      })
+    : current;
+
+  return [...withoutMatchedPending, incoming].sort(
     (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
   );
+}
+
+export function replaceOptimisticMessage(
+  current: ChatMessage[],
+  clientId: string,
+  next: ChatMessage | { sendStatus: "failed" },
+): ChatMessage[] {
+  return current
+    .map((message) => {
+      if (message.clientId !== clientId) {
+        return message;
+      }
+
+      if ("sendStatus" in next && next.sendStatus === "failed" && !("id" in next)) {
+        return { ...message, sendStatus: "failed" as const };
+      }
+
+      return next as ChatMessage;
+    })
+    .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 }

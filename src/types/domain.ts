@@ -19,6 +19,8 @@ export type ActionResult = {
   error?: string;
 };
 
+export type ChatSendStatus = "sending" | "failed";
+
 export type ChatMessage = {
   id: string;
   coupleId: string;
@@ -28,6 +30,8 @@ export type ChatMessage = {
   imagePath: string | null;
   imageUrl: string | null;
   createdAt: string;
+  clientId?: string;
+  sendStatus?: ChatSendStatus;
 };
 
 export type MomentType = "memory" | "movie" | "cooking" | "photo";

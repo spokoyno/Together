@@ -18,7 +18,7 @@ import {
   sendMessage,
   toggleSaveMessage,
 } from "@/lib/chat/actions";
-import { mergeMessages, prependMessages } from "@/lib/chat/messages";
+import { mergeMessages, prependMessages, replaceOptimisticMessage } from "@/lib/chat/messages";
 import { formatChatDayHeader, formatMessageTime, getChatDayKey } from "@/lib/dates";
 import { compressImageFile } from "@/lib/media/compress-image.client";
 import { signMediaPath } from "@/lib/media/actions";
@@ -204,8 +204,8 @@ export function ChatPanel({
           void (async () => {
             const imageUrl = row.image_path ? await signMediaPath(row.image_path) : null;
 
-            setMessages((current) =>
-              mergeMessages(current, {
+            setMessages((current) => {
+              const incoming: ChatMessage = {
                 id: row.id,
                 coupleId: row.couple_id,
                 senderId: row.sender_id,
@@ -214,8 +214,23 @@ export function ChatPanel({
                 imagePath: row.image_path,
                 imageUrl,
                 createdAt: row.created_at,
-              }),
-            );
+              };
+
+              if (row.sender_id === userId) {
+                const pending = current.find(
+                  (message) =>
+                    message.sendStatus === "sending" &&
+                    message.senderId === userId &&
+                    (message.body ?? "") === (row.body ?? "") &&
+                    (message.imagePath ?? null) === (row.image_path ?? null),
+                );
+                if (pending?.imageUrl?.startsWith("blob:")) {
+                  URL.revokeObjectURL(pending.imageUrl);
+                }
+              }
+
+              return mergeMessages(current, incoming);
+            });
 
             if (row.sender_id !== userId) {
               void markChatRead();
@@ -266,29 +281,85 @@ export function ChatPanel({
     }
   }
 
+  function detachPendingImage() {
+    setPendingImagePath(null);
+    setPendingImagePreview(null);
+  }
+
+  async function deliverMessage(
+    clientId: string,
+    text: string,
+    imagePath: string | null,
+  ) {
+    const result = await sendMessage(text, imagePath);
+
+    if (!result.ok) {
+      setMessages((current) => replaceOptimisticMessage(current, clientId, { sendStatus: "failed" }));
+      setError(result.error);
+      return;
+    }
+
+    setMessages((current) => {
+      const optimistic = current.find((message) => message.clientId === clientId);
+      if (optimistic?.imageUrl?.startsWith("blob:")) {
+        URL.revokeObjectURL(optimistic.imageUrl);
+      }
+      return replaceOptimisticMessage(current, clientId, result.message);
+    });
+  }
+
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const text = draft.trim();
-    if ((!text && !pendingImagePath) || isPending || isUploading) {
+    if ((!text && !pendingImagePath && !pendingImagePreview) || isUploading) {
+      return;
+    }
+
+    if (!pendingImagePath && pendingImagePreview) {
+      setError("Дождитесь загрузки фото.");
       return;
     }
 
     setError("");
     const imagePath = pendingImagePath;
+    const imagePreview = pendingImagePreview;
+    const clientId = crypto.randomUUID();
+    const now = new Date().toISOString();
+
+    const optimistic: ChatMessage = {
+      id: `pending-${clientId}`,
+      clientId,
+      coupleId,
+      senderId: userId,
+      senderName: "Вы",
+      body: text || null,
+      imagePath,
+      imageUrl: imagePreview,
+      createdAt: now,
+      sendStatus: "sending",
+    };
+
+    setMessages((current) => mergeMessages(current, optimistic));
     setDraft("");
-    clearPendingImage();
+    detachPendingImage();
     stickToBottomRef.current = true;
 
-    startTransition(async () => {
-      const result = await sendMessage(text, imagePath);
-      if (!result.ok) {
-        setError(result.error);
-        setDraft(text);
-        return;
-      }
+    void deliverMessage(clientId, text, imagePath);
+  }
 
-      setMessages((current) => mergeMessages(current, result.message));
-    });
+  function handleRetry(message: ChatMessage) {
+    if (!message.clientId || message.sendStatus !== "failed") {
+      return;
+    }
+
+    setError("");
+    setMessages((current) =>
+      current.map((item) =>
+        item.clientId === message.clientId ? { ...item, sendStatus: "sending" as const } : item,
+      ),
+    );
+
+    void deliverMessage(message.clientId, message.body ?? "", message.imagePath);
   }
 
   function handlePostToMoments(messageId: string) {
@@ -383,6 +454,8 @@ export function ChatPanel({
               const isMine = message.senderId === userId;
               const isSaved = savedIds.has(message.id);
               const isNoteOpen = noteTargetId === message.id;
+              const isSending = message.sendStatus === "sending";
+              const isFailed = message.sendStatus === "failed";
 
               return (
                 <div key={message.id}>
@@ -396,7 +469,7 @@ export function ChatPanel({
                       <div
                         className={`px-3.5 py-2 shadow-sm ${
                           isMine
-                            ? "rounded-[18px] rounded-br-[6px] bg-[var(--chat-outgoing)] text-white"
+                            ? `rounded-[18px] rounded-br-[6px] bg-[var(--chat-outgoing)] text-white${isFailed ? " opacity-80" : ""}`
                             : "rounded-[18px] rounded-bl-[6px] bg-[var(--chat-incoming)] text-[var(--foreground)]"
                         }`}
                       >
@@ -423,7 +496,7 @@ export function ChatPanel({
                             className={`grid size-7 place-items-center rounded-full transition-colors ${
                               isMine ? "hover:bg-white/15" : "hover:bg-[var(--input-bg)]"
                             } ${isSaved ? "text-[var(--accent)]" : ""}`}
-                            disabled={isPending}
+                            disabled={isPending || isSending || isFailed}
                             onClick={() => handleToggleSave(message)}
                             type="button"
                           >
@@ -438,7 +511,7 @@ export function ChatPanel({
                             className={`grid size-7 place-items-center rounded-full transition-colors ${
                               isMine ? "hover:bg-white/15" : "hover:bg-[var(--input-bg)]"
                             } ${isNoteOpen ? "text-[var(--accent)]" : ""}`}
-                            disabled={isPending}
+                            disabled={isPending || isSending || isFailed}
                             onClick={() => {
                               setNoteTargetId(isNoteOpen ? null : message.id);
                               setNoteDraft("");
@@ -447,7 +520,7 @@ export function ChatPanel({
                           >
                             <StickyNote aria-hidden className="size-4" />
                           </button>
-                          {message.imagePath && isMine ? (
+                          {message.imagePath && isMine && !isSending && !isFailed ? (
                             <button
                               aria-label="Добавить в моменты"
                               className={`grid size-7 place-items-center rounded-full transition-colors ${
@@ -458,6 +531,20 @@ export function ChatPanel({
                               type="button"
                             >
                               <Sparkles aria-hidden className="size-4" />
+                            </button>
+                          ) : null}
+                          {isSending ? (
+                            <Loader2
+                              aria-label="Отправляется"
+                              className="size-3.5 animate-spin opacity-80"
+                            />
+                          ) : isFailed ? (
+                            <button
+                              className="text-[11px] font-semibold underline"
+                              onClick={() => handleRetry(message)}
+                              type="button"
+                            >
+                              Повторить
                             </button>
                           ) : null}
                           <span className="text-[11px]">{formatMessageTime(message.createdAt)}</span>
@@ -560,7 +647,7 @@ export function ChatPanel({
           />
           <textarea
             className="max-h-28 min-h-11 flex-1 resize-none rounded-[22px] bg-[var(--surface)] px-4 py-2.5 text-[15px] shadow-md transition-colors focus:border-[var(--accent)] focus:outline-none"
-            disabled={isPending || isUploading}
+            disabled={isUploading}
             maxLength={2000}
             onChange={(event) => setDraft(event.target.value)}
             onKeyDown={(event) => {
@@ -576,7 +663,7 @@ export function ChatPanel({
           <button
             aria-label="Отправить сообщение"
             className="grid size-11 shrink-0 place-items-center rounded-full bg-[var(--accent)] text-white shadow-md transition-transform active:scale-95 disabled:opacity-50"
-            disabled={isPending || isUploading || (!draft.trim() && !pendingImagePath)}
+            disabled={isUploading || (!draft.trim() && !pendingImagePath)}
             type="submit"
           >
             <Send aria-hidden className="size-5" />
