@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth/session";
 import { getCoupleContextForUser } from "@/lib/couple/context.server";
 import { buildComplimentState } from "@/lib/hub/compliment-state.server";
+import type { CatalogEntry, CatalogKind } from "@/lib/hub/catalog";
 import { signMediaPaths } from "@/lib/media/actions";
 import type {
   HubComment,
@@ -697,4 +698,127 @@ export async function loadHubHabits(ctx: HubContext) {
       created_at: row.created_at,
     })) ?? []
   );
+}
+
+export async function loadHubCatalog(ctx: HubContext, kind: CatalogKind): Promise<CatalogEntry[]> {
+  const { data: rows } = await ctx.supabase
+    .from("catalog_entries")
+    .select("id, external_id, title, poster_url, status, ratings, reviews, added_by, completed_at, created_at")
+    .eq("couple_id", ctx.coupleId)
+    .eq("kind", kind)
+    .order("created_at", { ascending: false });
+
+  const profileMap = await loadProfileMap(
+    ctx.supabase,
+    [...new Set((rows ?? []).map((row) => row.added_by))],
+  );
+
+  return (
+    rows?.map((row) => ({
+      id: row.id,
+      external_id: row.external_id,
+      title: row.title,
+      poster_url: row.poster_url,
+      status: row.status as "want" | "completed",
+      ratings: (row.ratings as Record<string, number>) ?? {},
+      reviews: (row.reviews as Record<string, string>) ?? {},
+      author_name: profileMap.get(row.added_by) ?? "Пользователь",
+      completed_at: row.completed_at,
+      created_at: row.created_at,
+    })) ?? []
+  );
+}
+
+export type HubGalleryItem = {
+  id: string;
+  media_url: string;
+  caption: string | null;
+  author_name: string;
+  created_at: string;
+  comments: Array<{
+    id: string;
+    body: string;
+    author_name: string;
+    created_at: string;
+  }>;
+};
+
+export async function loadHubGallery(ctx: HubContext): Promise<HubGalleryItem[]> {
+  const { data: rows } = await ctx.supabase
+    .from("couple_gallery")
+    .select("id, media_path, caption, created_by, created_at")
+    .eq("couple_id", ctx.coupleId)
+    .order("created_at", { ascending: false });
+
+  if (!rows?.length) {
+    return [];
+  }
+
+  const galleryIds = rows.map((row) => row.id);
+  const { data: commentRows } = await ctx.supabase
+    .from("gallery_comments")
+    .select("id, gallery_id, body, author_id, created_at")
+    .in("gallery_id", galleryIds)
+    .order("created_at", { ascending: true });
+
+  const profileMap = await loadProfileMap(ctx.supabase, [
+    ...new Set([
+      ...rows.map((row) => row.created_by),
+      ...(commentRows ?? []).map((row) => row.author_id),
+    ]),
+  ]);
+
+  const signed = await signMediaPaths(
+    ctx.supabase,
+    rows.map((row) => row.media_path).filter(Boolean),
+  );
+
+  const commentsByGallery = new Map<string, HubGalleryItem["comments"]>();
+  for (const comment of commentRows ?? []) {
+    const list = commentsByGallery.get(comment.gallery_id) ?? [];
+    list.push({
+      id: comment.id,
+      body: comment.body,
+      author_name: profileMap.get(comment.author_id) ?? "Пользователь",
+      created_at: comment.created_at,
+    });
+    commentsByGallery.set(comment.gallery_id, list);
+  }
+
+  return rows.map((row) => ({
+    id: row.id,
+    media_url: signed[row.media_path] ?? "",
+    caption: row.caption,
+    author_name: profileMap.get(row.created_by) ?? "Пользователь",
+    created_at: row.created_at,
+    comments: commentsByGallery.get(row.id) ?? [],
+  }));
+}
+
+export type MenstrualCycleData = {
+  tracked_by: string;
+  last_period_start: string | null;
+  cycle_length_days: number;
+  period_length_days: number;
+  updated_at: string;
+};
+
+export async function loadMenstrualCycle(ctx: HubContext): Promise<MenstrualCycleData | null> {
+  const { data: row } = await ctx.supabase
+    .from("menstrual_cycles")
+    .select("tracked_by, last_period_start, cycle_length_days, period_length_days, updated_at")
+    .eq("couple_id", ctx.coupleId)
+    .maybeSingle();
+
+  if (!row) {
+    return null;
+  }
+
+  return {
+    tracked_by: row.tracked_by,
+    last_period_start: row.last_period_start,
+    cycle_length_days: row.cycle_length_days,
+    period_length_days: row.period_length_days,
+    updated_at: row.updated_at,
+  };
 }

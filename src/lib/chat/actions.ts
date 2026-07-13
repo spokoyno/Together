@@ -336,3 +336,24 @@ export async function deleteChatNote(noteId: string): Promise<ActionResult> {
 
   return { ok: true };
 }
+
+export async function deleteMessage(messageId: string): Promise<ActionResult> {
+  const { supabase, user, context } = await getAuthContext();
+
+  if (!context?.isComplete) {
+    return actionError("Чат доступен после подключения партнёра.");
+  }
+
+  const { error } = await supabase
+    .from("messages")
+    .delete()
+    .eq("id", messageId)
+    .eq("couple_id", context.coupleId)
+    .eq("sender_id", user.id);
+
+  if (error) {
+    return actionError("Не удалось удалить сообщение.");
+  }
+
+  return { ok: true };
+}

@@ -199,6 +199,7 @@ export async function addGalleryPhoto(formData: FormData) {
     return actionError("Не удалось добавить в галерею.");
   }
 
+  revalidatePath("/memories/gallery");
   revalidatePath("/profile/partner");
   return { ok: true as const };
 }

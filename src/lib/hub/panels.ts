@@ -4,9 +4,13 @@ import {
   BookOpen,
   ChefHat,
   Clapperboard,
+  Droplets,
+  Gamepad2,
   Heart,
   Home,
+  Images,
   ListChecks,
+  MonitorPlay,
   Plane,
   Repeat,
   ShoppingBag,
@@ -14,12 +18,18 @@ import {
   Star,
   Timer,
   Trophy,
+  Tv,
+  Wand2,
   type LucideIcon,
 } from "lucide-react";
 
 export type DashboardPanelId =
   | "moments"
   | "movies"
+  | "games"
+  | "series"
+  | "cartoons"
+  | "anime"
   | "books"
   | "cooking"
   | "compliments"
@@ -27,6 +37,8 @@ export type DashboardPanelId =
   | "wishlist"
   | "tiers"
   | "polls"
+  | "gallery"
+  | "cycle"
   | "travel"
   | "chores"
   | "countdown"
@@ -54,6 +66,38 @@ export const DASHBOARD_PANELS: DashboardPanelConfig[] = [
     href: "/memories/movies",
     icon: Clapperboard,
     tone: "from-sky-500/20 to-sky-500/5",
+  },
+  {
+    id: "games",
+    label: "Игры",
+    description: "Проходим вместе",
+    href: "/memories/games",
+    icon: Gamepad2,
+    tone: "from-purple-500/20 to-purple-500/5",
+  },
+  {
+    id: "series",
+    label: "Сериалы",
+    description: "Смотрим вместе",
+    href: "/memories/series",
+    icon: Tv,
+    tone: "from-slate-500/20 to-slate-500/5",
+  },
+  {
+    id: "cartoons",
+    label: "Мультсериалы",
+    description: "Мультики для двоих",
+    href: "/memories/cartoons",
+    icon: MonitorPlay,
+    tone: "from-yellow-500/20 to-yellow-500/5",
+  },
+  {
+    id: "anime",
+    label: "Аниме",
+    description: "Любимое аниме",
+    href: "/memories/anime",
+    icon: Wand2,
+    tone: "from-red-500/20 to-red-500/5",
   },
   {
     id: "books",
@@ -118,6 +162,22 @@ export const DASHBOARD_PANELS: DashboardPanelConfig[] = [
     href: "/memories/moments",
     icon: Sparkles,
     tone: "from-violet-500/20 to-violet-500/5",
+  },
+  {
+    id: "gallery",
+    label: "Галерея",
+    description: "Общие фото",
+    href: "/memories/gallery",
+    icon: Images,
+    tone: "from-pink-500/20 to-pink-500/5",
+  },
+  {
+    id: "cycle",
+    label: "Месячные",
+    description: "Календарь цикла",
+    href: "/memories/cycle",
+    icon: Droplets,
+    tone: "from-rose-500/20 to-rose-500/5",
   },
   {
     id: "travel",

@@ -9,17 +9,18 @@ import {
   useState,
   useTransition,
 } from "react";
-import { ImagePlus, Loader2, Send } from "lucide-react";
+import { ImagePlus, Loader2, Send, X } from "lucide-react";
 import { MessageContextMenu } from "@/components/features/chat/message-context-menu";
 import {
   createChatNote,
+  deleteMessage,
   loadOlderMessages,
   markChatRead,
   sendMessage,
   toggleSaveMessage,
 } from "@/lib/chat/actions";
 import { mergeMessages, prependMessages, replaceOptimisticMessage } from "@/lib/chat/messages";
-import { formatChatDayHeader, formatMessageTime, getChatDayKey } from "@/lib/dates";
+import { formatChatDayHeader, getChatDayKey } from "@/lib/dates";
 import { compressImageFile } from "@/lib/media/compress-image.client";
 import { signMediaPath } from "@/lib/media/actions";
 import { uploadCoupleMediaClient } from "@/lib/media/upload.client";
@@ -63,6 +64,7 @@ export function ChatPanel({
   const [error, setError] = useState("");
   const [noteTargetId, setNoteTargetId] = useState<string | null>(null);
   const [noteDraft, setNoteDraft] = useState("");
+  const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -401,6 +403,19 @@ export function ChatPanel({
     });
   }
 
+  function handleDeleteMessage(message: ChatMessage) {
+    if (!message.id.startsWith("pending-")) {
+      startTransition(async () => {
+        const result = await deleteMessage(message.id);
+        if (!result.ok) {
+          setError(result.error ?? "Не удалось удалить.");
+          return;
+        }
+        setMessages((current) => current.filter((item) => item.id !== message.id));
+      });
+    }
+  }
+
   const renderedMessages = useMemo(
     () =>
       messages.map((message, index) => {
@@ -455,64 +470,77 @@ export function ChatPanel({
                       {formatChatDayHeader(message.createdAt)}
                     </p>
                   ) : null}
-                  <article className={`message-enter flex ${isMine ? "justify-end" : "justify-start"}`}>
-                    <div className="max-w-[88%]">
-                      <div
-                        className={`px-3.5 py-2 shadow-sm ${
-                          isMine
-                            ? `rounded-[18px] rounded-br-[6px] bg-[var(--chat-outgoing)] text-white${isFailed ? " opacity-80" : ""}`
-                            : "rounded-[18px] rounded-bl-[6px] bg-[var(--chat-incoming)] text-[var(--foreground)]"
-                        }`}
-                      >
-                        {message.imageUrl ? (
-                          // eslint-disable-next-line @next/next/no-img-element
+                  <article
+                    className={`message-enter flex items-end gap-1 ${isMine ? "justify-end" : "justify-start"}`}
+                  >
+                    {!isSending && !isFailed && !message.id.startsWith("pending-") ? (
+                      <MessageContextMenu
+                        disabled={isPending}
+                        isMine={isMine}
+                        isSaved={isSaved}
+                        message={message}
+                        onDelete={
+                          isMine ? () => handleDeleteMessage(message) : undefined
+                        }
+                        onError={setError}
+                        onOpenNote={() => {
+                          setNoteTargetId(isNoteOpen ? null : message.id);
+                          setNoteDraft("");
+                        }}
+                        onToggleSave={() => handleToggleSave(message)}
+                      />
+                    ) : null}
+
+                    <div className="max-w-[72%] min-w-0">
+                      {message.imageUrl ? (
+                        <button
+                          className="block w-full"
+                          onClick={() => setFullscreenImage(message.imageUrl)}
+                          type="button"
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
                             alt=""
-                            className="mb-1 max-h-64 w-full rounded-xl object-cover"
+                            className={`max-h-72 w-full object-cover ${
+                              message.body ? "mb-1 rounded-t-2xl" : "rounded-2xl"
+                            }`}
                             src={message.imageUrl}
                           />
-                        ) : null}
-                        {message.body ? (
+                        </button>
+                      ) : null}
+
+                      {message.body ? (
+                        <div
+                          className={`px-3 py-2 shadow-sm ${
+                            isMine
+                              ? `rounded-[18px] rounded-br-[6px] bg-[var(--chat-outgoing)] text-white${isFailed ? " opacity-80" : ""}`
+                              : "rounded-[18px] rounded-bl-[6px] bg-[var(--chat-incoming)] text-[var(--foreground)]"
+                          } ${message.imageUrl ? "rounded-t-none" : ""}`}
+                        >
                           <p className="whitespace-pre-wrap break-words text-[15px] leading-6">
                             {message.body}
                           </p>
-                        ) : null}
-                        <div
-                          className={`mt-1 flex items-center justify-end gap-1 ${
-                            isMine ? "text-white/75" : "text-[var(--muted)]"
-                          }`}
-                        >
-                          {!isSending && !isFailed ? (
-                            <MessageContextMenu
-                              disabled={isPending}
-                              isMine={isMine}
-                              isSaved={isSaved}
-                              message={message}
-                              onError={setError}
-                              onOpenNote={() => {
-                                setNoteTargetId(isNoteOpen ? null : message.id);
-                                setNoteDraft("");
-                              }}
-                              onToggleSave={() => handleToggleSave(message)}
-                            />
-                          ) : null}
-                          {isSending ? (
-                            <Loader2
-                              aria-label="Отправляется"
-                              className="size-3.5 animate-spin opacity-80"
-                            />
-                          ) : isFailed ? (
-                            <button
-                              className="text-[11px] font-semibold underline"
-                              onClick={() => handleRetry(message)}
-                              type="button"
-                            >
-                              Повторить
-                            </button>
-                          ) : null}
-                          <span className="text-[11px]">{formatMessageTime(message.createdAt)}</span>
                         </div>
-                      </div>
+                      ) : null}
+
+                      {isSending ? (
+                        <div className={`mt-1 flex ${isMine ? "justify-end" : "justify-start"}`}>
+                          <Loader2
+                            aria-label="Отправляется"
+                            className="size-4 animate-spin text-[var(--muted)]"
+                          />
+                        </div>
+                      ) : isFailed ? (
+                        <div className={`mt-1 flex ${isMine ? "justify-end" : "justify-start"}`}>
+                          <button
+                            className="text-xs font-semibold text-[var(--accent)] underline"
+                            onClick={() => handleRetry(message)}
+                            type="button"
+                          >
+                            Повторить
+                          </button>
+                        </div>
+                      ) : null}
 
                       {isNoteOpen ? (
                         <form className="mt-2 grid gap-2" onSubmit={handleCreateNote}>
@@ -636,6 +664,21 @@ export function ChatPanel({
           <p className="mt-2 alert-error rounded-xl px-3 py-2 text-sm shadow-md">{error}</p>
         ) : null}
       </form>
+
+      {fullscreenImage ? (
+        <div className="fixed inset-0 z-[100] flex flex-col bg-black">
+          <button
+            aria-label="Закрыть"
+            className="absolute right-4 top-[max(1rem,env(safe-area-inset-top))] z-10 grid size-10 place-items-center rounded-full bg-white/15 text-white"
+            onClick={() => setFullscreenImage(null)}
+            type="button"
+          >
+            <X aria-hidden className="size-6" />
+          </button>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img alt="" className="m-auto max-h-full max-w-full object-contain" src={fullscreenImage} />
+        </div>
+      ) : null}
     </div>
   );
 }

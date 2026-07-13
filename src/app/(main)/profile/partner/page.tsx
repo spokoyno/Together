@@ -4,7 +4,7 @@ import { requireUser } from "@/lib/auth/session";
 import { getCoupleContextForUser } from "@/lib/couple/context.server";
 import { daysBetween } from "@/lib/dates";
 import { signMediaPaths } from "@/lib/media/actions";
-import { loadCoupleGallery, loadPartnerFacts } from "@/lib/hub/load-data.server";
+import { loadPartnerFacts } from "@/lib/hub/load-data.server";
 import type { ProfileGender } from "@/types/domain";
 
 export default async function PartnerProfilePage() {
@@ -23,7 +23,7 @@ export default async function PartnerProfilePage() {
     partnerName: context.partner.display_name,
   };
 
-  const [nicknames, profile, partnerProfile, facts, gallery] = await Promise.all([
+  const [nicknames, myProfile, partnerProfile, facts] = await Promise.all([
     supabase
       .from("partner_nicknames")
       .select("id, nickname, created_at")
@@ -32,7 +32,7 @@ export default async function PartnerProfilePage() {
       .order("created_at", { ascending: false }),
     supabase
       .from("profiles")
-      .select("notifications_enabled")
+      .select("notifications_enabled, partner_nickname")
       .eq("id", user.id)
       .single(),
     supabase
@@ -41,7 +41,6 @@ export default async function PartnerProfilePage() {
       .eq("id", context.partner.id)
       .single(),
     loadPartnerFacts(hubCtx, context.partner.id),
-    loadCoupleGallery(hubCtx),
   ]);
 
   const signed = await signMediaPaths(
@@ -57,18 +56,16 @@ export default async function PartnerProfilePage() {
 
   return (
     <PartnerProfileScreen
-      coupleId={context.coupleId}
+      activeNickname={myProfile.data?.partner_nickname ?? null}
       daysTogether={daysTogether}
       facts={facts}
-      gallery={gallery}
       nicknames={nicknames.data ?? []}
-      notificationsEnabled={profile.data?.notifications_enabled ?? true}
+      notificationsEnabled={myProfile.data?.notifications_enabled ?? true}
       partnerAvatarUrl={partnerAvatarUrl}
       partnerGender={(partnerProfile.data?.gender as ProfileGender | null) ?? null}
       partnerId={context.partner.id}
       partnerName={context.partner.display_name}
       relationshipStartedOn={context.relationshipStartedOn}
-      userId={user.id}
     />
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { Bookmark, BookmarkCheck, ChefHat, Clapperboard, ListTodo, MoreVertical, Sparkles, StickyNote, X } from "lucide-react";
+import { Bookmark, BookmarkCheck, ChefHat, Clapperboard, ListTodo, MoreVertical, Sparkles, StickyNote, Trash2, X } from "lucide-react";
 import { useEffect, useRef, useState, useTransition } from "react";
 import {
   addMessageToCooking,
@@ -18,6 +18,7 @@ type MessageContextMenuProps = {
   onToggleSave: () => void;
   onOpenNote: () => void;
   onError: (message: string) => void;
+  onDelete?: () => void;
 };
 
 export function MessageContextMenu({
@@ -28,6 +29,7 @@ export function MessageContextMenu({
   onToggleSave,
   onOpenNote,
   onError,
+  onDelete,
 }: MessageContextMenuProps) {
   const [open, setOpen] = useState(false);
   const [planOpen, setPlanOpen] = useState(false);
@@ -106,6 +108,19 @@ export function MessageContextMenu({
         onOpenNote();
       },
     },
+    ...(isMine && onDelete
+      ? [
+          {
+            id: "delete",
+            label: "Удалить",
+            icon: Trash2,
+            onClick: () => {
+              setOpen(false);
+              onDelete();
+            },
+          } as const,
+        ]
+      : []),
   ] as const;
 
   return (

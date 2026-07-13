@@ -8,7 +8,9 @@ type PhotoSourcePickerProps = {
   accept?: string;
   cameraFacing?: "user" | "environment";
   disabled?: boolean;
+  multiple?: boolean;
   onSelect: (file: File) => void;
+  onSelectMany?: (files: File[]) => void;
   renderTrigger: (props: { open: () => void; disabled?: boolean }) => React.ReactNode;
 };
 
@@ -16,7 +18,9 @@ export function PhotoSourcePicker({
   accept = "image/jpeg,image/png,image/webp,image/gif",
   cameraFacing = "environment",
   disabled,
+  multiple,
   onSelect,
+  onSelectMany,
   renderTrigger,
 }: PhotoSourcePickerProps) {
   const [open, setOpen] = useState(false);
@@ -27,7 +31,17 @@ export function PhotoSourcePicker({
     setOpen(false);
   }
 
-  function handleChange(event: React.ChangeEvent<HTMLInputElement>) {
+  function handleChange(event: React.ChangeEvent<HTMLInputElement>, fromGallery = false) {
+    if (fromGallery && multiple && onSelectMany) {
+      const files = event.target.files ? Array.from(event.target.files) : [];
+      event.target.value = "";
+      close();
+      if (files.length) {
+        onSelectMany(files);
+      }
+      return;
+    }
+
     const file = event.target.files?.[0];
     event.target.value = "";
     close();
@@ -109,7 +123,8 @@ export function PhotoSourcePicker({
       <input
         accept="image/*"
         className="hidden"
-        onChange={handleChange}
+        multiple={multiple}
+        onChange={(event) => handleChange(event, true)}
         ref={galleryRef}
         type="file"
       />
@@ -117,7 +132,7 @@ export function PhotoSourcePicker({
         accept={accept}
         capture={cameraFacing}
         className="hidden"
-        onChange={handleChange}
+        onChange={(event) => handleChange(event)}
         ref={cameraRef}
         type="file"
       />

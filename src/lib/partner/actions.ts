@@ -31,7 +31,21 @@ export async function addPartnerNickname(formData: FormData) {
     return actionError("Не удалось сохранить прозвище.");
   }
 
+  const { error: profileError } = await supabase
+    .from("profiles")
+    .update({
+      partner_nickname: parsed.data.nickname,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", user.id);
+
+  if (profileError) {
+    return actionError("Не удалось обновить отображаемое имя.");
+  }
+
   revalidatePath("/profile/partner");
+  revalidatePath("/chat");
+  revalidatePath("/dashboard");
   return { ok: true as const };
 }
 
