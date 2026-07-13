@@ -22,6 +22,7 @@ export async function updateProfile(formData: FormData): Promise<void> {
     .from("profiles")
     .update({
       display_name: parsed.data.displayName,
+      ...(parsed.data.gender ? { gender: parsed.data.gender } : {}),
       updated_at: new Date().toISOString(),
     })
     .eq("id", user.id);

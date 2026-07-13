@@ -9,7 +9,9 @@ import { addGalleryPhoto, addPartnerFact } from "@/lib/hub/extended-actions";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { PhotoSourcePicker } from "@/components/ui/photo-source-picker";
 import { formatDateRu } from "@/lib/dates";
+import { genderLabel } from "@/lib/profile/gender";
 import { compressImageFile } from "@/lib/media/compress-image.client";
+import type { ProfileGender } from "@/types/domain";
 import { uploadCoupleMediaClient } from "@/lib/media/upload.client";
 
 type NicknameRow = {
@@ -35,6 +37,7 @@ type GalleryItem = {
 
 type PartnerProfileScreenProps = {
   partnerName: string;
+  partnerGender: ProfileGender | null;
   partnerAvatarUrl?: string | null;
   partnerId: string;
   coupleId: string;
@@ -49,6 +52,7 @@ type PartnerProfileScreenProps = {
 
 export function PartnerProfileScreen({
   partnerName,
+  partnerGender,
   partnerAvatarUrl,
   partnerId,
   coupleId,
@@ -139,6 +143,9 @@ export function PartnerProfileScreen({
       <section className="mt-6 flex flex-col items-center text-center">
         <UserAvatar imageUrl={partnerAvatarUrl} name={partnerName} size="lg" />
         <h1 className="mt-4 text-2xl font-bold">{partnerName}</h1>
+        {genderLabel(partnerGender) ? (
+          <p className="mt-1 text-sm text-[var(--muted)]">{genderLabel(partnerGender)}</p>
+        ) : null}
         {relationshipStartedOn ? (
           <p className="mt-2 text-sm text-[var(--muted)]">
             Вместе с {formatDateRu(relationshipStartedOn)}

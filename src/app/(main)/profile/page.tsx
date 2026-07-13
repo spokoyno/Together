@@ -6,6 +6,7 @@ import { signMediaPaths } from "@/lib/media/actions";
 import { loadNotifications } from "@/lib/notifications/actions";
 import { getPushStatus } from "@/lib/push/actions";
 import { getPushServerConfig } from "@/lib/push/config";
+import type { ProfileGender } from "@/types/domain";
 
 export default async function ProfilePage() {
   const { supabase, user } = await requireUser();
@@ -14,7 +15,7 @@ export default async function ProfilePage() {
   const profileIds = [user.id, context?.partner?.id].filter(Boolean) as string[];
   const { data: profiles } = await supabase
     .from("profiles")
-    .select("id, display_name, avatar_path")
+    .select("id, display_name, avatar_path, gender")
     .in("id", profileIds);
 
   const myProfile = profiles?.find((row) => row.id === user.id);
@@ -67,6 +68,7 @@ export default async function ProfilePage() {
       daysTogether={daysTogether}
       displayName={myProfile?.display_name ?? "Пользователь"}
       email={user.email ?? ""}
+      gender={(myProfile?.gender as ProfileGender | null) ?? null}
       hasCouple={Boolean(context)}
       isComplete={Boolean(context?.isComplete)}
       partnerAvatarUrl={partnerAvatarUrl}

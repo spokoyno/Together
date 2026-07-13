@@ -5,6 +5,7 @@ import { getCoupleContextForUser } from "@/lib/couple/context.server";
 import { daysBetween } from "@/lib/dates";
 import { signMediaPaths } from "@/lib/media/actions";
 import { loadCoupleGallery, loadPartnerFacts } from "@/lib/hub/load-data.server";
+import type { ProfileGender } from "@/types/domain";
 
 export default async function PartnerProfilePage() {
   const { supabase, user } = await requireUser();
@@ -36,7 +37,7 @@ export default async function PartnerProfilePage() {
       .single(),
     supabase
       .from("profiles")
-      .select("avatar_path")
+      .select("avatar_path, gender")
       .eq("id", context.partner.id)
       .single(),
     loadPartnerFacts(hubCtx, context.partner.id),
@@ -63,6 +64,7 @@ export default async function PartnerProfilePage() {
       nicknames={nicknames.data ?? []}
       notificationsEnabled={profile.data?.notifications_enabled ?? true}
       partnerAvatarUrl={partnerAvatarUrl}
+      partnerGender={(partnerProfile.data?.gender as ProfileGender | null) ?? null}
       partnerId={context.partner.id}
       partnerName={context.partner.display_name}
       relationshipStartedOn={context.relationshipStartedOn}

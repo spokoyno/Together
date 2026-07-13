@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth/session";
-import { actionError } from "@/lib/validation/forms";
+import { actionError, onboardingProfileSchema } from "@/lib/validation/forms";
 
 export type OnboardingStep = "profile" | "invite" | "distance" | "done";
 
@@ -14,23 +14,29 @@ const DISTANCE_TO_DB: Record<RelationshipDistance, "long_distance" | "nearby" | 
   together: "living_together",
 };
 
-export async function saveOnboardingProfile(displayName: string, birthday: string) {
+export async function saveOnboardingProfile(
+  displayName: string,
+  birthday: string,
+  gender: "female" | "male" | "other",
+) {
   const { supabase, user } = await requireUser();
 
-  const name = displayName.trim();
-  if (!name) {
-    return actionError("Укажите имя.");
-  }
+  const parsed = onboardingProfileSchema.safeParse({
+    displayName,
+    birthday,
+    gender,
+  });
 
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(birthday)) {
-    return actionError("Укажите корректную дату рождения.");
+  if (!parsed.success) {
+    return actionError(parsed.error.issues[0]?.message ?? "Проверьте поля.");
   }
 
   const { error } = await supabase
     .from("profiles")
     .update({
-      display_name: name,
-      birthday,
+      display_name: parsed.data.displayName,
+      birthday: parsed.data.birthday,
+      gender: parsed.data.gender,
       onboarding_step: "invite",
       updated_at: new Date().toISOString(),
     })

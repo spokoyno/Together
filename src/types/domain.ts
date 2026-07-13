@@ -1,5 +1,6 @@
 export type MoodLevel = "great" | "good" | "neutral" | "low" | "hard" | "irritated";
 export type PlanStatus = "active" | "completed" | "cancelled";
+export type ProfileGender = "female" | "male" | "other";
 
 export type ProfileSummary = {
   id: string;

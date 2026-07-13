@@ -11,13 +11,17 @@ import { PushNotificationsSetup } from "@/components/pwa/push-notifications-setu
 import { PwaInstallHelp } from "@/components/pwa/pwa-install-help";
 import { LeaveCoupleButton } from "@/components/features/pair/leave-couple-button";
 import { AvatarUpload } from "@/components/features/profile/avatar-upload";
+import { GenderSelect } from "@/components/features/profile/gender-select";
 import { UserAvatar } from "@/components/ui/user-avatar";
+import { genderLabel } from "@/lib/profile/gender";
 import { updateProfile } from "@/lib/profile/actions";
+import type { ProfileGender } from "@/types/domain";
 
 type ProfileScreenProps = {
   userId: string;
   email: string;
   displayName: string;
+  gender: ProfileGender | null;
   avatarUrl?: string | null;
   partnerAvatarUrl?: string | null;
   relationshipStartedOn: string | null;
@@ -43,6 +47,7 @@ export function ProfileScreen({
   userId,
   email,
   displayName,
+  gender,
   avatarUrl,
   partnerAvatarUrl,
   relationshipStartedOn,
@@ -58,6 +63,7 @@ export function ProfileScreen({
   const [tab, setTab] = useState<Tab>("settings");
   const [showEdit, setShowEdit] = useState(false);
   const [name, setName] = useState(displayName);
+  const [profileGender, setProfileGender] = useState<ProfileGender | "">(gender ?? "");
   const [relationshipDate, setRelationshipDate] = useState(relationshipStartedOn ?? "");
   const [isPending, startTransition] = useTransition();
 
@@ -65,6 +71,9 @@ export function ProfileScreen({
     event.preventDefault();
     const formData = new FormData();
     formData.set("displayName", name);
+    if (profileGender) {
+      formData.set("gender", profileGender);
+    }
     if (relationshipDate) {
       formData.set("relationshipStartedOn", relationshipDate);
     }
@@ -90,6 +99,9 @@ export function ProfileScreen({
         <div className="min-w-0 flex-1">
           <h1 className="truncate text-2xl font-bold">{displayName}</h1>
           <p className="truncate text-sm text-[var(--muted)]">{email}</p>
+          {genderLabel(gender) ? (
+            <p className="truncate text-sm text-[var(--muted)]">{genderLabel(gender)}</p>
+          ) : null}
         </div>
         <button
           aria-label="Редактировать профиль"
@@ -224,12 +236,23 @@ export function ProfileScreen({
           >
             <p className="text-lg font-bold">Редактировать профиль</p>
             <div className="mt-4 grid gap-3">
-              <input
-                className="rounded-2xl surface-input px-4 py-3"
-                onChange={(event) => setName(event.target.value)}
-                required
-                value={name}
-              />
+              <label className="grid gap-2">
+                <span className="text-sm font-semibold">Имя</span>
+                <input
+                  className="rounded-2xl surface-input px-4 py-3"
+                  onChange={(event) => setName(event.target.value)}
+                  required
+                  value={name}
+                />
+              </label>
+              <div className="grid gap-2">
+                <span className="text-sm font-semibold">Пол</span>
+                <GenderSelect
+                  disabled={isPending}
+                  onChange={setProfileGender}
+                  value={profileGender}
+                />
+              </div>
               {relationshipStartedOn !== null ? (
                 <input
                   className="rounded-2xl surface-input px-4 py-3"

@@ -1,7 +1,8 @@
 import { z } from "zod";
-import type { MoodLevel } from "@/types/domain";
+import type { MoodLevel, ProfileGender } from "@/types/domain";
 
 const moodLevels = ["great", "good", "neutral", "low", "hard", "irritated"] as const satisfies readonly MoodLevel[];
+const profileGenders = ["female", "male", "other"] as const satisfies readonly ProfileGender[];
 
 export const createCoupleSchema = z.object({
   relationshipStartedOn: z
@@ -53,10 +54,17 @@ export const answerSchema = z.object({
 
 export const profileSchema = z.object({
   displayName: z.string().trim().min(1).max(80),
+  gender: z.enum(profileGenders).optional(),
   relationshipStartedOn: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/)
     .optional(),
+});
+
+export const onboardingProfileSchema = z.object({
+  displayName: z.string().trim().min(1).max(80),
+  birthday: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Укажите корректную дату рождения."),
+  gender: z.enum(profileGenders, { message: "Выберите пол." }),
 });
 
 export const messageSchema = z
