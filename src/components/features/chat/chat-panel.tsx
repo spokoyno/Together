@@ -21,6 +21,7 @@ import {
 import { mergeMessages, prependMessages } from "@/lib/chat/messages";
 import { formatChatDayHeader, formatMessageTime, getChatDayKey } from "@/lib/dates";
 import { uploadCoupleImage, signMediaPath } from "@/lib/media/actions";
+import { PhotoSourcePicker } from "@/components/ui/photo-source-picker";
 import { createClient } from "@/lib/supabase/client";
 import type { ChatMessage, ChatNote } from "@/types/domain";
 
@@ -57,7 +58,6 @@ export function ChatPanel({
   const [pendingImagePath, setPendingImagePath] = useState<string | null>(null);
   const [pendingImagePreview, setPendingImagePreview] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState("");
   const [noteTargetId, setNoteTargetId] = useState<string | null>(null);
   const [noteDraft, setNoteDraft] = useState("");
@@ -234,17 +234,9 @@ export function ChatPanel({
       URL.revokeObjectURL(pendingImagePreview);
     }
     setPendingImagePreview(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
   }
 
-  async function handleImagePick(event: React.ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    if (!file) {
-      return;
-    }
-
+  async function handleImagePick(file: File) {
     setError("");
     setIsUploading(true);
 
@@ -542,22 +534,22 @@ export function ChatPanel({
         ) : null}
 
         <div className="flex items-end gap-2">
-          <input
+          <PhotoSourcePicker
             accept="image/jpeg,image/png,image/webp,image/gif"
-            className="hidden"
-            onChange={handleImagePick}
-            ref={fileInputRef}
-            type="file"
-          />
-          <button
-            aria-label="Прикрепить фото"
-            className="grid size-11 shrink-0 place-items-center rounded-full bg-[var(--surface)] text-[var(--muted)] shadow-md transition-transform active:scale-95"
             disabled={isPending || isUploading}
-            onClick={() => fileInputRef.current?.click()}
-            type="button"
-          >
-            <ImagePlus aria-hidden className="size-5" />
-          </button>
+            onSelect={(file) => void handleImagePick(file)}
+            renderTrigger={({ open, disabled }) => (
+              <button
+                aria-label="Прикрепить фото"
+                className="grid size-11 shrink-0 place-items-center rounded-full bg-[var(--surface)] text-[var(--muted)] shadow-md transition-transform active:scale-95 disabled:opacity-50"
+                disabled={disabled}
+                onClick={open}
+                type="button"
+              >
+                <ImagePlus aria-hidden className="size-5" />
+              </button>
+            )}
+          />
           <textarea
             className="max-h-28 min-h-11 flex-1 resize-none rounded-[22px] bg-[var(--surface)] px-4 py-2.5 text-[15px] shadow-md transition-colors focus:border-[var(--accent)] focus:outline-none"
             disabled={isPending || isUploading}

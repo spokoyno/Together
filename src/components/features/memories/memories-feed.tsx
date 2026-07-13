@@ -14,6 +14,7 @@ import {
 import { createMoment, deleteMemory, rateMoment } from "@/lib/memories/actions";
 import { formatDateRu } from "@/lib/dates";
 import { EmptyState } from "@/components/ui/empty-state";
+import { PhotoSourcePicker } from "@/components/ui/photo-source-picker";
 import type { MomentMeta, MomentType } from "@/types/domain";
 
 export type MemoryFeedItem = {
@@ -85,12 +86,7 @@ export function MemoriesFeed({ memories, userId, partnerId, partnerName }: Memor
     setMovieResults(payload.results ?? []);
   }
 
-  function handleFilePick(event: React.ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    if (!file) {
-      return;
-    }
-
+  function handleFilePick(file: File) {
     if (previewUrl) {
       URL.revokeObjectURL(previewUrl);
     }
@@ -363,16 +359,24 @@ export function MemoriesFeed({ memories, userId, partnerId, partnerName }: Memor
             ) : null}
 
             <div className="mt-4 grid gap-3">
-              <label className="grid gap-2">
+              <div className="grid gap-2">
                 <span className="text-sm font-semibold">Фото</span>
-                <input
-                  accept="image/*"
-                  capture="environment"
-                  className="rounded-2xl surface-input px-4 py-3 text-sm"
-                  onChange={handleFilePick}
-                  type="file"
+                <PhotoSourcePicker
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  disabled={isPending}
+                  onSelect={handleFilePick}
+                  renderTrigger={({ open, disabled }) => (
+                    <button
+                      className="rounded-2xl surface-input px-4 py-3 text-left text-sm font-semibold disabled:opacity-60"
+                      disabled={disabled}
+                      onClick={open}
+                      type="button"
+                    >
+                      {previewUrl ? "Заменить фото" : "Добавить фото"}
+                    </button>
+                  )}
                 />
-              </label>
+              </div>
 
               {previewUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element

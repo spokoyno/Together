@@ -1,7 +1,8 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { Camera, Loader2 } from "lucide-react";
+import { PhotoSourcePicker } from "@/components/ui/photo-source-picker";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { uploadAvatar } from "@/lib/profile/actions";
 
@@ -12,18 +13,12 @@ type AvatarUploadProps = {
 };
 
 export function AvatarUpload({ name, imageUrl, size = "lg" }: AvatarUploadProps) {
-  const inputRef = useRef<HTMLInputElement>(null);
   const [overrideUrl, setOverrideUrl] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
   const displayUrl = overrideUrl ?? imageUrl ?? null;
 
-  function handlePick(event: React.ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    if (!file) {
-      return;
-    }
-
+  function handlePick(file: File) {
     setError("");
     const localPreview = URL.createObjectURL(file);
     setOverrideUrl(localPreview);
@@ -53,27 +48,26 @@ export function AvatarUpload({ name, imageUrl, size = "lg" }: AvatarUploadProps)
     <div className="relative shrink-0">
       <UserAvatar imageUrl={displayUrl} name={name} size={size} />
 
-      <button
-        aria-label="Изменить аватар"
-        className={`absolute -bottom-0.5 -right-0.5 grid ${buttonSize} place-items-center rounded-full bg-[var(--accent)] text-white shadow-md transition-transform active:scale-95 disabled:opacity-60`}
-        disabled={isPending}
-        onClick={() => inputRef.current?.click()}
-        type="button"
-      >
-        {isPending ? (
-          <Loader2 aria-hidden className={`${iconSize} animate-spin`} />
-        ) : (
-          <Camera aria-hidden className={iconSize} />
-        )}
-      </button>
-
-      <input
+      <PhotoSourcePicker
         accept="image/jpeg,image/png,image/webp"
-        capture="user"
-        className="hidden"
-        onChange={handlePick}
-        ref={inputRef}
-        type="file"
+        cameraFacing="user"
+        disabled={isPending}
+        onSelect={handlePick}
+        renderTrigger={({ open, disabled }) => (
+          <button
+            aria-label="Изменить аватар"
+            className={`absolute -bottom-0.5 -right-0.5 grid ${buttonSize} place-items-center rounded-full bg-[var(--accent)] text-white shadow-md transition-transform active:scale-95 disabled:opacity-60`}
+            disabled={disabled}
+            onClick={open}
+            type="button"
+          >
+            {isPending ? (
+              <Loader2 aria-hidden className={`${iconSize} animate-spin`} />
+            ) : (
+              <Camera aria-hidden className={iconSize} />
+            )}
+          </button>
+        )}
       />
 
       {error ? <p className="absolute left-0 top-full mt-1 w-40 text-xs text-red-500">{error}</p> : null}
