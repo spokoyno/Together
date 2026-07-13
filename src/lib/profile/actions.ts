@@ -10,9 +10,6 @@ import {
   profileSchema,
 } from "@/lib/validation/forms";
 
-const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
-const ALLOWED_AVATAR_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
-
 export async function updateProfile(formData: FormData): Promise<void> {
   const { supabase, user } = await requireUser();
   const parsed = profileSchema.safeParse(parseFormData(formData));
@@ -51,24 +48,13 @@ type UploadAvatarResult =
   | { ok: true; avatarUrl: string | null }
   | { ok: false; error: string };
 
-export async function uploadAvatar(formData: FormData): Promise<UploadAvatarResult> {
+export async function saveAvatarPath(objectPath: string): Promise<UploadAvatarResult> {
   const { supabase, user } = await requireUser();
 
-  const file = formData.get("file");
-  if (!(file instanceof File) || file.size === 0) {
-    return actionError("Выберите изображение.");
+  const expectedPrefix = `avatars/${user.id}/`;
+  if (!objectPath.startsWith(expectedPrefix)) {
+    return actionError("Некорректный путь аватара.");
   }
-
-  if (file.size > MAX_AVATAR_BYTES) {
-    return actionError("Аватар слишком большой (макс. 2 МБ).");
-  }
-
-  if (!ALLOWED_AVATAR_TYPES.has(file.type)) {
-    return actionError("Поддерживаются JPEG, PNG и WebP.");
-  }
-
-  const extension = file.type.split("/")[1]?.replace("jpeg", "jpg") ?? "jpg";
-  const objectPath = `avatars/${user.id}/current.${extension}`;
 
   const { data: profile } = await supabase
     .from("profiles")
@@ -78,17 +64,6 @@ export async function uploadAvatar(formData: FormData): Promise<UploadAvatarResu
 
   if (profile?.avatar_path && profile.avatar_path !== objectPath) {
     await supabase.storage.from("couple-media").remove([profile.avatar_path]);
-  }
-
-  const { error: uploadError } = await supabase.storage
-    .from("couple-media")
-    .upload(objectPath, file, {
-      contentType: file.type,
-      upsert: true,
-    });
-
-  if (uploadError) {
-    return actionError("Не удалось загрузить аватар.");
   }
 
   const { error: updateError } = await supabase

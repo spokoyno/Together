@@ -4,40 +4,71 @@ import { useState, useTransition } from "react";
 import { Camera, Loader2 } from "lucide-react";
 import { PhotoSourcePicker } from "@/components/ui/photo-source-picker";
 import { UserAvatar } from "@/components/ui/user-avatar";
-import { uploadAvatar } from "@/lib/profile/actions";
+import { compressAvatarFile } from "@/lib/media/compress-image.client";
+import { uploadAvatarClient } from "@/lib/media/upload.client";
+import { saveAvatarPath } from "@/lib/profile/actions";
 
 type AvatarUploadProps = {
   name: string;
+  userId: string;
   imageUrl?: string | null;
   size?: "sm" | "md" | "lg";
 };
 
-export function AvatarUpload({ name, imageUrl, size = "lg" }: AvatarUploadProps) {
+export function AvatarUpload({ name, userId, imageUrl, size = "lg" }: AvatarUploadProps) {
   const [overrideUrl, setOverrideUrl] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const [isPreparing, setIsPreparing] = useState(false);
   const [isPending, startTransition] = useTransition();
   const displayUrl = overrideUrl ?? imageUrl ?? null;
+  const busy = isPending || isPreparing;
 
-  function handlePick(file: File) {
+  async function handlePick(file: File) {
     setError("");
-    const localPreview = URL.createObjectURL(file);
-    setOverrideUrl(localPreview);
+    setIsPreparing(true);
 
-    const formData = new FormData();
-    formData.set("file", file);
+    let localPreview: string | null = null;
 
-    startTransition(async () => {
-      const result = await uploadAvatar(formData);
-      if (!result.ok) {
-        setError(result.error);
-        setOverrideUrl(null);
+    try {
+      const prepared = await compressAvatarFile(file);
+      localPreview = URL.createObjectURL(prepared);
+      setOverrideUrl(localPreview);
+
+      startTransition(async () => {
+        const uploaded = await uploadAvatarClient(userId, prepared);
+        if (!uploaded.ok) {
+          setError(uploaded.error);
+          setOverrideUrl(null);
+          if (localPreview) {
+            URL.revokeObjectURL(localPreview);
+          }
+          return;
+        }
+
+        const saved = await saveAvatarPath(uploaded.path);
+        if (!saved.ok) {
+          setError(saved.error);
+          setOverrideUrl(null);
+          if (localPreview) {
+            URL.revokeObjectURL(localPreview);
+          }
+          return;
+        }
+
+        if (localPreview) {
+          URL.revokeObjectURL(localPreview);
+        }
+        setOverrideUrl(saved.avatarUrl);
+      });
+    } catch {
+      setError("Не удалось обработать фото.");
+      setOverrideUrl(null);
+      if (localPreview) {
         URL.revokeObjectURL(localPreview);
-        return;
       }
-
-      URL.revokeObjectURL(localPreview);
-      setOverrideUrl(result.avatarUrl);
-    });
+    } finally {
+      setIsPreparing(false);
+    }
   }
 
   const buttonSize =
@@ -51,8 +82,8 @@ export function AvatarUpload({ name, imageUrl, size = "lg" }: AvatarUploadProps)
       <PhotoSourcePicker
         accept="image/jpeg,image/png,image/webp"
         cameraFacing="user"
-        disabled={isPending}
-        onSelect={handlePick}
+        disabled={busy}
+        onSelect={(file) => void handlePick(file)}
         renderTrigger={({ open, disabled }) => (
           <button
             aria-label="Изменить аватар"
@@ -61,7 +92,7 @@ export function AvatarUpload({ name, imageUrl, size = "lg" }: AvatarUploadProps)
             onClick={open}
             type="button"
           >
-            {isPending ? (
+            {busy ? (
               <Loader2 aria-hidden className={`${iconSize} animate-spin`} />
             ) : (
               <Camera aria-hidden className={iconSize} />

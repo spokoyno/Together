@@ -14,6 +14,7 @@ import { UserAvatar } from "@/components/ui/user-avatar";
 import { updateProfile } from "@/lib/profile/actions";
 
 type ProfileScreenProps = {
+  userId: string;
   email: string;
   displayName: string;
   avatarUrl?: string | null;
@@ -37,6 +38,7 @@ type ProfileScreenProps = {
 type Tab = "settings" | "account";
 
 export function ProfileScreen({
+  userId,
   email,
   displayName,
   avatarUrl,
@@ -73,7 +75,7 @@ export function ProfileScreen({
   return (
     <main className="mx-auto min-h-screen max-w-md px-5 pb-32 pt-8">
       <section className="flex items-center gap-4">
-        <AvatarUpload imageUrl={avatarUrl} name={displayName} size="lg" />
+        <AvatarUpload imageUrl={avatarUrl} name={displayName} size="lg" userId={userId} />
         <div className="min-w-0 flex-1">
           <h1 className="truncate text-2xl font-bold">{displayName}</h1>
           <p className="truncate text-sm text-[var(--muted)]">{email}</p>

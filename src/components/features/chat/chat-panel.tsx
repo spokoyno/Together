@@ -20,7 +20,9 @@ import {
 } from "@/lib/chat/actions";
 import { mergeMessages, prependMessages } from "@/lib/chat/messages";
 import { formatChatDayHeader, formatMessageTime, getChatDayKey } from "@/lib/dates";
-import { uploadCoupleImage, signMediaPath } from "@/lib/media/actions";
+import { compressImageFile } from "@/lib/media/compress-image.client";
+import { signMediaPath } from "@/lib/media/actions";
+import { uploadCoupleMediaClient } from "@/lib/media/upload.client";
 import { PhotoSourcePicker } from "@/components/ui/photo-source-picker";
 import { createClient } from "@/lib/supabase/client";
 import type { ChatMessage, ChatNote } from "@/types/domain";
@@ -240,22 +242,28 @@ export function ChatPanel({
     setError("");
     setIsUploading(true);
 
-    const preview = URL.createObjectURL(file);
-    setPendingImagePreview(preview);
+    let preview: string | null = null;
 
-    const formData = new FormData();
-    formData.set("file", file);
-    const result = await uploadCoupleImage(formData);
+    try {
+      const prepared = await compressImageFile(file);
+      preview = URL.createObjectURL(prepared);
+      setPendingImagePreview(preview);
 
-    setIsUploading(false);
+      const result = await uploadCoupleMediaClient(coupleId, userId, prepared);
 
-    if (!result.ok) {
-      setError(result.error);
+      if (!result.ok) {
+        setError(result.error);
+        clearPendingImage();
+        return;
+      }
+
+      setPendingImagePath(result.path);
+    } catch {
+      setError("Не удалось обработать фото.");
       clearPendingImage();
-      return;
+    } finally {
+      setIsUploading(false);
     }
-
-    setPendingImagePath(result.path);
   }
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {

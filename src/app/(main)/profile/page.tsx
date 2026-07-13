@@ -10,31 +10,28 @@ export default async function ProfilePage() {
   const { supabase, user } = await requireUser();
   const context = await getCoupleContextForUser(user.id);
 
-  const { data: profile } = await supabase
+  const profileIds = [user.id, context?.partner?.id].filter(Boolean) as string[];
+  const { data: profiles } = await supabase
     .from("profiles")
-    .select("display_name, avatar_path")
-    .eq("id", user.id)
-    .single();
+    .select("id, display_name, avatar_path")
+    .in("id", profileIds);
 
-  let partnerAvatarPath: string | null = null;
-
-  if (context?.partner) {
-    const { data: partnerProfile } = await supabase
-      .from("profiles")
-      .select("avatar_path")
-      .eq("id", context.partner.id)
-      .single();
-
-    partnerAvatarPath = partnerProfile?.avatar_path ?? null;
-  }
+  const myProfile = profiles?.find((row) => row.id === user.id);
+  const partnerProfile = context?.partner
+    ? profiles?.find((row) => row.id === context.partner!.id)
+    : null;
 
   const signed = await signMediaPaths(
     supabase,
-    [profile?.avatar_path, partnerAvatarPath].filter((path): path is string => Boolean(path)),
+    [myProfile?.avatar_path, partnerProfile?.avatar_path].filter((path): path is string =>
+      Boolean(path),
+    ),
   );
 
-  const avatarUrl = profile?.avatar_path ? signed[profile.avatar_path] ?? null : null;
-  const partnerAvatarUrl = partnerAvatarPath ? signed[partnerAvatarPath] ?? null : null;
+  const avatarUrl = myProfile?.avatar_path ? signed[myProfile.avatar_path] ?? null : null;
+  const partnerAvatarUrl = partnerProfile?.avatar_path
+    ? signed[partnerProfile.avatar_path] ?? null
+    : null;
 
   const stats = context?.isComplete
     ? await Promise.all([
@@ -66,7 +63,7 @@ export default async function ProfilePage() {
     <ProfileScreen
       avatarUrl={avatarUrl}
       daysTogether={daysTogether}
-      displayName={profile?.display_name ?? "Пользователь"}
+      displayName={myProfile?.display_name ?? "Пользователь"}
       email={user.email ?? ""}
       hasCouple={Boolean(context)}
       isComplete={Boolean(context?.isComplete)}
@@ -91,6 +88,7 @@ export default async function ProfilePage() {
             }
           : null
       }
+      userId={user.id}
     />
   );
 }
