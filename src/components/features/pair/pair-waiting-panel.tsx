@@ -1,22 +1,12 @@
-import Link from "next/link";
 import { InviteLinkDisplay } from "@/components/features/pair/invite-link-display";
-import { InviteRegenerateButton } from "@/components/features/pair/invite-regenerate-button";
-import { LeaveCoupleButton } from "@/components/features/pair/leave-couple-button";
 import { formatDateRu } from "@/lib/dates";
 
 type PairWaitingPanelProps = {
   inviteUrl: string | null;
   relationshipStartedOn: string | null;
-  showDashboardLink?: boolean;
-  showProfileLink?: boolean;
 };
 
-export function PairWaitingPanel({
-  inviteUrl,
-  relationshipStartedOn,
-  showDashboardLink = true,
-  showProfileLink = false,
-}: PairWaitingPanelProps) {
+export function PairWaitingPanel({ inviteUrl, relationshipStartedOn }: PairWaitingPanelProps) {
   return (
     <div className="grid gap-6">
       <div>
@@ -34,38 +24,13 @@ export function PairWaitingPanel({
         </p>
       ) : null}
 
-      <div className="grid gap-3">
-        {inviteUrl ? (
-          <>
-            <InviteLinkDisplay inviteUrl={inviteUrl} />
-            <InviteRegenerateButton />
-          </>
-        ) : (
-          <InviteRegenerateButton label="Получить ссылку-приглашение" />
-        )}
-      </div>
-
-      <div className="grid gap-3">
-        {showDashboardLink ? (
-          <Link
-            className="block rounded-2xl bg-[var(--accent-soft)] px-5 py-4 text-center font-semibold text-[var(--accent)]"
-            href="/dashboard"
-          >
-            Перейти на главную
-          </Link>
-        ) : null}
-
-        {showProfileLink ? (
-          <Link
-            className="block rounded-2xl surface-panel px-5 py-4 text-center font-semibold"
-            href="/profile"
-          >
-            Профиль и настройки
-          </Link>
-        ) : null}
-
-        <LeaveCoupleButton variant="solo" />
-      </div>
+      {inviteUrl ? (
+        <InviteLinkDisplay inviteUrl={inviteUrl} />
+      ) : (
+        <p className="alert-error rounded-2xl px-4 py-3 text-sm">
+          Не удалось получить ссылку. Обновите страницу или зайдите позже.
+        </p>
+      )}
     </div>
   );
 }

@@ -4,8 +4,8 @@ import { revalidatePath } from "next/cache";
 import { getAuthContext } from "@/lib/couple/context.server";
 import { actionError, parseFormData, planSchema } from "@/lib/validation/forms";
 
-function parseRemindEnabled(formData: FormData): boolean {
-  return formData.get("remindEnabled") === "on" || formData.get("remindEnabled") === "true";
+function parseCheckbox(formData: FormData, key: string): boolean {
+  return formData.get(key) === "on" || formData.get(key) === "true";
 }
 
 export async function createPlan(formData: FormData): Promise<{ ok: boolean; error?: string }> {
@@ -17,7 +17,8 @@ export async function createPlan(formData: FormData): Promise<{ ok: boolean; err
 
   const parsed = planSchema.safeParse({
     ...parseFormData(formData),
-    remindEnabled: parseRemindEnabled(formData),
+    remindEnabled: parseCheckbox(formData, "remindEnabled"),
+    isSurprise: parseCheckbox(formData, "isSurprise"),
   });
 
   if (!parsed.success) {
@@ -32,6 +33,7 @@ export async function createPlan(formData: FormData): Promise<{ ok: boolean; err
     category: parsed.data.category,
     due_at: parsed.data.dueAt ? new Date(parsed.data.dueAt).toISOString() : null,
     remind_enabled: parsed.data.remindEnabled ?? false,
+    is_surprise: parsed.data.isSurprise ?? false,
   });
 
   if (error) {

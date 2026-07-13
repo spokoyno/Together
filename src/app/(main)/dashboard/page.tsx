@@ -1,11 +1,15 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { NotificationsBanner } from "@/components/features/dashboard/notifications-banner";
 import { PairWaitingPanel } from "@/components/features/pair/pair-waiting-panel";
 import { requireUser } from "@/lib/auth/session";
 import { getCoupleContextForUser } from "@/lib/couple/context.server";
+import { createInvitationUrl } from "@/lib/couple/invitation";
 import { daysBetween, daysUntil, formatDateTimeRu, greeting, relativeTimeRu, todayIso } from "@/lib/dates";
 import { getOrCreateDailyQuestion } from "@/lib/question/actions";
 import { MOOD_EMOJI, MOOD_LABELS } from "@/lib/mood/labels";
+import { getPushStatus } from "@/lib/push/actions";
+import { getPushServerConfig } from "@/lib/push/config";
 import type { MoodLevel } from "@/types/domain";
 
 export default async function DashboardPage() {
@@ -17,6 +21,8 @@ export default async function DashboardPage() {
   }
 
   if (!context.isComplete) {
+    const inviteUrl = await createInvitationUrl(supabase);
+
     return (
       <main className="mx-auto min-h-screen max-w-md px-5 pb-28 pt-7">
         <header>
@@ -27,17 +33,14 @@ export default async function DashboardPage() {
         <section className="mt-7 rounded-3xl surface-panel border-dashed p-5">
           <p className="text-sm font-semibold text-[var(--accent)]">Почти готово</p>
           <p className="mt-2 leading-7 text-[var(--muted)]">
-            Приложение откроется полностью, когда партнёр примет приглашение. Пока можно
-            управлять ссылкой и настройками профиля.
+            Приложение откроется полностью, когда партнёр примет приглашение.
           </p>
         </section>
 
         <div className="mt-6">
           <PairWaitingPanel
-            inviteUrl={null}
+            inviteUrl={inviteUrl}
             relationshipStartedOn={context.relationshipStartedOn}
-            showDashboardLink={false}
-            showProfileLink
           />
         </div>
       </main>
@@ -103,6 +106,8 @@ export default async function DashboardPage() {
   const myMoodsCount = myMoodResult.count ?? 0;
 
   const partnerMoodLevel = partnerMood?.level as MoodLevel | undefined;
+  const pushConfig = getPushServerConfig();
+  const pushStatus = await getPushStatus();
 
   return (
     <main className="mx-auto min-h-screen max-w-md px-5 pb-28 pt-7">
@@ -118,6 +123,11 @@ export default async function DashboardPage() {
           ♥
         </div>
       </header>
+
+      <NotificationsBanner
+        initialSubscriptionCount={pushStatus.subscriptionCount}
+        vapidPublicKey={pushConfig.vapidPublicKey}
+      />
 
       <section className="mt-7 rounded-3xl bg-[var(--accent)] p-5 text-white">
         <p className="text-sm opacity-80">Вместе</p>
@@ -175,7 +185,7 @@ export default async function DashboardPage() {
           className="rounded-3xl surface-panel p-4 shadow-sm"
           href="/memories"
         >
-          <p className="text-sm text-[var(--muted)]">Воспоминания</p>
+          <p className="text-sm text-[var(--muted)]">Лента</p>
           <p className="mt-2 text-xl font-bold">{memoriesCount} моментов</p>
           <p className="mt-2 text-xs text-[var(--muted)]">
             {latestMemory ? relativeTimeRu(latestMemory.created_at) : "добавьте первое"}

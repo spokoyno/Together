@@ -45,8 +45,6 @@ export default async function PairPage() {
           <PairWaitingPanel
             inviteUrl={inviteUrl}
             relationshipStartedOn={context.relationshipStartedOn}
-            showDashboardLink
-            showProfileLink
           />
         </div>
       )}

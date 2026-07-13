@@ -21,6 +21,7 @@ export const planSchema = z.object({
   category: z.string().trim().min(1).max(40).default("other"),
   dueAt: z.string().optional(),
   remindEnabled: z.coerce.boolean().optional(),
+  isSurprise: z.coerce.boolean().optional(),
 });
 
 export const momentTypeSchema = z.enum(["memory", "movie", "cooking", "photo"]);

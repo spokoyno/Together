@@ -21,7 +21,7 @@ type BottomNavProps = {
 const navLinks = [
   { href: "/dashboard", label: "Главная", icon: Home },
   { href: "/plans", label: "Планы", icon: ListTodo },
-  { href: "/memories", label: "Моменты", icon: Image },
+  { href: "/memories", label: "Лента", icon: Image },
   { href: "/profile", label: "Профиль", icon: UserRound },
 ] as const;
 
