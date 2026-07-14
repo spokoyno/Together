@@ -8,6 +8,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { RatingDisplay, RatingInput } from "@/components/ui/rating-stars";
 import type { HubBook } from "@/components/features/hub/types";
 import { addBookToWantList, markBookRead, saveBookReview } from "@/lib/books/actions";
+import { SharedCollectionsPanel } from "@/components/features/hub/shared-collections-panel";
 
 type BooksPanelProps = {
   books: HubBook[];
@@ -16,7 +17,7 @@ type BooksPanelProps = {
   partnerName: string;
 };
 
-type BooksTab = "want" | "read";
+type BooksTab = "want" | "read" | "community";
 
 type ReadModalState = {
   bookId: string;
@@ -170,6 +171,7 @@ export function BooksPanel({ books, userId, partnerId, partnerName }: BooksPanel
           [
             ["want", t("hubBooksWantRead")],
             ["read", t("hubBooksRead")],
+            ["community", t("sharedCollectionsTab")],
           ] as const
         ).map(([key, label]) => (
           <button
@@ -184,6 +186,10 @@ export function BooksPanel({ books, userId, partnerId, partnerName }: BooksPanel
       </div>
 
       {error ? <p className="mb-3 alert-error rounded-xl px-3 py-2 text-sm">{error}</p> : null}
+
+      {tab === "community" ? (
+        <SharedCollectionsPanel kind="book" searchPath="/api/books/search" />
+      ) : null}
 
       {tab === "want" ? (
         <section className="grid gap-4">

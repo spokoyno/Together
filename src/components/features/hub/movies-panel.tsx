@@ -14,6 +14,7 @@ import {
   markMovieWatched,
   saveMovieReview,
 } from "@/lib/hub/extended-actions";
+import { SharedCollectionsPanel } from "@/components/features/hub/shared-collections-panel";
 
 type MoviesPanelProps = {
   movies: HubMovie[];
@@ -23,7 +24,7 @@ type MoviesPanelProps = {
   partnerName: string;
 };
 
-type MoviesTab = "want" | "watched" | "collections";
+type MoviesTab = "want" | "watched" | "collections" | "community";
 
 type WatchModalState = {
   movieId: string;
@@ -206,7 +207,8 @@ export function MoviesPanel({ movies, collections, userId, partnerId, partnerNam
           [
             ["want", t("moviesWantWatch")],
             ["watched", t("moviesWatchedTab")],
-            ["collections", t("moviesCollections")],
+            ["collections", t("moviesMyCollections")],
+            ["community", t("sharedCollectionsTab")],
           ] as const
         ).map(([key, label]) => (
           <button
@@ -221,6 +223,10 @@ export function MoviesPanel({ movies, collections, userId, partnerId, partnerNam
       </div>
 
       {error ? <p className="mb-3 alert-error rounded-xl px-3 py-2 text-sm">{error}</p> : null}
+
+      {tab === "community" ? (
+        <SharedCollectionsPanel kind="movie" searchPath="/api/movies/search" />
+      ) : null}
 
       {tab === "collections" ? (
         <section className="grid gap-3">

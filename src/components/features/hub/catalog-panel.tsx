@@ -4,6 +4,7 @@ import { Plus, Search, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 import { useLanguage } from "@/components/providers/language-provider";
+import { SharedCollectionsPanel } from "@/components/features/hub/shared-collections-panel";
 import { EmptyState } from "@/components/ui/empty-state";
 import { RatingDisplay, RatingInput } from "@/components/ui/rating-stars";
 import type { CatalogPanelConfig, CatalogEntry, CatalogSearchResult } from "@/lib/hub/catalog";
@@ -17,7 +18,7 @@ type CatalogPanelProps = {
   partnerName: string;
 };
 
-type CatalogTab = "want" | "completed";
+type CatalogTab = "want" | "completed" | "community";
 
 type CompleteModalState = {
   entryId: string;
@@ -155,7 +156,7 @@ export function CatalogPanel({
     });
   }
 
-  const visible = tab === "want" ? wantItems : completedItems;
+  const visible = tab === "want" ? wantItems : tab === "completed" ? completedItems : [];
 
   return (
     <>
@@ -165,17 +166,28 @@ export function CatalogPanel({
           onClick={() => setTab("want")}
           type="button"
         >
-          {config.wantTab}
+          {t(config.i18n.wantTab)}
         </button>
         <button
           className={`shrink-0 rounded-2xl px-4 py-2 text-sm font-semibold ${tab === "completed" ? "bg-[var(--accent)] text-white" : "surface-input"}`}
           onClick={() => setTab("completed")}
           type="button"
         >
-          {config.completedTab}
+          {t(config.i18n.completedTab)}
+        </button>
+        <button
+          className={`shrink-0 rounded-2xl px-4 py-2 text-sm font-semibold ${tab === "community" ? "bg-[var(--accent)] text-white" : "surface-input"}`}
+          onClick={() => setTab("community")}
+          type="button"
+        >
+          {t("sharedCollectionsTab")}
         </button>
       </div>
 
+      {tab === "community" ? (
+        <SharedCollectionsPanel kind={config.sharedKind} searchPath={config.searchPath} />
+      ) : (
+        <>
       {error ? <p className="mb-3 alert-error rounded-xl px-3 py-2 text-sm">{error}</p> : null}
 
       <section className="grid gap-4">
@@ -200,7 +212,7 @@ export function CatalogPanel({
                       }
                       type="button"
                     >
-                      {config.completedAction}
+                      {t(config.i18n.completedAction)}
                     </button>
                   ) : (
                     <div className="mt-3 space-y-2">
@@ -250,7 +262,7 @@ export function CatalogPanel({
           ))
         ) : (
           <EmptyState
-            description={tab === "want" ? config.emptyWant : config.emptyCompleted}
+            description={tab === "want" ? t(config.i18n.emptyWant) : t(config.i18n.emptyCompleted)}
             title={t("hubEmptyShort")}
           />
         )}
@@ -275,7 +287,7 @@ export function CatalogPanel({
               autoFocus
               className="min-w-0 flex-1 bg-transparent text-base outline-none"
               onChange={(event) => void search(event.target.value)}
-              placeholder={config.searchPlaceholder}
+              placeholder={t(config.i18n.searchPlaceholder)}
               value={query}
             />
             <button
@@ -370,11 +382,13 @@ export function CatalogPanel({
               disabled={isPending}
               type="submit"
             >
-              {config.completedAction}
+              {t(config.i18n.completedAction)}
             </button>
           </form>
         </div>
       ) : null}
+        </>
+      )}
     </>
   );
 }

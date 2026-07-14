@@ -5,7 +5,7 @@ import { ChevronLeft, ChevronRight, Gift, Plus, X } from "lucide-react";
 import { useLanguage } from "@/components/providers/language-provider";
 import type { MessageKey } from "@/lib/i18n/messages";
 import { completePlan, createPlan, deletePlan } from "@/lib/plans/actions";
-import { formatDateRu } from "@/lib/dates";
+import { formatDateLocalized } from "@/lib/dates";
 import { holidaysForDay, type CoupleHoliday } from "@/lib/plans/holidays";
 
 export type CalendarPlanItem = {
@@ -57,7 +57,7 @@ export function CalendarPlansPanel({ plans, userId, holidays }: CalendarPlansPan
   const [showCreate, setShowCreate] = useState(false);
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
-  const { t } = useLanguage();
+  const { locale, t } = useLanguage();
 
   const activePlans = useMemo(
     () => plans.filter((plan) => plan.status === "active"),
@@ -205,7 +205,7 @@ export function CalendarPlansPanel({ plans, userId, holidays }: CalendarPlansPan
 
       <section className="mt-5">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold">{formatDateRu(selectedDay)}</h2>
+          <h2 className="text-lg font-bold">{formatDateLocalized(locale, selectedDay)}</h2>
           <button
             className="inline-flex items-center gap-1 rounded-2xl bg-[var(--accent)] px-3 py-2 text-sm font-semibold text-white"
             onClick={() => setShowCreate(true)}
@@ -300,7 +300,7 @@ export function CalendarPlansPanel({ plans, userId, holidays }: CalendarPlansPan
               </button>
             </div>
 
-            <p className="mb-3 text-sm text-[var(--muted)]">{formatDateRu(selectedDay)}</p>
+            <p className="mb-3 text-sm text-[var(--muted)]">{formatDateLocalized(locale, selectedDay)}</p>
 
             <div className="grid gap-3">
               <input

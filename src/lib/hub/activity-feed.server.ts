@@ -19,6 +19,11 @@ export type ActivityFeedItem = {
   media_url: string | null;
   link_path: string | null;
   happened_at: string;
+  meta?: {
+    book_author?: string | null;
+    poll_correct?: number;
+    poll_total?: number;
+  };
 };
 
 export async function loadActivityFeed(ctx: HubContext): Promise<ActivityFeedItem[]> {
@@ -105,9 +110,9 @@ export async function loadActivityFeed(ctx: HubContext): Promise<ActivityFeedIte
     items.push({
       id: `memory-${row.id}`,
       kind: "memory",
-      title: row.title ?? "Новый момент",
+      title: row.title ?? "",
       subtitle: row.body,
-      actor_name: nameMap.get(row.created_by) ?? "Партнёр",
+      actor_name: nameMap.get(row.created_by) ?? "",
       media_url: row.media_path ? signed[row.media_path] ?? null : null,
       link_path: "/memories/moments",
       happened_at: row.created_at,
@@ -119,8 +124,8 @@ export async function loadActivityFeed(ctx: HubContext): Promise<ActivityFeedIte
       id: `movie-${row.id}`,
       kind: "movie_watched",
       title: row.title,
-      subtitle: "Посмотрели фильм",
-      actor_name: nameMap.get(row.added_by) ?? "Партнёр",
+      subtitle: null,
+      actor_name: nameMap.get(row.added_by) ?? "",
       media_url: row.poster_path ? `https://image.tmdb.org/t/p/w342${row.poster_path}` : null,
       link_path: "/memories/movies",
       happened_at: row.watched_at ?? row.created_at,
@@ -132,8 +137,8 @@ export async function loadActivityFeed(ctx: HubContext): Promise<ActivityFeedIte
       id: `cooking-${row.id}`,
       kind: "cooking",
       title: row.title,
-      subtitle: "Приготовили",
-      actor_name: nameMap.get(row.created_by) ?? "Партнёр",
+      subtitle: null,
+      actor_name: nameMap.get(row.created_by) ?? "",
       media_url: row.media_path ? signed[row.media_path] ?? null : null,
       link_path: "/memories/cooking",
       happened_at: row.cooked_at ?? row.created_at,
@@ -146,8 +151,8 @@ export async function loadActivityFeed(ctx: HubContext): Promise<ActivityFeedIte
       id: `wish-${row.id}`,
       kind: "wish_fulfilled",
       title: row.title,
-      subtitle: "Желание исполнено",
-      actor_name: nameMap.get(actorId) ?? "Партнёр",
+      subtitle: null,
+      actor_name: nameMap.get(actorId) ?? "",
       media_url: row.media_path ? signed[row.media_path] ?? null : null,
       link_path: "/memories/wishlist",
       happened_at: row.fulfilled_at ?? row.created_at,
@@ -159,8 +164,8 @@ export async function loadActivityFeed(ctx: HubContext): Promise<ActivityFeedIte
       id: `tier-${row.id}`,
       kind: "tier_completed",
       title: row.tier_list_title,
-      subtitle: "Пройден тир-лист",
-      actor_name: nameMap.get(row.target_user_id) ?? "Партнёр",
+      subtitle: null,
+      actor_name: nameMap.get(row.target_user_id) ?? "",
       media_url: row.result_image_path ? signed[row.result_image_path] ?? null : null,
       link_path: "/memories/tiers",
       happened_at: row.completed_at ?? row.created_at,
@@ -172,28 +177,29 @@ export async function loadActivityFeed(ctx: HubContext): Promise<ActivityFeedIte
       id: `book-${row.id}`,
       kind: "book_read",
       title: row.title,
-      subtitle: row.author ? `Автор: ${row.author}` : "Прочитали книгу",
-      actor_name: nameMap.get(row.added_by) ?? "Партнёр",
+      subtitle: null,
+      actor_name: nameMap.get(row.added_by) ?? "",
       media_url: null,
       link_path: "/memories/books",
       happened_at: row.read_at ?? row.created_at,
+      meta: { book_author: row.author },
     });
   }
 
   for (const row of polls.data ?? []) {
-    const subtitle =
-      row.score_total != null && row.score_correct != null
-        ? `${row.score_correct}/${row.score_total} правильных`
-        : "Пройден опрос";
     items.push({
       id: `poll-${row.id}`,
       kind: "poll_completed",
       title: row.title,
-      subtitle,
-      actor_name: nameMap.get(row.target_user_id) ?? "Партнёр",
+      subtitle: null,
+      actor_name: nameMap.get(row.target_user_id) ?? "",
       media_url: null,
       link_path: "/memories/polls",
       happened_at: row.completed_at ?? row.created_at,
+      meta:
+        row.score_total != null && row.score_correct != null
+          ? { poll_correct: row.score_correct, poll_total: row.score_total }
+          : undefined,
     });
   }
 

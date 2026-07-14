@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { formatDateRu } from "@/lib/dates";
+import { formatDateLocalized } from "@/lib/dates";
 import type { ActivityFeedItem } from "@/lib/hub/activity-feed.server";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useLanguage } from "@/components/providers/language-provider";
@@ -17,12 +17,42 @@ const KIND_KEYS: Record<ActivityFeedItem["kind"], MessageKey> = {
   poll_completed: "feedKindPoll",
 };
 
+function feedSubtitle(item: ActivityFeedItem, t: (key: MessageKey, params?: Record<string, string | number>) => string) {
+  if (item.kind === "memory") {
+    return item.subtitle;
+  }
+  if (item.kind === "book_read") {
+    return item.meta?.book_author
+      ? t("feedActivityBookAuthor", { author: item.meta.book_author })
+      : t("feedActivityBook");
+  }
+  if (item.kind === "poll_completed") {
+    if (item.meta?.poll_correct != null && item.meta?.poll_total != null) {
+      return t("feedActivityPollScore", {
+        correct: item.meta.poll_correct,
+        total: item.meta.poll_total,
+      });
+    }
+    return t("feedActivityPollDone");
+  }
+
+  const subtitleKeys: Partial<Record<ActivityFeedItem["kind"], MessageKey>> = {
+    movie_watched: "feedActivityMovie",
+    cooking: "feedActivityCooking",
+    wish_fulfilled: "feedActivityWish",
+    tier_completed: "feedActivityTier",
+  };
+
+  const key = subtitleKeys[item.kind];
+  return key ? t(key) : item.subtitle;
+}
+
 type ActivityFeedProps = {
   items: ActivityFeedItem[];
 };
 
 export function ActivityFeed({ items }: ActivityFeedProps) {
-  const { t } = useLanguage();
+  const { locale, t } = useLanguage();
 
   return (
     <>
@@ -50,14 +80,18 @@ export function ActivityFeed({ items }: ActivityFeedProps) {
                       {t(KIND_KEYS[item.kind])}
                     </p>
                     <time className="shrink-0 text-xs text-[var(--muted)]">
-                      {formatDateRu(item.happened_at.slice(0, 10))}
+                      {formatDateLocalized(locale, item.happened_at.slice(0, 10))}
                     </time>
                   </div>
-                  <h2 className="mt-1 font-semibold leading-snug">{item.title}</h2>
-                  {item.subtitle ? (
-                    <p className="mt-1 line-clamp-2 text-sm text-[var(--muted)]">{item.subtitle}</p>
+                  <h2 className="mt-1 font-semibold leading-snug">
+                    {item.title || (item.kind === "memory" ? t("feedDefaultMoment") : item.title)}
+                  </h2>
+                  {feedSubtitle(item, t) ? (
+                    <p className="mt-1 line-clamp-2 text-sm text-[var(--muted)]">{feedSubtitle(item, t)}</p>
                   ) : null}
-                  <p className="mt-2 text-xs text-[var(--muted)]">{item.actor_name}</p>
+                  <p className="mt-2 text-xs text-[var(--muted)]">
+                    {item.actor_name || t("defaultPartner")}
+                  </p>
                   {item.link_path ? (
                     <Link
                       className="mt-2 inline-block text-sm font-medium text-[var(--accent)]"

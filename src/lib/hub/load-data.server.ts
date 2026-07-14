@@ -329,7 +329,7 @@ export async function loadHubWishlist(ctx: HubContext) {
 export async function loadHubTierChallenges(ctx: HubContext) {
   const { data: rows } = await ctx.supabase
     .from("tier_list_challenges")
-    .select("id, tier_list_url, tier_list_title, status, challenger_id, target_user_id, result_image_path, created_at, completed_at")
+    .select("id, tier_list_url, tier_list_title, status, challenger_id, target_user_id, result_image_path, result_url, created_at, completed_at")
     .eq("couple_id", ctx.coupleId)
     .order("created_at", { ascending: false });
 
@@ -369,6 +369,7 @@ export async function loadHubTierChallenges(ctx: HubContext) {
       challenger_name: profileMap.get(row.challenger_id) ?? "Партнёр",
       target_user_id: row.target_user_id,
       result_image_url: row.result_image_path ? signed[row.result_image_path] ?? null : null,
+      result_url: row.result_url,
       created_at: row.completed_at ?? row.created_at,
       comments:
         commentsByChallenge.get(row.id)?.map((comment) => ({

@@ -112,20 +112,24 @@ export function formatMessageTime(value: string): string {
 }
 
 export function formatChatDayHeader(value: string): string {
+  return formatChatDayHeaderLocalized("ru-RU", value);
+}
+
+export function formatChatDayHeaderLocalized(locale: string, value: string): string {
   const date = new Date(value);
   const now = new Date();
 
   if (date.toDateString() === now.toDateString()) {
-    return "Сегодня";
+    return new Intl.RelativeTimeFormat(locale, { numeric: "auto" }).format(0, "day");
   }
 
   const yesterday = new Date(now);
   yesterday.setDate(yesterday.getDate() - 1);
   if (date.toDateString() === yesterday.toDateString()) {
-    return "Вчера";
+    return new Intl.RelativeTimeFormat(locale, { numeric: "auto" }).format(-1, "day");
   }
 
-  return new Intl.DateTimeFormat("ru-RU", {
+  return new Intl.DateTimeFormat(locale, {
     day: "numeric",
     month: "long",
     year: date.getFullYear() === now.getFullYear() ? undefined : "numeric",

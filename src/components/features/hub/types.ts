@@ -76,6 +76,7 @@ export type HubTierChallenge = {
   challenger_name: string;
   target_user_id: string;
   result_image_url: string | null;
+  result_url: string | null;
   created_at: string;
   comments: HubTierComment[];
 };

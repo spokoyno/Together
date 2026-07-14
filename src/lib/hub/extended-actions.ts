@@ -204,15 +204,31 @@ export async function addGalleryPhoto(formData: FormData) {
   return { ok: true as const };
 }
 
-export async function sendTierChallenge(targetUserId: string, url: string, title: string) {
+export async function sendTierChallenge(targetUserId: string, url: string) {
   const { supabase, user, context } = await getAuthContext();
   if (!context?.isComplete) {
     return actionError("Пара не подключена.");
   }
 
-  if (!url.trim() || !title.trim()) {
-    return actionError("Укажите ссылку и название.");
+  const trimmedUrl = url.trim();
+  if (!trimmedUrl) {
+    return actionError("Укажите ссылку на тир-лист.");
   }
+
+  let parsedUrl: URL;
+  try {
+    parsedUrl = new URL(trimmedUrl);
+  } catch {
+    return actionError("Некорректная ссылка.");
+  }
+
+  const host = parsedUrl.hostname.toLowerCase();
+  if (host !== "tiermaker.com" && !host.endsWith(".tiermaker.com")) {
+    return actionError("Ссылка должна вести на tiermaker.com.");
+  }
+
+  const { tierTitleFromUrl } = await import("@/lib/hub/tier-utils");
+  const title = tierTitleFromUrl(trimmedUrl);
 
   const { data: challenge, error } = await supabase
     .from("tier_list_challenges")
@@ -220,8 +236,8 @@ export async function sendTierChallenge(targetUserId: string, url: string, title
       couple_id: context.coupleId,
       challenger_id: user.id,
       target_user_id: targetUserId,
-      tier_list_url: url.trim(),
-      tier_list_title: title.trim(),
+      tier_list_url: trimmedUrl,
+      tier_list_title: title,
     })
     .select("id")
     .single();
@@ -236,7 +252,7 @@ export async function sendTierChallenge(targetUserId: string, url: string, title
     userId: targetUserId,
     type: "tier_challenge",
     title: "Вызов на тир-лист",
-    body: title.trim(),
+    body: title,
     linkPath: "/memories/tiers",
     referenceId: challenge.id,
   });
@@ -253,20 +269,34 @@ export async function completeTierChallenge(challengeId: string, formData: FormD
   }
 
   const mediaPath = formData.get("mediaPath");
-  if (typeof mediaPath !== "string" || !mediaPath.trim()) {
-    return actionError("Прикрепите скриншот тир-листа.");
+  const resultUrl = formData.get("resultUrl");
+  const hasMedia = typeof mediaPath === "string" && mediaPath.trim();
+  const hasUrl = typeof resultUrl === "string" && resultUrl.trim();
+
+  if (!hasMedia && !hasUrl) {
+    return actionError("Прикрепите скриншот или ссылку на результат.");
+  }
+
+  if (hasUrl) {
+    try {
+      new URL(resultUrl.trim());
+    } catch {
+      return actionError("Некорректная ссылка на результат.");
+    }
   }
 
   const { error } = await supabase
     .from("tier_list_challenges")
     .update({
       status: "completed",
-      result_image_path: mediaPath.trim(),
+      result_image_path: hasMedia ? mediaPath.trim() : null,
+      result_url: hasUrl ? resultUrl.trim() : null,
       completed_at: new Date().toISOString(),
     })
     .eq("id", challengeId)
     .eq("target_user_id", user.id)
-    .eq("couple_id", context.coupleId);
+    .eq("couple_id", context.coupleId)
+    .eq("status", "pending");
 
   if (error) {
     return actionError("Не удалось сохранить результат.");

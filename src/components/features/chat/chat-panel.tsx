@@ -27,7 +27,7 @@ import {
   updateMessageLike,
 } from "@/lib/chat/messages";
 import { useChatTyping } from "@/lib/chat/typing.client";
-import { formatChatDayHeader, getChatDayKey } from "@/lib/dates";
+import { formatChatDayHeaderLocalized, getChatDayKey } from "@/lib/dates";
 import { compressImageFile } from "@/lib/media/compress-image.client";
 import { signMediaPath } from "@/lib/media/actions";
 import { uploadCoupleMediaClient } from "@/lib/media/upload.client";
@@ -74,7 +74,7 @@ export function ChatPanel({
   const [saveNoteDraft, setSaveNoteDraft] = useState("");
   const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
-  const { t } = useLanguage();
+  const { locale, t } = useLanguage();
   const { partnerTyping, broadcastTyping } = useChatTyping(coupleId, userId);
 
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -512,7 +512,7 @@ export function ChatPanel({
               <div key={message.id}>
                 {showDay ? (
                   <p className="my-4 text-center text-xs font-medium text-[var(--muted)]">
-                    {formatChatDayHeader(message.createdAt)}
+                    {formatChatDayHeaderLocalized(locale, message.createdAt)}
                   </p>
                 ) : null}
                 <ChatMessageRow
