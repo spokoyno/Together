@@ -121,3 +121,24 @@ export async function completeChore(choreId: string) {
   revalidatePath("/memories/chores");
   return { ok: true as const };
 }
+
+export async function deleteChore(choreId: string) {
+  const { supabase, context } = await getAuthContext();
+  if (!context?.isComplete) {
+    return actionError("Пара не подключена.");
+  }
+
+  const { error } = await supabase
+    .from("household_chores")
+    .delete()
+    .eq("id", choreId)
+    .eq("couple_id", context.coupleId);
+
+  if (error) {
+    return actionError("Не удалось удалить дело.");
+  }
+
+  revalidatePath("/dashboard");
+  revalidatePath("/memories/chores");
+  return { ok: true as const };
+}

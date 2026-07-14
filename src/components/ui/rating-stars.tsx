@@ -1,6 +1,5 @@
 "use client";
 
-import { Star } from "lucide-react";
 import { useLanguage } from "@/components/providers/language-provider";
 
 type RatingInputProps = {
@@ -14,27 +13,26 @@ export function RatingInput({ value, onChange, disabled }: RatingInputProps) {
 
   return (
     <div className="w-full min-w-0">
-      <div className="grid grid-cols-5 gap-1 sm:grid-cols-10">
+      <div className="flex flex-wrap gap-1.5">
         {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((rating) => (
           <button
             aria-label={`${t("ratingLabel")} ${rating}`}
-            className="grid min-h-10 min-w-0 place-items-center rounded-xl transition-transform active:scale-95 disabled:opacity-50"
+            aria-pressed={rating === value}
+            className={`grid size-9 place-items-center rounded-xl text-sm font-bold tabular-nums transition-transform active:scale-95 disabled:opacity-50 ${
+              rating === value
+                ? "bg-[var(--accent)] text-white"
+                : "surface-input text-[var(--foreground)]"
+            }`}
             disabled={disabled}
             key={rating}
             onClick={() => onChange(rating)}
             type="button"
           >
-            <Star
-              aria-hidden
-              className={`size-5 sm:size-6 ${
-                rating <= value ? "fill-[var(--accent)] text-[var(--accent)]" : "text-[var(--muted)]"
-              }`}
-              strokeWidth={1.8}
-            />
+            {rating}
           </button>
         ))}
       </div>
-      <p className="mt-2 text-center text-sm font-bold tabular-nums">
+      <p className="mt-2 text-sm font-semibold tabular-nums text-[var(--muted)]">
         {value}/10
       </p>
     </div>
@@ -59,12 +57,9 @@ export function RatingDisplay({ value, label }: RatingDisplayProps) {
   }
 
   return (
-    <p className="inline-flex items-center gap-1 text-sm">
-      {label ? <span className="text-[var(--muted)]">{label}:</span> : null}
-      <span className="inline-flex items-center gap-0.5 font-semibold">
-        {value}/10
-        <Star aria-hidden className="size-4 fill-[var(--accent)] text-[var(--accent)]" />
-      </span>
+    <p className="text-sm">
+      {label ? <span className="text-[var(--muted)]">{label}: </span> : null}
+      <span className="font-semibold tabular-nums">{value}/10</span>
     </p>
   );
 }

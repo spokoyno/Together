@@ -241,6 +241,26 @@ export async function updateCookingLog(logId: string, body: string) {
   return { ok: true as const };
 }
 
+export async function deleteCookingDish(dishId: string) {
+  const { supabase, context } = await getAuthContext();
+  if (!context?.isComplete) {
+    return actionError("Пара не подключена.");
+  }
+
+  const { error } = await supabase
+    .from("cooking_dishes")
+    .delete()
+    .eq("id", dishId)
+    .eq("couple_id", context.coupleId);
+
+  if (error) {
+    return actionError("Не удалось удалить блюдо.");
+  }
+
+  revalidatePath("/memories");
+  return { ok: true as const };
+}
+
 export async function addCompliment(body: string) {
   const { supabase, user, context } = await getAuthContext();
   if (!context?.isComplete || !context.partner) {

@@ -6,10 +6,12 @@ import { useMemo, useState, useTransition } from "react";
 import { useLanguage } from "@/components/providers/language-provider";
 import { SharedCollectionsPanel } from "@/components/features/hub/shared-collections-panel";
 import { EmptyState } from "@/components/ui/empty-state";
+import { ConfirmDeleteButton } from "@/components/ui/confirm-delete-button";
+import { TabGrid } from "@/components/ui/tab-grid";
 import { RatingDisplay, RatingInput } from "@/components/ui/rating-stars";
 import type { CatalogPanelConfig, CatalogEntry, CatalogSearchResult } from "@/lib/hub/catalog";
 import { ModalSheet } from "@/components/ui/modal-sheet";
-import { addCatalogEntry, markCatalogCompleted, saveCatalogReview, updateCatalogRating } from "@/lib/hub/catalog-actions";
+import { addCatalogEntry, deleteCatalogEntry, markCatalogCompleted, saveCatalogReview, updateCatalogRating } from "@/lib/hub/catalog-actions";
 
 type CatalogPanelProps = {
   config: CatalogPanelConfig;
@@ -167,36 +169,33 @@ export function CatalogPanel({
     });
   }
 
+  function removeEntry(entryId: string) {
+    startTransition(async () => {
+      const result = await deleteCatalogEntry(entryId, config.kind);
+      if (!result.ok) {
+        setError(result.error ?? t("commonErrorGeneric"));
+        return;
+      }
+      router.refresh();
+    });
+  }
+
   const visible = tab === "want" ? wantItems : tab === "completed" ? completedItems : [];
 
   return (
     <>
-      <div className="mb-4 flex gap-2 overflow-x-auto">
-        <button
-          className={`shrink-0 rounded-2xl px-4 py-2 text-sm font-semibold ${tab === "want" ? "bg-[var(--accent)] text-white" : "surface-input"}`}
-          onClick={() => setTab("want")}
-          type="button"
-        >
-          {t(config.i18n.wantTab)}
-        </button>
-        <button
-          className={`shrink-0 rounded-2xl px-4 py-2 text-sm font-semibold ${tab === "completed" ? "bg-[var(--accent)] text-white" : "surface-input"}`}
-          onClick={() => setTab("completed")}
-          type="button"
-        >
-          {t(config.i18n.completedTab)}
-        </button>
-        <button
-          className={`shrink-0 rounded-2xl px-4 py-2 text-sm font-semibold ${tab === "community" ? "bg-[var(--accent)] text-white" : "surface-input"}`}
-          onClick={() => setTab("community")}
-          type="button"
-        >
-          {t("sharedCollectionsTab")}
-        </button>
-      </div>
+      <TabGrid
+        onChange={setTab}
+        tabs={[
+          { id: "want", label: t(config.i18n.wantTab) },
+          { id: "completed", label: t(config.i18n.completedTab) },
+          { id: "community", label: t("sharedCollectionsTab") },
+        ]}
+        value={tab}
+      />
 
       {tab === "community" ? (
-        <SharedCollectionsPanel kind={config.sharedKind} searchPath={config.searchPath} />
+        <SharedCollectionsPanel embedded kind={config.sharedKind} searchPath={config.searchPath} />
       ) : (
         <>
       {error ? <p className="mb-3 alert-error rounded-xl px-3 py-2 text-sm">{error}</p> : null}
@@ -208,7 +207,10 @@ export function CatalogPanel({
               <div className="flex gap-4 p-4">
                 <Poster emoji={emoji} url={entry.poster_url} />
                 <div className="min-w-0 flex-1">
-                  <h2 className="font-bold leading-snug">{entry.title}</h2>
+                  <div className="flex items-start justify-between gap-2">
+                    <h2 className="font-bold leading-snug">{entry.title}</h2>
+                    <ConfirmDeleteButton disabled={isPending} onConfirm={() => removeEntry(entry.id)} />
+                  </div>
                   {tab === "want" ? (
                     <button
                       className="mt-3 rounded-xl bg-[var(--accent)] px-3 py-2.5 text-xs font-semibold text-white disabled:opacity-60"

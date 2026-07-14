@@ -4,11 +4,13 @@ import { Gift, Plus, Repeat } from "lucide-react";
 import { useMemo, useState, useTransition } from "react";
 import { useLanguage } from "@/components/providers/language-provider";
 import { EmptyState } from "@/components/ui/empty-state";
+import { ConfirmDeleteButton } from "@/components/ui/confirm-delete-button";
 import { ModalSheet } from "@/components/ui/modal-sheet";
 import type { HubHabit } from "@/components/features/hub/types";
 import {
   addCoupleHabit,
   completeCoupleHabit,
+  deleteCoupleHabit,
   setHabitMotivation,
 } from "@/lib/hub/lifestyle-actions";
 import { formatDateLocalized } from "@/lib/dates";
@@ -97,7 +99,17 @@ export function HabitsPanel({ habits }: HabitsPanelProps) {
                   <Repeat aria-hidden className="size-5" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="font-bold leading-snug">{habit.title}</p>
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="font-bold leading-snug">{habit.title}</p>
+                    <ConfirmDeleteButton
+                      disabled={isPending}
+                      onConfirm={() =>
+                        startTransition(async () => {
+                          await deleteCoupleHabit(habit.id);
+                        })
+                      }
+                    />
+                  </div>
                   {habit.description ? (
                     <p className="mt-1 text-sm text-[var(--muted)]">{habit.description}</p>
                   ) : null}

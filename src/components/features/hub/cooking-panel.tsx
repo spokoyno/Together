@@ -5,10 +5,11 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 import { useLanguage } from "@/components/providers/language-provider";
 import { EmptyState } from "@/components/ui/empty-state";
+import { ConfirmDeleteButton } from "@/components/ui/confirm-delete-button";
 import { ModalSheet } from "@/components/ui/modal-sheet";
 import { PhotoSourcePicker } from "@/components/ui/photo-source-picker";
 import type { HubCookingDish } from "@/components/features/hub/types";
-import { addCookingDish, addCookingLog, markDishCooked, updateCookingLog } from "@/lib/hub/actions";
+import { addCookingDish, addCookingLog, deleteCookingDish, markDishCooked, updateCookingLog } from "@/lib/hub/actions";
 import { formatDateLocalized } from "@/lib/dates";
 import { compressImageFile } from "@/lib/media/compress-image.client";
 import { uploadCoupleMediaClient } from "@/lib/media/upload.client";
@@ -263,7 +264,7 @@ export function CookingPanel({ dishes, userId, coupleId }: CookingPanelProps) {
               ) : null}
               <div className="p-4">
                 <div className="flex items-start justify-between gap-3">
-                  <div>
+                  <div className="min-w-0 flex-1">
                     <h2 className="text-lg font-bold">{dish.title}</h2>
                     {dish.recipe ? (
                       <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-[var(--muted)]">
@@ -278,6 +279,20 @@ export function CookingPanel({ dishes, userId, coupleId }: CookingPanelProps) {
                         : t("hubAddedBy", { name: dish.author_name })}
                     </p>
                   </div>
+                  <div className="flex shrink-0 flex-col items-end gap-2">
+                    <ConfirmDeleteButton
+                      disabled={isPending}
+                      onConfirm={() =>
+                        startTransition(async () => {
+                          const result = await deleteCookingDish(dish.id);
+                          if (!result.ok) {
+                            setError(result.error ?? t("commonErrorGeneric"));
+                          } else {
+                            router.refresh();
+                          }
+                        })
+                      }
+                    />
                   {dish.status === "planned" ? (
                     <button
                       className="inline-flex items-center gap-1 rounded-2xl bg-[var(--accent-soft)] px-3 py-2 text-sm font-semibold text-[var(--accent)]"
@@ -296,6 +311,7 @@ export function CookingPanel({ dishes, userId, coupleId }: CookingPanelProps) {
                       {t("hubCookingComment")}
                     </button>
                   )}
+                  </div>
                 </div>
 
                 {dish.logs.length ? (

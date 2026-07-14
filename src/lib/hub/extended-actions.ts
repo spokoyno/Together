@@ -554,3 +554,44 @@ export async function createMovieCollection(title: string, movieEntryIds: string
   revalidatePath("/memories/movies");
   return { ok: true as const };
 }
+
+export async function deleteMovieEntry(movieId: string) {
+  const { supabase, context } = await getAuthContext();
+  if (!context?.isComplete) {
+    return actionError("Пара не подключена.");
+  }
+
+  const { error } = await supabase
+    .from("movie_entries")
+    .delete()
+    .eq("id", movieId)
+    .eq("couple_id", context.coupleId);
+
+  if (error) {
+    return actionError("Не удалось удалить фильм.");
+  }
+
+  revalidatePath("/memories/movies");
+  revalidatePath("/memories");
+  return { ok: true as const };
+}
+
+export async function deleteWishlistItem(itemId: string) {
+  const { supabase, context } = await getAuthContext();
+  if (!context?.isComplete) {
+    return actionError("Пара не подключена.");
+  }
+
+  const { error } = await supabase
+    .from("wishlist_items")
+    .delete()
+    .eq("id", itemId)
+    .eq("couple_id", context.coupleId);
+
+  if (error) {
+    return actionError("Не удалось удалить желание.");
+  }
+
+  revalidatePath("/memories/wishlist");
+  return { ok: true as const };
+}

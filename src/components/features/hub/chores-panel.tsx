@@ -4,9 +4,10 @@ import { Plus } from "lucide-react";
 import { useMemo, useState, useTransition } from "react";
 import { useLanguage } from "@/components/providers/language-provider";
 import { EmptyState } from "@/components/ui/empty-state";
+import { ConfirmDeleteButton } from "@/components/ui/confirm-delete-button";
 import { ModalSheet } from "@/components/ui/modal-sheet";
 import type { HubChore } from "@/components/features/hub/types";
-import { addChore, completeChore } from "@/lib/hub/lifestyle-actions";
+import { addChore, completeChore, deleteChoreItem } from "@/lib/hub/lifestyle-actions";
 import { formatDateLocalized } from "@/lib/dates";
 
 type ChoreMember = {
@@ -84,7 +85,17 @@ export function ChoresPanel({ chores, members }: ChoresPanelProps) {
         {visible.length ? (
           visible.map((chore) => (
             <article className="rounded-3xl surface-panel p-4" key={chore.id}>
-              <p className="font-bold">{chore.title}</p>
+              <div className="flex items-start justify-between gap-2">
+                <p className="font-bold">{chore.title}</p>
+                <ConfirmDeleteButton
+                  disabled={isPending}
+                  onConfirm={() =>
+                    startTransition(async () => {
+                      await deleteChoreItem(chore.id);
+                    })
+                  }
+                />
+              </div>
               <p className="mt-2 text-xs text-[var(--muted)]">
                 {chore.status === "done" && chore.completed_by_name
                   ? t("hubCompletedBy", {

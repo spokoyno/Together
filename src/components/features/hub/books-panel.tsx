@@ -5,9 +5,11 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 import { useLanguage } from "@/components/providers/language-provider";
 import { EmptyState } from "@/components/ui/empty-state";
+import { ConfirmDeleteButton } from "@/components/ui/confirm-delete-button";
+import { TabGrid } from "@/components/ui/tab-grid";
 import { RatingDisplay, RatingInput } from "@/components/ui/rating-stars";
 import type { HubBook } from "@/components/features/hub/types";
-import { addBookToWantList, markBookRead, saveBookReview, updateBookRating } from "@/lib/books/actions";
+import { addBookToWantList, deleteBookEntry, markBookRead, saveBookReview, updateBookRating } from "@/lib/books/actions";
 import { SharedCollectionsPanel } from "@/components/features/hub/shared-collections-panel";
 import { ModalSheet } from "@/components/ui/modal-sheet";
 
@@ -174,34 +176,34 @@ export function BooksPanel({ books, userId, partnerId, partnerName }: BooksPanel
     });
   }
 
+  function removeBook(bookId: string) {
+    startTransition(async () => {
+      const result = await deleteBookEntry(bookId);
+      if (!result.ok) {
+        setError(result.error ?? t("commonErrorGeneric"));
+        return;
+      }
+      router.refresh();
+    });
+  }
+
   return (
     <>
-      <div className="mb-4 flex gap-2 overflow-x-auto">
-        {(
-          [
-            ["want", t("hubBooksWantRead")],
-            ["read", t("hubBooksRead")],
-            ["community", t("sharedCollectionsTab")],
-          ] as const
-        ).map(([key, label]) => (
-          <button
-            className={`shrink-0 rounded-2xl px-4 py-2 text-sm font-semibold ${tab === key ? "bg-[var(--accent)] text-white" : "surface-input"}`}
-            key={key}
-            onClick={() => setTab(key)}
-            type="button"
-          >
-            {label}
-          </button>
-        ))}
-      </div>
+      <TabGrid
+        onChange={setTab}
+        tabs={[
+          { id: "want", label: t("hubBooksWantRead") },
+          { id: "read", label: t("hubBooksRead") },
+          { id: "community", label: t("sharedCollectionsTab") },
+        ]}
+        value={tab}
+      />
 
       {error ? <p className="mb-3 alert-error rounded-xl px-3 py-2 text-sm">{error}</p> : null}
 
       {tab === "community" ? (
-        <SharedCollectionsPanel kind="book" searchPath="/api/books/search" />
-      ) : null}
-
-      {tab === "want" ? (
+        <SharedCollectionsPanel embedded kind="book" searchPath="/api/books/search" />
+      ) : tab === "want" ? (
         <section className="grid gap-4">
           {wantBooks.length ? (
             wantBooks.map((book) => (
@@ -209,7 +211,10 @@ export function BooksPanel({ books, userId, partnerId, partnerName }: BooksPanel
                 <div className="flex gap-4 p-4">
                   <BookCover />
                   <div className="min-w-0 flex-1">
-                    <h2 className="font-bold leading-snug">{book.title}</h2>
+                    <div className="flex items-start justify-between gap-2">
+                      <h2 className="font-bold leading-snug">{book.title}</h2>
+                      <ConfirmDeleteButton disabled={isPending} onConfirm={() => removeBook(book.id)} />
+                    </div>
                     {book.author ? (
                       <p className="mt-1 text-sm text-[var(--muted)]">{book.author}</p>
                     ) : null}
@@ -248,7 +253,10 @@ export function BooksPanel({ books, userId, partnerId, partnerName }: BooksPanel
                   <div className="flex gap-4 p-4">
                     <BookCover />
                     <div className="min-w-0 flex-1">
-                      <h2 className="font-bold leading-snug">{book.title}</h2>
+                      <div className="flex items-start justify-between gap-2">
+                        <h2 className="font-bold leading-snug">{book.title}</h2>
+                        <ConfirmDeleteButton disabled={isPending} onConfirm={() => removeBook(book.id)} />
+                      </div>
                       {book.author ? (
                         <p className="mt-1 text-sm text-[var(--muted)]">{book.author}</p>
                       ) : null}

@@ -92,3 +92,24 @@ export async function completeHabit(habitId: string) {
   revalidatePath("/dashboard");
   return { ok: true as const };
 }
+
+export async function deleteHabit(habitId: string) {
+  const { supabase, context } = await getAuthContext();
+  if (!context?.isComplete) {
+    return actionError("Пара не подключена.");
+  }
+
+  const { error } = await supabase
+    .from("habits")
+    .delete()
+    .eq("id", habitId)
+    .eq("couple_id", context.coupleId);
+
+  if (error) {
+    return actionError("Не удалось удалить привычку.");
+  }
+
+  revalidatePath("/dashboard");
+  revalidatePath("/memories/habits");
+  return { ok: true as const };
+}

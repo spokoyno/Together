@@ -72,3 +72,25 @@ export async function completeTravel(travelId: string) {
   revalidatePath("/plans");
   return { ok: true as const };
 }
+
+export async function deleteTravel(travelId: string) {
+  const { supabase, context } = await getAuthContext();
+  if (!context?.isComplete) {
+    return actionError("Пара не подключена.");
+  }
+
+  const { error } = await supabase
+    .from("travel_plans")
+    .delete()
+    .eq("id", travelId)
+    .eq("couple_id", context.coupleId);
+
+  if (error) {
+    return actionError("Не удалось удалить поездку.");
+  }
+
+  revalidatePath("/dashboard");
+  revalidatePath("/memories/travel");
+  revalidatePath("/plans");
+  return { ok: true as const };
+}

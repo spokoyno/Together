@@ -4,6 +4,7 @@ import { Heart, Plus, Search, X } from "lucide-react";
 import { useEffect, useState, useTransition } from "react";
 import { useLanguage } from "@/components/providers/language-provider";
 import { EmptyState } from "@/components/ui/empty-state";
+import { TabGrid } from "@/components/ui/tab-grid";
 import { ModalSheet } from "@/components/ui/modal-sheet";
 import {
   createSharedCollection,
@@ -19,6 +20,7 @@ import { formatDateLocalized } from "@/lib/dates";
 type SharedCollectionsPanelProps = {
   kind: SharedCollectionKind;
   searchPath: string;
+  embedded?: boolean;
 };
 
 type DraftItem = {
@@ -57,7 +59,7 @@ const KIND_EMOJI: Record<SharedCollectionKind, string> = {
   book: "📚",
 };
 
-export function SharedCollectionsPanel({ kind, searchPath }: SharedCollectionsPanelProps) {
+export function SharedCollectionsPanel({ kind, searchPath, embedded = false }: SharedCollectionsPanelProps) {
   const { locale, t } = useLanguage();
   const [sort, setSort] = useState<SharedCollectionSort>("new");
   const [query, setQuery] = useState("");
@@ -199,36 +201,37 @@ export function SharedCollectionsPanel({ kind, searchPath }: SharedCollectionsPa
   }
 
   return (
-    <>
-      <div className="mb-4 flex gap-2 overflow-x-auto">
-        {(["new", "popular", "liked"] as const).map((key) => (
-          <button
-            className={`shrink-0 rounded-2xl px-4 py-2 text-sm font-semibold ${sort === key ? "bg-[var(--accent)] text-white" : "surface-input"}`}
-            key={key}
-            onClick={() => {
-              setSort(key);
-              reloadCollections(key, query);
-            }}
-            type="button"
-          >
-            {t(key === "new" ? "sharedCollectionsSortNew" : key === "popular" ? "sharedCollectionsSortPopular" : "sharedCollectionsSortLiked")}
-          </button>
-        ))}
-      </div>
+    <div className={embedded ? "pb-28" : undefined}>
+      <TabGrid
+        onChange={(key) => {
+          setSort(key);
+          reloadCollections(key, query);
+        }}
+        tabs={(
+          [
+            ["new", t("sharedCollectionsSortNew")],
+            ["popular", t("sharedCollectionsSortPopular")],
+            ["liked", t("sharedCollectionsSortLiked")],
+          ] as const
+        ).map(([id, label]) => ({ id, label }))}
+        value={sort}
+      />
 
-      <div className="relative mb-4">
-        <Search
-          aria-hidden
-          className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-[var(--muted)]"
-        />
-        <input
-          className="w-full rounded-2xl surface-input py-3 pl-11 pr-4 text-sm"
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder={t("sharedCollectionsSearchPlaceholder")}
-          value={query}
-        />
+      <div className="mb-4 grid gap-2">
+        <div className="relative">
+          <Search
+            aria-hidden
+            className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-[var(--muted)]"
+          />
+          <input
+            className="w-full rounded-2xl surface-input py-3 pl-11 pr-4 text-sm"
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder={t("sharedCollectionsSearchPlaceholder")}
+            value={query}
+          />
+        </div>
         <button
-          className="mt-2 w-full rounded-2xl surface-input py-2.5 text-sm font-semibold"
+          className="w-full rounded-2xl surface-input py-2.5 text-sm font-semibold"
           onClick={() => reloadCollections(sort, query)}
           type="button"
         >
@@ -373,8 +376,7 @@ export function SharedCollectionsPanel({ kind, searchPath }: SharedCollectionsPa
       ) : null}
 
       {detail ? (
-        <div className="fixed inset-0 z-50 flex items-end bg-black/40 p-4 pb-24">
-          <div className="max-h-[90vh] w-full overflow-y-auto rounded-3xl surface-panel p-5">
+        <ModalSheet className="max-h-[90vh]" onClose={() => setDetailId(null)} open>
             <div className="mb-4 flex items-start justify-between gap-3">
               <div>
                 <p className="text-lg font-bold">{detail.title}</p>
@@ -429,9 +431,8 @@ export function SharedCollectionsPanel({ kind, searchPath }: SharedCollectionsPa
                 );
               })}
             </ul>
-          </div>
-        </div>
+        </ModalSheet>
       ) : null}
-    </>
+    </div>
   );
 }

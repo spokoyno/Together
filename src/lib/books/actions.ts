@@ -166,6 +166,26 @@ export async function saveBookReview(bookId: string, review: string) {
   return { ok: true as const };
 }
 
+export async function deleteBookEntry(bookId: string) {
+  const { supabase, context } = await getAuthContext();
+  if (!context?.isComplete) {
+    return actionError("Пара не подключена.");
+  }
+
+  const { error } = await supabase
+    .from("book_entries")
+    .delete()
+    .eq("id", bookId)
+    .eq("couple_id", context.coupleId);
+
+  if (error) {
+    return actionError("Не удалось удалить книгу.");
+  }
+
+  revalidatePath("/memories/books");
+  return { ok: true as const };
+}
+
 export async function updateBookRating(bookId: string, rating: number) {
   const { supabase, user, context } = await getAuthContext();
   if (!context?.isComplete) {

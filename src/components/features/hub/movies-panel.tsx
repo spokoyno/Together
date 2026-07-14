@@ -5,12 +5,15 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 import { useLanguage } from "@/components/providers/language-provider";
 import { EmptyState } from "@/components/ui/empty-state";
+import { ConfirmDeleteButton } from "@/components/ui/confirm-delete-button";
+import { TabGrid } from "@/components/ui/tab-grid";
 import { RatingDisplay, RatingInput } from "@/components/ui/rating-stars";
 import type { HubMovie, HubMovieCollection, MovieSearchResult } from "@/components/features/hub/types";
 import { addMovieEntry } from "@/lib/hub/actions";
 import {
   addMovieToCollection,
   createMovieCollection,
+  deleteMovieEntry,
   markMovieWatched,
   saveMovieReview,
   updateMovieRating,
@@ -211,35 +214,35 @@ export function MoviesPanel({ movies, collections, userId, partnerId, partnerNam
     });
   }
 
+  function removeMovie(movieId: string) {
+    startTransition(async () => {
+      const result = await deleteMovieEntry(movieId);
+      if (!result.ok) {
+        setError(result.error ?? t("commonErrorGeneric"));
+        return;
+      }
+      router.refresh();
+    });
+  }
+
   return (
     <>
-      <div className="mb-4 flex gap-2 overflow-x-auto">
-        {(
-          [
-            ["want", t("moviesWantWatch")],
-            ["watched", t("moviesWatchedTab")],
-            ["collections", t("moviesMyCollections")],
-            ["community", t("sharedCollectionsTab")],
-          ] as const
-        ).map(([key, label]) => (
-          <button
-            className={`shrink-0 rounded-2xl px-4 py-2 text-sm font-semibold ${tab === key ? "bg-[var(--accent)] text-white" : "surface-input"}`}
-            key={key}
-            onClick={() => setTab(key)}
-            type="button"
-          >
-            {label}
-          </button>
-        ))}
-      </div>
+      <TabGrid
+        onChange={setTab}
+        tabs={[
+          { id: "want", label: t("moviesWantWatch") },
+          { id: "watched", label: t("moviesWatchedTab") },
+          { id: "collections", label: t("moviesMyCollections") },
+          { id: "community", label: t("sharedCollectionsTab") },
+        ]}
+        value={tab}
+      />
 
       {error ? <p className="mb-3 alert-error rounded-xl px-3 py-2 text-sm">{error}</p> : null}
 
       {tab === "community" ? (
-        <SharedCollectionsPanel kind="movie" searchPath="/api/movies/search" />
-      ) : null}
-
-      {tab === "collections" ? (
+        <SharedCollectionsPanel embedded kind="movie" searchPath="/api/movies/search" />
+      ) : tab === "collections" ? (
         <section className="grid gap-3">
           {collections.length ? (
             <div className="grid gap-3">
@@ -282,7 +285,10 @@ export function MoviesPanel({ movies, collections, userId, partnerId, partnerNam
                 <div className="flex gap-4 p-4">
                   <MoviePoster url={movie.poster_url} />
                   <div className="min-w-0 flex-1">
-                    <h2 className="font-bold leading-snug">{movie.title}</h2>
+                    <div className="flex items-start justify-between gap-2">
+                      <h2 className="font-bold leading-snug">{movie.title}</h2>
+                      <ConfirmDeleteButton disabled={isPending} onConfirm={() => removeMovie(movie.id)} />
+                    </div>
                     <div className="mt-3 flex flex-wrap gap-2">
                       <button
                         className="rounded-xl bg-[var(--accent)] px-3 py-2.5 text-xs font-semibold text-white disabled:opacity-60"
@@ -330,7 +336,10 @@ export function MoviesPanel({ movies, collections, userId, partnerId, partnerNam
                   <div className="flex gap-4 p-4">
                     <MoviePoster url={movie.poster_url} />
                     <div className="min-w-0 flex-1">
-                      <h2 className="font-bold leading-snug">{movie.title}</h2>
+                      <div className="flex items-start justify-between gap-2">
+                        <h2 className="font-bold leading-snug">{movie.title}</h2>
+                        <ConfirmDeleteButton disabled={isPending} onConfirm={() => removeMovie(movie.id)} />
+                      </div>
                       <div className="mt-3 space-y-2">
                         <div>
                           <p className="mb-1 text-xs text-[var(--muted)]">{t("commonYou")}</p>

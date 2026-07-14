@@ -22,6 +22,15 @@ export async function markTravelDone(travelId: string) {
   return result;
 }
 
+export async function deleteTravelDestination(travelId: string) {
+  const { deleteTravel } = await import("@/lib/travel/actions");
+  const result = await deleteTravel(travelId);
+  if (result.ok) {
+    revalidatePath("/memories/travel");
+  }
+  return result;
+}
+
 export async function addChore(title: string, dueDate?: string, assignedTo?: string | null) {
   const result = await createChoreAction({ title, dueDate, assignedTo });
   if (result.ok) {
@@ -32,6 +41,15 @@ export async function addChore(title: string, dueDate?: string, assignedTo?: str
 
 export async function completeChore(choreId: string) {
   const result = await completeChoreAction(choreId);
+  if (result.ok) {
+    revalidatePath("/memories/chores");
+  }
+  return result;
+}
+
+export async function deleteChoreItem(choreId: string) {
+  const { deleteChore } = await import("@/lib/chores/actions");
+  const result = await deleteChore(choreId);
   if (result.ok) {
     revalidatePath("/memories/chores");
   }
@@ -66,6 +84,15 @@ export async function addCoupleHabit(title: string, description?: string, planne
 
 export async function completeCoupleHabit(habitId: string) {
   const result = await completeHabitAction(habitId);
+  if (result.ok) {
+    revalidatePath("/memories/habits");
+  }
+  return result;
+}
+
+export async function deleteCoupleHabit(habitId: string) {
+  const { deleteHabit } = await import("@/lib/habits/actions");
+  const result = await deleteHabit(habitId);
   if (result.ok) {
     revalidatePath("/memories/habits");
   }

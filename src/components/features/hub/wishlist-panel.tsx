@@ -4,11 +4,13 @@ import { Gift, Plus } from "lucide-react";
 import { useState, useTransition } from "react";
 import { useLanguage } from "@/components/providers/language-provider";
 import { EmptyState } from "@/components/ui/empty-state";
+import { ConfirmDeleteButton } from "@/components/ui/confirm-delete-button";
 import { ModalSheet } from "@/components/ui/modal-sheet";
 import { PhotoSourcePicker } from "@/components/ui/photo-source-picker";
 import type { HubWishlistItem } from "@/components/features/hub/types";
 import {
   addWishlistItem,
+  deleteWishlistItem,
   fulfillWishlistItem,
   wishlistToSurprisePlan,
 } from "@/lib/hub/extended-actions";
@@ -74,7 +76,17 @@ export function WishlistPanel({ items, coupleId, userId, partnerName }: Wishlist
                 <img alt="" className="aspect-video w-full object-cover" src={item.media_url} />
               ) : null}
               <div className="p-4">
-                <p className="text-lg font-bold">{item.title}</p>
+                <div className="flex items-start justify-between gap-2">
+                  <p className="text-lg font-bold">{item.title}</p>
+                  <ConfirmDeleteButton
+                    disabled={isPending}
+                    onConfirm={() =>
+                      startTransition(async () => {
+                        await deleteWishlistItem(item.id);
+                      })
+                    }
+                  />
+                </div>
                 {item.description ? (
                   <p className="mt-1 text-sm text-[var(--muted)]">{item.description}</p>
                 ) : null}
@@ -115,10 +127,20 @@ export function WishlistPanel({ items, coupleId, userId, partnerName }: Wishlist
           <p className="mb-3 text-sm font-semibold text-[var(--muted)]">{t("hubFulfilledTab")}</p>
           <div className="grid gap-2">
             {fulfilledItems.map((item) => (
-              <p className="rounded-2xl surface-input px-3 py-2 text-sm" key={item.id}>
-                ✓ {item.title}
-                {item.fulfilled_by_name ? ` · ${item.fulfilled_by_name}` : ""}
-              </p>
+              <div className="flex items-center justify-between gap-2 rounded-2xl surface-input px-3 py-2 text-sm" key={item.id}>
+                <span>
+                  ✓ {item.title}
+                  {item.fulfilled_by_name ? ` · ${item.fulfilled_by_name}` : ""}
+                </span>
+                <ConfirmDeleteButton
+                  disabled={isPending}
+                  onConfirm={() =>
+                    startTransition(async () => {
+                      await deleteWishlistItem(item.id);
+                    })
+                  }
+                />
+              </div>
             ))}
           </div>
         </section>

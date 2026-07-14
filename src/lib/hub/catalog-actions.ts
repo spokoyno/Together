@@ -200,3 +200,23 @@ export async function updateCatalogRating(entryId: string, kind: CatalogKind, ra
   revalidateCatalog(kind);
   return { ok: true as const };
 }
+
+export async function deleteCatalogEntry(entryId: string, kind: CatalogKind) {
+  const { supabase, context } = await getAuthContext();
+  if (!context?.isComplete) {
+    return actionError("Пара не подключена.");
+  }
+
+  const { error } = await supabase
+    .from("catalog_entries")
+    .delete()
+    .eq("id", entryId)
+    .eq("couple_id", context.coupleId);
+
+  if (error) {
+    return actionError("Не удалось удалить запись.");
+  }
+
+  revalidateCatalog(kind);
+  return { ok: true as const };
+}

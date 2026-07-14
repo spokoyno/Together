@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { useLanguage } from "@/components/providers/language-provider";
 import { EmptyState } from "@/components/ui/empty-state";
+import { TabGrid } from "@/components/ui/tab-grid";
 import { ModalSheet } from "@/components/ui/modal-sheet";
 import type { HubPoll } from "@/components/features/hub/types";
 import {
@@ -270,22 +271,14 @@ export function PollsPanel({ polls, userId, partnerId, partnerName }: PollsPanel
 
   return (
     <>
-      <div className="mb-5 flex gap-2 overflow-x-auto">
-        <button
-          className={`shrink-0 rounded-2xl px-4 py-2 text-sm font-semibold ${tab === "pending" ? "bg-[var(--accent)] text-white" : "surface-input"}`}
-          onClick={() => setTab("pending")}
-          type="button"
-        >
-          {t("hubPollsTabPending")}
-        </button>
-        <button
-          className={`shrink-0 rounded-2xl px-4 py-2 text-sm font-semibold ${tab === "completed" ? "bg-[var(--accent)] text-white" : "surface-input"}`}
-          onClick={() => setTab("completed")}
-          type="button"
-        >
-          {t("hubPollsTabCompleted")}
-        </button>
-      </div>
+      <TabGrid
+        onChange={setTab}
+        tabs={[
+          { id: "pending", label: t("hubPollsTabPending") },
+          { id: "completed", label: t("hubPollsTabCompleted") },
+        ]}
+        value={tab}
+      />
 
       {tab === "pending" ? (
         <section className="grid gap-3">

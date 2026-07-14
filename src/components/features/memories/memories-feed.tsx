@@ -19,6 +19,7 @@ import { uploadCoupleMediaClient } from "@/lib/media/upload.client";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ModalSheet } from "@/components/ui/modal-sheet";
 import { PhotoSourcePicker } from "@/components/ui/photo-source-picker";
+import { RatingInput } from "@/components/ui/rating-stars";
 import type { MomentMeta, MomentType } from "@/types/domain";
 
 export type MemoryFeedItem = {
@@ -439,19 +440,10 @@ export function MemoriesFeed({
               />
 
               {momentType === "movie" || momentType === "cooking" ? (
-                <label className="grid gap-2">
-                  <span className="text-sm font-semibold">
-                    {t("memoriesYourRating", { rating })}
-                  </span>
-                  <input
-                    className="accent-[var(--accent)]"
-                    max={10}
-                    min={1}
-                    onChange={(event) => setRating(Number(event.target.value))}
-                    type="range"
-                    value={rating}
-                  />
-                </label>
+                <div className="grid gap-2">
+                  <span className="text-sm font-semibold">{t("ratingLabel")}</span>
+                  <RatingInput onChange={setRating} value={rating} />
+                </div>
               ) : null}
 
               {error ? <p className="alert-error rounded-xl px-3 py-2 text-sm">{error}</p> : null}
