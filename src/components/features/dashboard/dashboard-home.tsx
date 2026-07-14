@@ -136,11 +136,12 @@ export function DashboardHome({
               {MOOD_EMOJI[level]} {moodLabel(level)}
             </button>
           ))}
-          <CustomMoodButton />
+          <CustomMoodButton
+            customEmoji={myMood.customEmoji}
+            customLabel={myMood.customLabel}
+            disabled={isPending}
+          />
         </div>
-        {myMood.customLabel ? (
-          <p className="mt-2 text-sm text-[var(--accent)]">{formatMood(myMood)}</p>
-        ) : null}
       </section>
 
       {nearestCountdown ? (
