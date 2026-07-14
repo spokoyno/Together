@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { useLanguage } from "@/components/providers/language-provider";
 import { EmptyState } from "@/components/ui/empty-state";
+import { ModalSheet } from "@/components/ui/modal-sheet";
 import type { HubPoll } from "@/components/features/hub/types";
 import {
   createPartnerPoll,
@@ -378,11 +379,7 @@ export function PollsPanel({ polls, userId, partnerId, partnerName }: PollsPanel
       </button>
 
       {showCreate ? (
-        <div className="fixed inset-0 z-50 flex items-end bg-black/40 p-4 pb-[calc(max(0.75rem,env(safe-area-inset-bottom))+5rem)]">
-          <form
-            className="max-h-[90vh] w-full overflow-y-auto rounded-3xl surface-panel p-5 shadow-xl"
-            onSubmit={submitCreate}
-          >
+        <ModalSheet as="form" className="max-h-[90vh]" onClose={resetCreate} onSubmit={submitCreate} open>
             <div className="mb-4 flex items-center justify-between">
               <p className="text-lg font-bold">{t("hubPollsFor", { name: partnerName })}</p>
               <button
@@ -503,8 +500,7 @@ export function PollsPanel({ polls, userId, partnerId, partnerName }: PollsPanel
                 {isPending ? t("hubPollsSubmitting") : t("hubPollsCreatePoll")}
               </button>
             </div>
-          </form>
-        </div>
+        </ModalSheet>
       ) : null}
 
       {answerPoll ? (

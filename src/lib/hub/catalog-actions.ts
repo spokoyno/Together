@@ -129,9 +129,6 @@ export async function saveCatalogReview(entryId: string, kind: CatalogKind, revi
   }
 
   const text = review.trim();
-  if (!text) {
-    return actionError("Напишите отзыв.");
-  }
 
   const { data: entry } = await supabase
     .from("catalog_entries")
@@ -146,8 +143,13 @@ export async function saveCatalogReview(entryId: string, kind: CatalogKind, revi
 
   const reviews = {
     ...(entry.reviews as Record<string, string>),
-    [user.id]: text.slice(0, 1000),
   };
+
+  if (text) {
+    reviews[user.id] = text.slice(0, 1000);
+  } else {
+    delete reviews[user.id];
+  }
 
   const { error } = await supabase
     .from("catalog_entries")
@@ -157,6 +159,42 @@ export async function saveCatalogReview(entryId: string, kind: CatalogKind, revi
 
   if (error) {
     return actionError("Не удалось сохранить отзыв.");
+  }
+
+  revalidateCatalog(kind);
+  return { ok: true as const };
+}
+
+export async function updateCatalogRating(entryId: string, kind: CatalogKind, rating: number) {
+  const { supabase, user, context } = await getAuthContext();
+  if (!context?.isComplete) {
+    return actionError("Пара не подключена.");
+  }
+
+  const { data: entry } = await supabase
+    .from("catalog_entries")
+    .select("id, ratings, status")
+    .eq("id", entryId)
+    .eq("couple_id", context.coupleId)
+    .maybeSingle();
+
+  if (!entry || entry.status !== "completed") {
+    return actionError("Запись не найдена.");
+  }
+
+  const ratings = {
+    ...(entry.ratings as Record<string, number>),
+    [user.id]: rating,
+  };
+
+  const { error } = await supabase
+    .from("catalog_entries")
+    .update({ ratings })
+    .eq("id", entryId)
+    .eq("couple_id", context.coupleId);
+
+  if (error) {
+    return actionError("Не удалось обновить оценку.");
   }
 
   revalidateCatalog(kind);

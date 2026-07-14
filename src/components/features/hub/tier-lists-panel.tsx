@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { useLanguage } from "@/components/providers/language-provider";
 import { EmptyState } from "@/components/ui/empty-state";
+import { ModalSheet } from "@/components/ui/modal-sheet";
 import { PhotoSourcePicker } from "@/components/ui/photo-source-picker";
 import type { HubTierChallenge } from "@/components/features/hub/types";
 import { addTierListComment, completeTierChallenge, sendTierChallenge } from "@/lib/hub/extended-actions";
@@ -234,8 +235,7 @@ export function TierListsPanel({
       </button>
 
       {showSend ? (
-        <div className="fixed inset-0 z-50 flex items-end bg-black/40 p-4 pb-24">
-          <form className="w-full rounded-3xl surface-panel p-5" onSubmit={sendChallenge}>
+        <ModalSheet as="form" onClose={() => setShowSend(false)} onSubmit={sendChallenge} open>
             <div className="mb-3 flex items-center justify-between">
               <p className="text-lg font-bold">{t("hubTiersChallengeFor", { name: partnerName })}</p>
               <button
@@ -266,8 +266,7 @@ export function TierListsPanel({
                 {t("commonSend")}
               </button>
             </div>
-          </form>
-        </div>
+        </ModalSheet>
       ) : null}
 
       {completeId && completeChallenge ? (

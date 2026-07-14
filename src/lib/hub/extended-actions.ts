@@ -424,6 +424,38 @@ export async function saveMovieReview(movieId: string, review: string) {
   return { ok: true as const };
 }
 
+export async function updateMovieRating(movieId: string, rating: number) {
+  const { supabase, user, context } = await getAuthContext();
+  if (!context?.isComplete) {
+    return actionError("Пара не подключена.");
+  }
+
+  const { data: movie } = await supabase
+    .from("movie_entries")
+    .select("id, ratings, status")
+    .eq("id", movieId)
+    .eq("couple_id", context.coupleId)
+    .maybeSingle();
+
+  if (!movie || movie.status !== "watched") {
+    return actionError("Фильм не найден.");
+  }
+
+  const ratings = {
+    ...(movie.ratings as Record<string, number>),
+    [user.id]: rating,
+  };
+
+  const { error } = await supabase.from("movie_entries").update({ ratings }).eq("id", movieId);
+
+  if (error) {
+    return actionError("Не удалось обновить оценку.");
+  }
+
+  revalidatePath("/memories/movies");
+  return { ok: true as const };
+}
+
 export async function addMovieToCollection(collectionId: string, movieEntryId: string) {
   const { supabase, context } = await getAuthContext();
   if (!context?.isComplete) {

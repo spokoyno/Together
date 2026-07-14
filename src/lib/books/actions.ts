@@ -165,3 +165,35 @@ export async function saveBookReview(bookId: string, review: string) {
   revalidatePath("/memories/books");
   return { ok: true as const };
 }
+
+export async function updateBookRating(bookId: string, rating: number) {
+  const { supabase, user, context } = await getAuthContext();
+  if (!context?.isComplete) {
+    return actionError("Пара не подключена.");
+  }
+
+  const { data: book } = await supabase
+    .from("book_entries")
+    .select("id, ratings, status")
+    .eq("id", bookId)
+    .eq("couple_id", context.coupleId)
+    .maybeSingle();
+
+  if (!book || book.status !== "read") {
+    return actionError("Книга не найдена.");
+  }
+
+  const ratings = {
+    ...(book.ratings as Record<string, number>),
+    [user.id]: rating,
+  };
+
+  const { error } = await supabase.from("book_entries").update({ ratings }).eq("id", bookId);
+
+  if (error) {
+    return actionError("Не удалось обновить оценку.");
+  }
+
+  revalidatePath("/memories/books");
+  return { ok: true as const };
+}

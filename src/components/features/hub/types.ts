@@ -145,6 +145,7 @@ export type HubCookingLog = {
   id: string;
   body: string | null;
   media_url: string | null;
+  author_id: string;
   author_name: string;
   created_at: string;
 };

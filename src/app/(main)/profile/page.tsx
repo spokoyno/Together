@@ -2,6 +2,7 @@ import { ProfileScreen } from "@/components/features/profile/profile-screen";
 import { requireUser } from "@/lib/auth/session";
 import { getCoupleContextForUser } from "@/lib/couple/context.server";
 import { daysBetween } from "@/lib/dates";
+import { loadCoupleStats } from "@/lib/profile/stats.server";
 import { signMediaPaths } from "@/lib/media/actions";
 import { loadNotifications } from "@/lib/notifications/actions";
 import { getPushStatus } from "@/lib/push/actions";
@@ -35,26 +36,7 @@ export default async function ProfilePage() {
     ? signed[partnerProfile.avatar_path] ?? null
     : null;
 
-  const stats = context?.isComplete
-    ? await Promise.all([
-        supabase
-          .from("moods")
-          .select("id", { count: "exact", head: true })
-          .eq("couple_id", context.coupleId),
-        supabase
-          .from("plans")
-          .select("id", { count: "exact", head: true })
-          .eq("couple_id", context.coupleId),
-        supabase
-          .from("memories")
-          .select("id", { count: "exact", head: true })
-          .eq("couple_id", context.coupleId),
-        supabase
-          .from("answers")
-          .select("id", { count: "exact", head: true })
-          .eq("user_id", user.id),
-      ])
-    : null;
+  const stats = context?.isComplete ? await loadCoupleStats(supabase, context.coupleId) : null;
 
   const daysTogether =
     context?.relationshipStartedOn ? daysBetween(context.relationshipStartedOn) : null;
@@ -82,16 +64,7 @@ export default async function ProfilePage() {
         vapidPublicKey: pushConfig.vapidPublicKey,
       }}
       relationshipStartedOn={context?.relationshipStartedOn ?? null}
-      stats={
-        stats
-          ? {
-              moods: stats[0].count ?? 0,
-              plans: stats[1].count ?? 0,
-              memories: stats[2].count ?? 0,
-              answers: stats[3].count ?? 0,
-            }
-          : null
-      }
+      stats={stats}
       notifications={notifications}
       userId={user.id}
     />

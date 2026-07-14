@@ -14,9 +14,11 @@ import { LeaveCoupleButton } from "@/components/features/pair/leave-couple-butto
 import { AvatarUpload } from "@/components/features/profile/avatar-upload";
 import { GenderSelect } from "@/components/features/profile/gender-select";
 import { UserAvatar } from "@/components/ui/user-avatar";
+import { ModalSheet } from "@/components/ui/modal-sheet";
 import { updateProfile } from "@/lib/profile/actions";
 import { useLanguage } from "@/components/providers/language-provider";
 import type { MessageKey } from "@/lib/i18n/messages";
+import type { CoupleStats } from "@/lib/profile/stats.server";
 import type { ProfileGender } from "@/types/domain";
 
 const GENDER_KEYS: Record<ProfileGender, MessageKey> = {
@@ -36,7 +38,7 @@ type ProfileScreenProps = {
   partnerName: string | null;
   partnerId: string | null;
   daysTogether: number | null;
-  stats: { moods: number; plans: number; memories: number; answers: number } | null;
+  stats: CoupleStats | null;
   isComplete: boolean;
   hasCouple: boolean;
   pushConfig: {
@@ -186,11 +188,19 @@ export function ProfileScreen({
           {stats ? (
             <div className="rounded-3xl surface-panel p-5">
               <p className="font-semibold">{t("profileStats")}</p>
-              <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
-                <p>{t("profileStatsMoods")}: {stats.moods}</p>
-                <p>{t("profileStatsPlans")}: {stats.plans}</p>
-                <p>{t("profileStatsMoments")}: {stats.memories}</p>
-                <p>{t("profileStatsAnswers")}: {stats.answers}</p>
+              <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 text-sm">
+                <p>{t("profileStatsFeed")}: {stats.feed}</p>
+                <p>{t("profileStatsMovies")}: {stats.movies}</p>
+                <p>{t("profileStatsGames")}: {stats.games}</p>
+                <p>{t("profileStatsSeries")}: {stats.tvSeries}</p>
+                <p>{t("profileStatsCartoons")}: {stats.cartoons}</p>
+                <p>{t("profileStatsAnime")}: {stats.anime}</p>
+                <p>{t("profileStatsBooks")}: {stats.books}</p>
+                <p>{t("profileStatsDishes")}: {stats.dishes}</p>
+                <p>{t("profileStatsCompliments")}: {stats.compliments}</p>
+                <p>{t("profileStatsWishes")}: {stats.wishes}</p>
+                <p>{t("profileStatsChatPhotos")}: {stats.chatPhotos}</p>
+                <p>{t("profileStatsAdventures")}: {stats.adventures}</p>
               </div>
             </div>
           ) : null}
@@ -240,11 +250,7 @@ export function ProfileScreen({
       )}
 
       {showEdit ? (
-        <div className="fixed inset-0 z-50 flex items-end bg-black/40 p-4 pb-[calc(max(0.75rem,env(safe-area-inset-bottom))+5rem)]">
-          <form
-            className="w-full max-w-md rounded-3xl surface-panel p-5 shadow-xl"
-            onSubmit={handleSaveProfile}
-          >
+        <ModalSheet as="form" onClose={() => setShowEdit(false)} onSubmit={handleSaveProfile} open>
             <p className="text-lg font-bold">{t("profileEditTitle")}</p>
             <div className="mt-4 grid gap-3">
               <label className="grid gap-2">
@@ -287,8 +293,7 @@ export function ProfileScreen({
                 {t("profileCancel")}
               </button>
             </div>
-          </form>
-        </div>
+        </ModalSheet>
       ) : null}
     </main>
   );

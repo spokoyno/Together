@@ -4,6 +4,7 @@ import { Heart, Plus, Search, X } from "lucide-react";
 import { useEffect, useState, useTransition } from "react";
 import { useLanguage } from "@/components/providers/language-provider";
 import { EmptyState } from "@/components/ui/empty-state";
+import { ModalSheet } from "@/components/ui/modal-sheet";
 import {
   createSharedCollection,
   fetchSharedCollections,
@@ -287,11 +288,7 @@ export function SharedCollectionsPanel({ kind, searchPath }: SharedCollectionsPa
       </button>
 
       {showCreate ? (
-        <div className="fixed inset-0 z-50 flex items-end bg-black/40 p-4 pb-24">
-          <form
-            className="max-h-[90vh] w-full overflow-y-auto rounded-3xl surface-panel p-5"
-            onSubmit={submitCreate}
-          >
+        <ModalSheet as="form" className="max-h-[90vh]" onClose={() => setShowCreate(false)} onSubmit={submitCreate} open>
             <div className="mb-4 flex items-center justify-between">
               <p className="text-lg font-bold">{t("sharedCollectionsCreate")}</p>
               <button
@@ -372,8 +369,7 @@ export function SharedCollectionsPanel({ kind, searchPath }: SharedCollectionsPa
                 {isPending ? t("commonSaving") : t("sharedCollectionsPublish")}
               </button>
             </div>
-          </form>
-        </div>
+        </ModalSheet>
       ) : null}
 
       {detail ? (

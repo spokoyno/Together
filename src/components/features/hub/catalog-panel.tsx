@@ -8,7 +8,8 @@ import { SharedCollectionsPanel } from "@/components/features/hub/shared-collect
 import { EmptyState } from "@/components/ui/empty-state";
 import { RatingDisplay, RatingInput } from "@/components/ui/rating-stars";
 import type { CatalogPanelConfig, CatalogEntry, CatalogSearchResult } from "@/lib/hub/catalog";
-import { addCatalogEntry, markCatalogCompleted, saveCatalogReview } from "@/lib/hub/catalog-actions";
+import { ModalSheet } from "@/components/ui/modal-sheet";
+import { addCatalogEntry, markCatalogCompleted, saveCatalogReview, updateCatalogRating } from "@/lib/hub/catalog-actions";
 
 type CatalogPanelProps = {
   config: CatalogPanelConfig;
@@ -68,6 +69,7 @@ export function CatalogPanel({
   const [addModal, setAddModal] = useState<AddModalState | null>(null);
   const [completeModal, setCompleteModal] = useState<CompleteModalState | null>(null);
   const [reviewDrafts, setReviewDrafts] = useState<Record<string, string>>({});
+  const [ratingDrafts, setRatingDrafts] = useState<Record<string, number>>({});
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
@@ -145,11 +147,20 @@ export function CatalogPanel({
     });
   }
 
-  function saveReview(entryId: string) {
+  function saveFeedback(entryId: string) {
+    const review = reviewDrafts[entryId] ?? "";
+    const entry = completedItems.find((row) => row.id === entryId);
+    const rating = ratingDrafts[entryId] ?? entry?.ratings[userId] ?? 8;
+
     startTransition(async () => {
-      const result = await saveCatalogReview(entryId, config.kind, reviewDrafts[entryId] ?? "");
-      if (!result.ok) {
-        setError(result.error ?? t("hubErrorReview"));
+      const ratingResult = await updateCatalogRating(entryId, config.kind, rating);
+      if (!ratingResult.ok) {
+        setError(ratingResult.error ?? t("hubErrorSave"));
+        return;
+      }
+      const reviewResult = await saveCatalogReview(entryId, config.kind, review);
+      if (!reviewResult.ok) {
+        setError(reviewResult.error ?? t("hubErrorReview"));
         return;
       }
       router.refresh();
@@ -216,7 +227,15 @@ export function CatalogPanel({
                     </button>
                   ) : (
                     <div className="mt-3 space-y-2">
-                      <RatingDisplay label={t("commonYou")} value={entry.ratings[userId]} />
+                      <div>
+                        <p className="mb-1 text-xs text-[var(--muted)]">{t("commonYou")}</p>
+                        <RatingInput
+                          onChange={(value) =>
+                            setRatingDrafts((current) => ({ ...current, [entry.id]: value }))
+                          }
+                          value={ratingDrafts[entry.id] ?? entry.ratings[userId] ?? 8}
+                        />
+                      </div>
                       <RatingDisplay label={partnerName} value={entry.ratings[partnerId]} />
                     </div>
                   )}
@@ -225,12 +244,6 @@ export function CatalogPanel({
 
               {tab === "completed" ? (
                 <div className="space-y-2 border-t border-[var(--border)] px-4 py-4">
-                  {entry.reviews[userId] ? (
-                    <p className="rounded-xl surface-input px-3 py-2 text-sm">
-                      <span className="font-semibold">{t("hubYourReviewLabel")} </span>
-                      {entry.reviews[userId]}
-                    </p>
-                  ) : null}
                   {entry.reviews[partnerId] ? (
                     <p className="rounded-xl surface-input px-3 py-2 text-sm">
                       <span className="font-semibold">{partnerName}: </span>
@@ -251,7 +264,7 @@ export function CatalogPanel({
                   <button
                     className="rounded-xl bg-[var(--accent)] px-3 py-2.5 text-xs font-semibold text-white disabled:opacity-60"
                     disabled={isPending}
-                    onClick={() => saveReview(entry.id)}
+                    onClick={() => saveFeedback(entry.id)}
                     type="button"
                   >
                     {t("hubSaveReview")}
@@ -280,7 +293,16 @@ export function CatalogPanel({
       ) : null}
 
       {showSearch ? (
-        <div className="fixed inset-0 z-50 flex flex-col bg-[var(--background)]">
+        <div
+          className="fixed inset-0 z-50 flex flex-col bg-[var(--background)]"
+          onClick={() => {
+            setShowSearch(false);
+            setQuery("");
+            setResults([]);
+          }}
+          role="presentation"
+        >
+          <div className="flex flex-col flex-1" onClick={(event) => event.stopPropagation()}>
           <div className="flex items-center gap-2 border-b border-[var(--border)] px-4 py-3">
             <Search aria-hidden className="size-5 shrink-0 text-[var(--muted)]" />
             <input
@@ -329,12 +351,12 @@ export function CatalogPanel({
               <p className="text-center text-sm text-[var(--muted)]">{t("hubMinTwoChars")}</p>
             )}
           </div>
+          </div>
         </div>
       ) : null}
 
       {addModal ? (
-        <div className="fixed inset-0 z-[60] flex items-end bg-black/40 p-4 pb-24">
-          <form className="w-full rounded-3xl surface-panel p-5" onSubmit={submitAdd}>
+        <ModalSheet as="form" onClose={() => setAddModal(null)} onSubmit={submitAdd} open>
             <p className="text-lg font-bold">{addModal.item.title}</p>
             <p className="mt-2 text-sm text-[var(--muted)]">{t("hubYourRating")}</p>
             <div className="mt-2">
@@ -350,13 +372,11 @@ export function CatalogPanel({
             >
               {t("commonAdd")}
             </button>
-          </form>
-        </div>
+        </ModalSheet>
       ) : null}
 
       {completeModal ? (
-        <div className="fixed inset-0 z-[60] flex items-end bg-black/40 p-4 pb-24">
-          <form className="w-full rounded-3xl surface-panel p-5" onSubmit={submitComplete}>
+        <ModalSheet as="form" onClose={() => setCompleteModal(null)} onSubmit={submitComplete} open>
             <p className="text-lg font-bold">{completeModal.title}</p>
             <p className="mt-2 text-sm text-[var(--muted)]">{t("hubYourRating")}</p>
             <div className="mt-2">
@@ -384,8 +404,7 @@ export function CatalogPanel({
             >
               {t(config.i18n.completedAction)}
             </button>
-          </form>
-        </div>
+        </ModalSheet>
       ) : null}
         </>
       )}

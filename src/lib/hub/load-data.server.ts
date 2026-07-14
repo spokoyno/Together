@@ -218,6 +218,7 @@ export async function loadHubCooking(ctx: HubContext): Promise<HubCookingDish[]>
       id: row.id,
       body: row.body,
       media_url: row.media_path ? signedUrls[row.media_path] ?? null : null,
+      author_id: row.author_id,
       created_at: row.created_at,
       author_name: profileMap.get(row.author_id) ?? "Пользователь",
     });

@@ -4,6 +4,7 @@ import { Gift, Plus } from "lucide-react";
 import { useState, useTransition } from "react";
 import { useLanguage } from "@/components/providers/language-provider";
 import { EmptyState } from "@/components/ui/empty-state";
+import { ModalSheet } from "@/components/ui/modal-sheet";
 import { PhotoSourcePicker } from "@/components/ui/photo-source-picker";
 import type { HubWishlistItem } from "@/components/features/hub/types";
 import {
@@ -133,8 +134,7 @@ export function WishlistPanel({ items, coupleId, userId, partnerName }: Wishlist
       </button>
 
       {showCreate ? (
-        <div className="fixed inset-0 z-50 flex items-end bg-black/40 p-4 pb-24">
-          <form className="w-full rounded-3xl surface-panel p-5" onSubmit={submitWish}>
+        <ModalSheet as="form" onClose={() => setShowCreate(false)} onSubmit={submitWish} open>
             <p className="text-lg font-bold">{t("hubWishlistNew")}</p>
             <div className="mt-3 grid gap-3">
               <input
@@ -163,13 +163,11 @@ export function WishlistPanel({ items, coupleId, userId, partnerName }: Wishlist
                 {t("commonAdd")}
               </button>
             </div>
-          </form>
-        </div>
+        </ModalSheet>
       ) : null}
 
       {planItemId ? (
-        <div className="fixed inset-0 z-50 flex items-end bg-black/40 p-4 pb-24">
-          <div className="w-full rounded-3xl surface-panel p-5">
+        <ModalSheet onClose={() => setPlanItemId(null)} open>
             <p className="font-bold">{t("hubWishlistSurpriseFor", { name: partnerName })}</p>
             <input
               className="mt-3 w-full rounded-2xl surface-input px-4 py-3"
@@ -195,8 +193,7 @@ export function WishlistPanel({ items, coupleId, userId, partnerName }: Wishlist
             >
               {t("hubWishlistScheduleSurprise")}
             </button>
-          </div>
-        </div>
+        </ModalSheet>
       ) : null}
     </>
   );

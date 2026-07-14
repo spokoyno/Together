@@ -13,8 +13,10 @@ import {
   createMovieCollection,
   markMovieWatched,
   saveMovieReview,
+  updateMovieRating,
 } from "@/lib/hub/extended-actions";
 import { SharedCollectionsPanel } from "@/components/features/hub/shared-collections-panel";
+import { ModalSheet } from "@/components/ui/modal-sheet";
 
 type MoviesPanelProps = {
   movies: HubMovie[];
@@ -82,6 +84,7 @@ export function MoviesPanel({ movies, collections, userId, partnerId, partnerNam
   const [watchModal, setWatchModal] = useState<WatchModalState | null>(null);
   const [collectionPicker, setCollectionPicker] = useState<CollectionPickerState | null>(null);
   const [reviewDrafts, setReviewDrafts] = useState<Record<string, string>>({});
+  const [ratingDrafts, setRatingDrafts] = useState<Record<string, number>>({});
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
@@ -166,12 +169,20 @@ export function MoviesPanel({ movies, collections, userId, partnerId, partnerNam
     });
   }
 
-  function saveReview(movieId: string) {
+  function saveFeedback(movieId: string) {
     const review = reviewDrafts[movieId] ?? "";
+    const movie = watchedMovies.find((row) => row.id === movieId);
+    const rating = ratingDrafts[movieId] ?? movie?.ratings[userId] ?? 8;
+
     startTransition(async () => {
-      const result = await saveMovieReview(movieId, review);
-      if (!result.ok) {
-        setError(result.error ?? t("hubErrorReview"));
+      const ratingResult = await updateMovieRating(movieId, rating);
+      if (!ratingResult.ok) {
+        setError(ratingResult.error ?? t("hubErrorSave"));
+        return;
+      }
+      const reviewResult = await saveMovieReview(movieId, review);
+      if (!reviewResult.ok) {
+        setError(reviewResult.error ?? t("hubErrorReview"));
         return;
       }
       router.refresh();
@@ -321,19 +332,21 @@ export function MoviesPanel({ movies, collections, userId, partnerId, partnerNam
                     <div className="min-w-0 flex-1">
                       <h2 className="font-bold leading-snug">{movie.title}</h2>
                       <div className="mt-3 space-y-2">
-                        <RatingDisplay label={t("commonYou")} value={myRating} />
+                        <div>
+                          <p className="mb-1 text-xs text-[var(--muted)]">{t("commonYou")}</p>
+                          <RatingInput
+                            onChange={(value) =>
+                              setRatingDrafts((current) => ({ ...current, [movie.id]: value }))
+                            }
+                            value={ratingDrafts[movie.id] ?? myRating ?? 8}
+                          />
+                        </div>
                         <RatingDisplay label={partnerName} value={partnerRating} />
                       </div>
                     </div>
                   </div>
 
                   <div className="space-y-2 border-t border-[var(--border)] px-4 py-4">
-                    {myReview ? (
-                      <p className="rounded-xl surface-input px-3 py-2 text-sm">
-                        <span className="font-semibold">{t("hubYourReviewLabel")} </span>
-                        {myReview}
-                      </p>
-                    ) : null}
                     {partnerReview ? (
                       <p className="rounded-xl surface-input px-3 py-2 text-sm">
                         <span className="font-semibold">{partnerName}: </span>
@@ -354,7 +367,7 @@ export function MoviesPanel({ movies, collections, userId, partnerId, partnerNam
                     <button
                       className="rounded-xl bg-[var(--accent)] px-3 py-2.5 text-xs font-semibold text-white disabled:opacity-60"
                       disabled={isPending}
-                      onClick={() => saveReview(movie.id)}
+                      onClick={() => saveFeedback(movie.id)}
                       type="button"
                     >
                       {t("hubSaveReview")}
@@ -395,8 +408,8 @@ export function MoviesPanel({ movies, collections, userId, partnerId, partnerNam
       ) : null}
 
       {collectionPicker ? (
-        <div className="fixed inset-0 z-50 flex items-end bg-black/40 p-4 pb-[calc(max(0.75rem,env(safe-area-inset-bottom))+5rem)]">
-          <div className="w-full max-w-md rounded-3xl surface-panel p-5 shadow-xl">
+        <ModalSheet onClose={() => setCollectionPicker(null)} open>
+          <div className="w-full max-w-md">
             <div className="mb-4 flex items-center justify-between">
               <p className="text-lg font-bold">{t("hubToCollection")}</p>
               <button
@@ -433,12 +446,11 @@ export function MoviesPanel({ movies, collections, userId, partnerId, partnerNam
               ))}
             </div>
           </div>
-        </div>
+        </ModalSheet>
       ) : null}
 
       {watchModal ? (
-        <div className="fixed inset-0 z-50 flex items-end bg-black/40 p-4 pb-[calc(max(0.75rem,env(safe-area-inset-bottom))+5rem)]">
-          <form className="w-full max-w-md rounded-3xl surface-panel p-5 shadow-xl" onSubmit={submitWatchModal}>
+        <ModalSheet as="form" onClose={() => setWatchModal(null)} onSubmit={submitWatchModal} open>
             <div className="mb-4 flex items-center justify-between">
               <p className="text-lg font-bold">{t("hubWatched")}</p>
               <button
@@ -476,16 +488,15 @@ export function MoviesPanel({ movies, collections, userId, partnerId, partnerNam
             >
               {isPending ? t("commonSaving") : t("commonSave")}
             </button>
-          </form>
-        </div>
+        </ModalSheet>
       ) : null}
 
       {showCreateCollection ? (
-        <div className="fixed inset-0 z-50 flex items-end bg-black/40 p-4 pb-[calc(max(0.75rem,env(safe-area-inset-bottom))+5rem)]">
-          <form
-            className="max-h-[85vh] w-full max-w-md overflow-y-auto rounded-3xl surface-panel p-5 shadow-xl"
-            onSubmit={submitCreateCollection}
-          >
+        <ModalSheet as="form" onClose={() => {
+              setShowCreateCollection(false);
+              setCollectionTitle("");
+              setSelectedMovieIds([]);
+            }} onSubmit={submitCreateCollection} open>
             <div className="mb-4 flex items-center justify-between">
               <p className="text-lg font-bold">{t("moviesCreateCollection")}</p>
               <button
@@ -542,13 +553,19 @@ export function MoviesPanel({ movies, collections, userId, partnerId, partnerNam
             >
               {isPending ? t("hubCreating") : t("moviesCreateCollection")}
             </button>
-          </form>
-        </div>
+        </ModalSheet>
       ) : null}
 
       {showSearch ? (
-        <div className="fixed inset-0 z-50 flex items-end bg-black/40 p-4 pb-[calc(max(0.75rem,env(safe-area-inset-bottom))+5rem)]">
-          <div className="max-h-[85vh] w-full overflow-y-auto rounded-3xl surface-panel p-5 shadow-xl">
+        <ModalSheet
+          onClose={() => {
+            setShowSearch(false);
+            setQuery("");
+            setResults([]);
+            setSelected(null);
+          }}
+          open
+        >
             <p className="text-lg font-bold">{t("moviesAddMovieTitle")}</p>
             <div className="relative mt-4">
               <Search
@@ -616,8 +633,7 @@ export function MoviesPanel({ movies, collections, userId, partnerId, partnerNam
                 {isPending ? t("commonSaving") : t("commonAdd")}
               </button>
             </div>
-          </div>
-        </div>
+        </ModalSheet>
       ) : null}
     </>
   );

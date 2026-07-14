@@ -4,6 +4,7 @@ import { Gift, Heart, Plus, Sparkles, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { useLanguage } from "@/components/providers/language-provider";
+import { ModalSheet } from "@/components/ui/modal-sheet";
 import type { HubComplimentState } from "@/components/features/hub/types";
 import { addCompliment, drawCompliment } from "@/lib/hub/actions";
 
@@ -166,11 +167,16 @@ export function ComplimentsPanel({ partnerName, state }: ComplimentsPanelProps) 
       </section>
 
       {showAddPopup ? (
-        <div className="fixed inset-0 z-50 flex items-end bg-black/40 p-4 pb-[calc(max(0.75rem,env(safe-area-inset-bottom))+5rem)]">
-          <form
-            className="w-full max-w-md rounded-3xl surface-panel p-5 shadow-xl"
-            onSubmit={submitCompliment}
-          >
+        <ModalSheet
+          as="form"
+          onClose={() => {
+            setShowAddPopup(false);
+            setDraft("");
+            setError("");
+          }}
+          onSubmit={submitCompliment}
+          open
+        >
             <div className="mb-4 flex items-start justify-between gap-3">
               <div>
                 <p className="text-lg font-bold">{t("hubComplimentsFor", { name: partnerName })}</p>
@@ -210,8 +216,7 @@ export function ComplimentsPanel({ partnerName, state }: ComplimentsPanelProps) 
             >
               {isPending ? t("hubComplimentsSending") : t("hubComplimentsPutInJar")}
             </button>
-          </form>
-        </div>
+        </ModalSheet>
       ) : null}
 
       {showDrawnPopup && drawnText ? (

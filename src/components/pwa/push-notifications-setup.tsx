@@ -13,6 +13,7 @@ import {
 import {
   getPushPermission,
   getServiceWorkerRegistration,
+  registerServiceWorker,
   urlBase64ToUint8Array,
 } from "@/lib/push/client";
 
@@ -81,9 +82,17 @@ export function PushNotificationsSetup({
   const [enabled, setEnabled] = useState(
     permission === "granted" && initialSubscriptionCount > 0,
   );
+  const [swReady, setSwReady] = useState(false);
   const [error, setError] = useState("");
   const [info, setInfo] = useState("");
   const [isPending, startTransition] = useTransition();
+
+  useEffect(() => {
+    void (async () => {
+      const registration = await registerServiceWorker();
+      setSwReady(Boolean(registration?.active));
+    })();
+  }, []);
 
   useEffect(() => {
     if (permission !== "granted" || !vapidPublicKey) {
@@ -208,9 +217,13 @@ export function PushNotificationsSetup({
       ) : null}
 
       <div className="mt-4 grid gap-2">
+        {!swReady && !enabled ? (
+          <p className="text-sm text-[var(--muted)]">{t("pwaSwPreparing")}</p>
+        ) : null}
+
         <button
           className="w-full rounded-2xl bg-[var(--accent)] px-4 py-3 text-sm font-semibold text-white disabled:opacity-60"
-          disabled={isPending}
+          disabled={isPending || (!enabled && !swReady)}
           onClick={enabled ? disableNotifications : enableNotifications}
           type="button"
         >

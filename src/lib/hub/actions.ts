@@ -220,6 +220,27 @@ export async function addCookingLog(dishId: string, formData: FormData) {
   return { ok: true as const };
 }
 
+export async function updateCookingLog(logId: string, body: string) {
+  const { supabase, user, context } = await getAuthContext();
+  if (!context?.isComplete) {
+    return actionError("Пара не подключена.");
+  }
+
+  const trimmed = body.trim();
+  const { error } = await supabase
+    .from("cooking_logs")
+    .update({ body: trimmed || null })
+    .eq("id", logId)
+    .eq("author_id", user.id);
+
+  if (error) {
+    return actionError("Не удалось обновить комментарий.");
+  }
+
+  revalidatePath("/memories");
+  return { ok: true as const };
+}
+
 export async function addCompliment(body: string) {
   const { supabase, user, context } = await getAuthContext();
   if (!context?.isComplete || !context.partner) {

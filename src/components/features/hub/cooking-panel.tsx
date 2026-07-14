@@ -1,12 +1,14 @@
 "use client";
 
 import { Check, Plus } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 import { useLanguage } from "@/components/providers/language-provider";
 import { EmptyState } from "@/components/ui/empty-state";
+import { ModalSheet } from "@/components/ui/modal-sheet";
 import { PhotoSourcePicker } from "@/components/ui/photo-source-picker";
 import type { HubCookingDish } from "@/components/features/hub/types";
-import { addCookingDish, addCookingLog, markDishCooked } from "@/lib/hub/actions";
+import { addCookingDish, addCookingLog, markDishCooked, updateCookingLog } from "@/lib/hub/actions";
 import { formatDateLocalized } from "@/lib/dates";
 import { compressImageFile } from "@/lib/media/compress-image.client";
 import { uploadCoupleMediaClient } from "@/lib/media/upload.client";
@@ -34,9 +36,11 @@ export function CookingPanel({ dishes, userId, coupleId }: CookingPanelProps) {
   const [commentNote, setCommentNote] = useState("");
   const [commentPreviewUrl, setCommentPreviewUrl] = useState<string | null>(null);
   const [commentMediaFile, setCommentMediaFile] = useState<File | null>(null);
+  const [logDrafts, setLogDrafts] = useState<Record<string, string>>({});
   const [error, setError] = useState("");
   const [isPreparingPhoto, setIsPreparingPhoto] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const router = useRouter();
   const { locale, t } = useLanguage();
 
   const planned = useMemo(
@@ -203,6 +207,29 @@ export function CookingPanel({ dishes, userId, coupleId }: CookingPanelProps) {
     });
   }
 
+  function saveLogComment(logId: string) {
+    const body = logDrafts[logId] ?? "";
+    startTransition(async () => {
+      const result = await updateCookingLog(logId, body);
+      if (!result.ok) {
+        setError(result.error ?? t("hubErrorSave"));
+        return;
+      }
+      router.refresh();
+    });
+  }
+
+  function closeCreateModal() {
+    setShowCreate(false);
+    setTitle("");
+    setRecipe("");
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
+    setPreviewUrl(null);
+    setMediaFile(null);
+  }
+
   return (
     <>
       <div className="mb-4 flex gap-2">
@@ -283,7 +310,33 @@ export function CookingPanel({ dishes, userId, coupleId }: CookingPanelProps) {
                             src={log.media_url}
                           />
                         ) : null}
-                        {log.body ? <p className="text-sm">{log.body}</p> : null}
+                        {log.body || log.author_id === userId ? (
+                          log.author_id === userId ? (
+                            <div className="space-y-2">
+                              <textarea
+                                className="min-h-16 w-full rounded-xl surface-input px-3 py-2 text-sm"
+                                onChange={(event) =>
+                                  setLogDrafts((current) => ({
+                                    ...current,
+                                    [log.id]: event.target.value,
+                                  }))
+                                }
+                                placeholder={t("hubReviewShort")}
+                                value={logDrafts[log.id] ?? log.body ?? ""}
+                              />
+                              <button
+                                className="rounded-xl bg-[var(--accent)] px-3 py-2 text-xs font-semibold text-white disabled:opacity-60"
+                                disabled={isPending}
+                                onClick={() => saveLogComment(log.id)}
+                                type="button"
+                              >
+                                {t("hubSaveReview")}
+                              </button>
+                            </div>
+                          ) : (
+                            <p className="text-sm">{log.body}</p>
+                          )
+                        ) : null}
                         <p className="mt-1 text-xs text-[var(--muted)]">
                           {log.author_name} · {formatDateLocalized(locale, log.created_at.slice(0, 10))}
                         </p>
@@ -318,11 +371,7 @@ export function CookingPanel({ dishes, userId, coupleId }: CookingPanelProps) {
       ) : null}
 
       {showCreate ? (
-        <div className="fixed inset-0 z-50 flex items-end bg-black/40 p-4 pb-[calc(max(0.75rem,env(safe-area-inset-bottom))+5rem)]">
-          <form
-            className="max-h-[85vh] w-full overflow-y-auto rounded-3xl surface-panel p-5 shadow-xl"
-            onSubmit={submitDish}
-          >
+        <ModalSheet as="form" className="max-h-[85vh]" onClose={closeCreateModal} onSubmit={submitDish} open>
             <p className="text-lg font-bold">{t("hubCookingNewDish")}</p>
             <div className="mt-4 grid gap-3">
               <input
@@ -361,7 +410,7 @@ export function CookingPanel({ dishes, userId, coupleId }: CookingPanelProps) {
               <div className="grid grid-cols-2 gap-2">
                 <button
                   className="rounded-2xl surface-input px-4 py-3 font-semibold"
-                  onClick={() => setShowCreate(false)}
+                  onClick={closeCreateModal}
                   type="button"
                 >
                   {t("commonCancel")}
@@ -375,13 +424,11 @@ export function CookingPanel({ dishes, userId, coupleId }: CookingPanelProps) {
                 </button>
               </div>
             </div>
-          </form>
-        </div>
+        </ModalSheet>
       ) : null}
 
       {cookingDishId ? (
-        <div className="fixed inset-0 z-50 flex items-end bg-black/40 p-4 pb-[calc(max(0.75rem,env(safe-area-inset-bottom))+5rem)]">
-          <div className="max-h-[85vh] w-full overflow-y-auto rounded-3xl surface-panel p-5 shadow-xl">
+        <ModalSheet className="max-h-[85vh]" onClose={() => setCookingDishId(null)} open>
             <p className="text-lg font-bold">{t("hubCookingWeCooked")}</p>
             <p className="mt-1 text-sm text-[var(--muted)]">{t("hubCookingAddCommentOrPhoto")}</p>
             <div className="mt-4 grid gap-3">
@@ -433,13 +480,11 @@ export function CookingPanel({ dishes, userId, coupleId }: CookingPanelProps) {
                 </button>
               </div>
             </div>
-          </div>
-        </div>
+        </ModalSheet>
       ) : null}
 
       {commentDishId ? (
-        <div className="fixed inset-0 z-50 flex items-end bg-black/40 p-4 pb-[calc(max(0.75rem,env(safe-area-inset-bottom))+5rem)]">
-          <div className="max-h-[85vh] w-full overflow-y-auto rounded-3xl surface-panel p-5 shadow-xl">
+        <ModalSheet className="max-h-[85vh]" onClose={() => setCommentDishId(null)} open>
             <p className="text-lg font-bold">{t("hubCookingDishComment")}</p>
             <div className="mt-4 grid gap-3">
               <textarea
@@ -490,8 +535,7 @@ export function CookingPanel({ dishes, userId, coupleId }: CookingPanelProps) {
                 </button>
               </div>
             </div>
-          </div>
-        </div>
+        </ModalSheet>
       ) : null}
     </>
   );

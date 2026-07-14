@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Plus, X } from "lucide-react";
 import { useLanguage } from "@/components/providers/language-provider";
+import { ModalSheet } from "@/components/ui/modal-sheet";
 import { saveMood } from "@/lib/mood/actions";
 
 const EMOJI_OPTIONS = ["✨", "🥰", "😌", "🫶", "🔥", "🌙", "☕", "🎧", "🌸", "💫", "🙂", "😴"];
@@ -77,8 +78,7 @@ export function CustomMoodButton({ customLabel, customEmoji, disabled }: CustomM
       )}
 
       {open ? (
-        <div className="fixed inset-0 z-50 flex items-end bg-black/40 p-4 pb-24">
-          <form className="w-full max-w-md rounded-3xl surface-panel p-5" onSubmit={submit}>
+        <ModalSheet as="form" onClose={closeModal} onSubmit={submit} open>
             <div className="mb-4 flex items-center justify-between">
               <p className="text-lg font-semibold">{t("moodCustomTitle")}</p>
               <button
@@ -128,8 +128,7 @@ export function CustomMoodButton({ customLabel, customEmoji, disabled }: CustomM
             >
               {isPending ? t("commonSaving") : t("commonSave")}
             </button>
-          </form>
-        </div>
+        </ModalSheet>
       ) : null}
     </>
   );

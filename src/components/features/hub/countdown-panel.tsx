@@ -4,6 +4,7 @@ import { Plus, Timer, Trash2 } from "lucide-react";
 import { useMemo, useState, useTransition } from "react";
 import { useLanguage } from "@/components/providers/language-provider";
 import { EmptyState } from "@/components/ui/empty-state";
+import { ModalSheet } from "@/components/ui/modal-sheet";
 import type { HubCountdownEvent } from "@/components/features/hub/types";
 import { addCountdownEvent, deleteCountdownEvent } from "@/lib/hub/lifestyle-actions";
 import { daysUntil, formatDateLocalized, todayIso } from "@/lib/dates";
@@ -119,8 +120,7 @@ export function CountdownPanel({ events }: CountdownPanelProps) {
       </button>
 
       {showCreate ? (
-        <div className="fixed inset-0 z-50 flex items-end bg-black/40 p-4 pb-24">
-          <form className="w-full rounded-3xl surface-panel p-5" onSubmit={submit}>
+        <ModalSheet as="form" onClose={() => setShowCreate(false)} onSubmit={submit} open>
             <p className="text-lg font-bold">{t("hubCountdownNewEvent")}</p>
             <div className="mt-3 grid gap-3">
               <input
@@ -146,8 +146,7 @@ export function CountdownPanel({ events }: CountdownPanelProps) {
                 {t("commonAdd")}
               </button>
             </div>
-          </form>
-        </div>
+        </ModalSheet>
       ) : null}
     </>
   );

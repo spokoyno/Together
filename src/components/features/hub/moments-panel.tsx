@@ -4,6 +4,7 @@ import { Plus, Send, Trash2 } from "lucide-react";
 import { useState, useTransition } from "react";
 import { useLanguage } from "@/components/providers/language-provider";
 import { EmptyState } from "@/components/ui/empty-state";
+import { ModalSheet } from "@/components/ui/modal-sheet";
 import { PhotoSourcePicker } from "@/components/ui/photo-source-picker";
 import type { HubMemory } from "@/components/features/hub/types";
 import { addMomentComment } from "@/lib/hub/actions";
@@ -195,11 +196,7 @@ export function MomentsPanel({ memories, userId, coupleId }: MomentsPanelProps) 
       </button>
 
       {showCreate ? (
-        <div className="fixed inset-0 z-50 flex items-end bg-black/40 p-4 pb-[calc(max(0.75rem,env(safe-area-inset-bottom))+5rem)]">
-          <form
-            className="max-h-[85vh] w-full overflow-y-auto rounded-3xl surface-panel p-5 shadow-xl"
-            onSubmit={handleCreate}
-          >
+        <ModalSheet as="form" className="max-h-[85vh]" onClose={resetCreate} onSubmit={handleCreate} open>
             <p className="text-lg font-bold">{t("hubMomentsNew")}</p>
             <div className="mt-4 grid gap-3">
               {previewUrl ? (
@@ -245,8 +242,7 @@ export function MomentsPanel({ memories, userId, coupleId }: MomentsPanelProps) 
                 </button>
               </div>
             </div>
-          </form>
-        </div>
+        </ModalSheet>
       ) : null}
     </>
   );

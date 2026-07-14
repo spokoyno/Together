@@ -4,6 +4,7 @@ import { Gift, Plus, Repeat } from "lucide-react";
 import { useMemo, useState, useTransition } from "react";
 import { useLanguage } from "@/components/providers/language-provider";
 import { EmptyState } from "@/components/ui/empty-state";
+import { ModalSheet } from "@/components/ui/modal-sheet";
 import type { HubHabit } from "@/components/features/hub/types";
 import {
   addCoupleHabit,
@@ -177,8 +178,7 @@ export function HabitsPanel({ habits }: HabitsPanelProps) {
       ) : null}
 
       {showCreate ? (
-        <div className="fixed inset-0 z-50 flex items-end bg-black/40 p-4 pb-24">
-          <form className="w-full rounded-3xl surface-panel p-5" onSubmit={submit}>
+        <ModalSheet as="form" onClose={() => setShowCreate(false)} onSubmit={submit} open>
             <p className="text-lg font-bold">{t("hubHabitsNew")}</p>
             <div className="mt-3 grid gap-3">
               <input
@@ -210,8 +210,7 @@ export function HabitsPanel({ habits }: HabitsPanelProps) {
                 {t("commonAdd")}
               </button>
             </div>
-          </form>
-        </div>
+        </ModalSheet>
       ) : null}
     </>
   );

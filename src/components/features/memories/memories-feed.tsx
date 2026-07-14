@@ -17,6 +17,7 @@ import { formatDateLocalized } from "@/lib/dates";
 import { compressImageFile } from "@/lib/media/compress-image.client";
 import { uploadCoupleMediaClient } from "@/lib/media/upload.client";
 import { EmptyState } from "@/components/ui/empty-state";
+import { ModalSheet } from "@/components/ui/modal-sheet";
 import { PhotoSourcePicker } from "@/components/ui/photo-source-picker";
 import type { MomentMeta, MomentType } from "@/types/domain";
 
@@ -320,11 +321,7 @@ export function MemoriesFeed({
       </button>
 
       {showCreate ? (
-        <div className="fixed inset-0 z-50 flex items-end bg-black/40 p-4 pb-[calc(max(0.75rem,env(safe-area-inset-bottom))+5rem)]">
-          <form
-            className="max-h-[85dvh] w-full max-w-md overflow-y-auto rounded-3xl surface-panel p-5 shadow-xl"
-            onSubmit={handleCreate}
-          >
+        <ModalSheet as="form" className="max-h-[85dvh] max-w-md" onClose={resetCreateForm} onSubmit={handleCreate} open>
             <div className="mb-4 flex items-center justify-between">
               <p className="text-lg font-bold">{t("memoriesNewMoment")}</p>
               <button
@@ -467,8 +464,7 @@ export function MemoriesFeed({
                 {isPending ? t("memoriesPublishing") : t("hubMomentsPublish")}
               </button>
             </div>
-          </form>
-        </div>
+        </ModalSheet>
       ) : null}
     </>
   );
