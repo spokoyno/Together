@@ -172,28 +172,30 @@ export function TierListsPanel({
           <div className="grid gap-3">
             {inbox.map((item) => (
               <article className="rounded-3xl surface-panel p-4" key={item.id}>
-                <p className="font-bold">{item.tier_list_title}</p>
+                <p className="font-bold leading-snug">{item.tier_list_title}</p>
                 <p className="mt-1 text-sm text-[var(--muted)]">{t("hubFrom", { name: item.challenger_name })}</p>
-                <Link
-                  className="mt-2 inline-block text-sm font-semibold text-[var(--accent)]"
-                  href={item.tier_list_url}
-                  rel="noreferrer"
-                  target="_blank"
-                >
-                  {t("hubTiersOpenTierList")}
-                </Link>
-                <button
-                  className="mt-3 rounded-xl bg-[var(--accent)] px-3 py-2.5 text-xs font-semibold text-white"
-                  onClick={() => {
-                    setCompleteId(item.id);
-                    setCompleteMode("screenshot");
-                    setResultLink("");
-                    setError("");
-                  }}
-                  type="button"
-                >
-                  {t("hubTiersAttachResult")}
-                </button>
+                <div className="mt-4 grid gap-2">
+                  <Link
+                    className="inline-flex min-h-11 items-center justify-center rounded-xl surface-input px-3 text-sm font-semibold text-[var(--accent)]"
+                    href={item.tier_list_url}
+                    rel="noreferrer"
+                    target="_blank"
+                  >
+                    {t("hubTiersOpenTierList")}
+                  </Link>
+                  <button
+                    className="min-h-11 w-full rounded-xl bg-[var(--accent)] px-3 py-2.5 text-sm font-semibold text-white"
+                    onClick={() => {
+                      setCompleteId(item.id);
+                      setCompleteMode("screenshot");
+                      setResultLink("");
+                      setError("");
+                    }}
+                    type="button"
+                  >
+                    {t("hubTiersAttachResult")}
+                  </button>
+                </div>
               </article>
             ))}
           </div>
