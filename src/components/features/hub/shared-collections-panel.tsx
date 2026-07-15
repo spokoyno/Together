@@ -1,6 +1,7 @@
 "use client";
 
 import { Heart, Plus, Search, X } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { useLanguage } from "@/components/providers/language-provider";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -8,6 +9,7 @@ import { ConfirmDeleteButton } from "@/components/ui/confirm-delete-button";
 import { TabGrid } from "@/components/ui/tab-grid";
 import { ModalSheet } from "@/components/ui/modal-sheet";
 import {
+  addSharedCollectionItemToWantList,
   createSharedCollection,
   deleteSharedCollection,
   fetchSharedCollections,
@@ -53,6 +55,15 @@ function posterSrc(kind: SharedCollectionKind, path: string | null) {
   return path;
 }
 
+const KIND_WANT_KEY: Record<SharedCollectionKind, "moviesWantWatch" | "hubBooksWantRead" | "catalogGameWantTab" | "catalogTvWantTab" | "catalogCartoonWantTab" | "catalogAnimeWantTab"> = {
+  movie: "moviesWantWatch",
+  book: "hubBooksWantRead",
+  game: "catalogGameWantTab",
+  tv_series: "catalogTvWantTab",
+  cartoon_series: "catalogCartoonWantTab",
+  anime: "catalogAnimeWantTab",
+};
+
 const KIND_EMOJI: Record<SharedCollectionKind, string> = {
   movie: "🎬",
   game: "🎮",
@@ -80,7 +91,10 @@ export function SharedCollectionsPanel({
   const [itemQuery, setItemQuery] = useState("");
   const [itemResults, setItemResults] = useState<SearchHit[]>([]);
   const [error, setError] = useState("");
+  const [info, setInfo] = useState("");
+  const [addedItemIds, setAddedItemIds] = useState<Set<string>>(new Set());
   const [isPending, startTransition] = useTransition();
+  const router = useRouter();
 
   const detail = collections.find((row) => row.id === detailId) ?? null;
 
@@ -161,6 +175,9 @@ export function SharedCollectionsPanel({
 
   function openDetail(collection: SharedCollectionRow) {
     setDetailId(collection.id);
+    setInfo("");
+    setError("");
+    setAddedItemIds(new Set());
     void recordSharedCollectionView(collection.id);
     setCollections((current) =>
       current.map((row) =>
@@ -227,6 +244,35 @@ export function SharedCollectionsPanel({
     });
   }
 
+  function addItemToWantList(item: SharedCollectionRow["items"][number]) {
+    setError("");
+    setInfo("");
+    startTransition(async () => {
+      const result = await addSharedCollectionItemToWantList(kind, {
+        externalId: item.external_id,
+        title: item.title,
+        posterPath: item.poster_path,
+        subtitle: item.subtitle,
+      });
+
+      if (!result.ok) {
+        setError(t("sharedCollectionsAddToWantFailed"));
+        return;
+      }
+
+      setAddedItemIds((current) => new Set(current).add(item.id));
+      setInfo(t("sharedCollectionsAddedToWant", { list: t(KIND_WANT_KEY[kind]) }));
+      router.refresh();
+    });
+  }
+
+  function canAddItemToWant(item: SharedCollectionRow["items"][number]) {
+    if (kind === "book") {
+      return Boolean(item.title.trim());
+    }
+    return Boolean(item.external_id);
+  }
+
   return (
     <div className={embedded ? "pb-28" : undefined}>
       <TabGrid
@@ -267,6 +313,7 @@ export function SharedCollectionsPanel({
       </div>
 
       {error ? <p className="mb-3 alert-error rounded-xl px-3 py-2 text-sm">{error}</p> : null}
+      {info ? <p className="mb-3 alert-success rounded-xl px-3 py-2 text-sm">{info}</p> : null}
 
       {collections.length ? (
         <div className="grid gap-2">
@@ -456,22 +503,35 @@ export function SharedCollectionsPanel({
             <ul className="grid gap-2">
               {detail.items.map((item) => {
                 const src = posterSrc(kind, item.poster_path);
+                const added = addedItemIds.has(item.id);
+                const canAdd = canAddItemToWant(item);
+
                 return (
-                  <li className="flex items-center gap-3 rounded-2xl surface-input p-3" key={item.id}>
-                    {src ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img alt="" className="size-12 shrink-0 rounded-xl object-cover" src={src} />
-                    ) : (
-                      <div className="grid size-12 shrink-0 place-items-center rounded-xl bg-[var(--accent-soft)] text-lg">
-                        {KIND_EMOJI[kind]}
+                  <li className="rounded-2xl surface-input p-3" key={item.id}>
+                    <div className="flex items-center gap-3">
+                      {src ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img alt="" className="size-12 shrink-0 rounded-xl object-cover" src={src} />
+                      ) : (
+                        <div className="grid size-12 shrink-0 place-items-center rounded-xl bg-[var(--accent-soft)] text-lg">
+                          {KIND_EMOJI[kind]}
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium leading-snug">{item.title}</p>
+                        {item.subtitle ? (
+                          <p className="text-xs text-[var(--muted)]">{item.subtitle}</p>
+                        ) : null}
                       </div>
-                    )}
-                    <div className="min-w-0">
-                      <p className="font-medium">{item.title}</p>
-                      {item.subtitle ? (
-                        <p className="text-xs text-[var(--muted)]">{item.subtitle}</p>
-                      ) : null}
                     </div>
+                    <button
+                      className="mt-3 w-full rounded-xl bg-[var(--accent-soft)] px-3 py-2.5 text-xs font-semibold text-[var(--accent)] disabled:opacity-60"
+                      disabled={isPending || added || !canAdd}
+                      onClick={() => addItemToWantList(item)}
+                      type="button"
+                    >
+                      {added ? t("sharedCollectionsAddedToWantShort") : t("sharedCollectionsAddToWant", { list: t(KIND_WANT_KEY[kind]) })}
+                    </button>
                   </li>
                 );
               })}

@@ -1,7 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { addBookToWantList } from "@/lib/books/actions";
 import { getAuthContext } from "@/lib/couple/context.server";
+import { addMovieEntry } from "@/lib/hub/actions";
+import { addCatalogEntry } from "@/lib/hub/catalog-actions";
+import type { CatalogKind } from "@/lib/hub/catalog";
 import { actionError } from "@/lib/validation/forms";
 
 export type SharedCollectionKind = "movie" | "game" | "tv_series" | "cartoon_series" | "anime" | "book";
@@ -217,4 +221,72 @@ export async function deleteSharedCollection(collectionId: string, kind: SharedC
 
   revalidatePath(KIND_PATHS[kind]);
   return { ok: true as const };
+}
+
+function normalizeTmdbPosterPath(path: string | null): string | null {
+  if (!path) {
+    return null;
+  }
+  if (path.startsWith("http")) {
+    const match = path.match(/\/t\/p\/w\d+(\/.+)$/);
+    return match?.[1] ?? null;
+  }
+  return path.startsWith("/") ? path : `/${path}`;
+}
+
+function normalizePosterUrl(path: string | null): string | null {
+  if (!path) {
+    return null;
+  }
+  if (path.startsWith("http")) {
+    return path;
+  }
+  return `https://image.tmdb.org/t/p/w342${path.startsWith("/") ? path : `/${path}`}`;
+}
+
+export async function addSharedCollectionItemToWantList(
+  kind: SharedCollectionKind,
+  item: {
+    externalId: string | null;
+    title: string;
+    posterPath: string | null;
+    subtitle: string | null;
+  },
+) {
+  const trimmedTitle = item.title.trim();
+  if (!trimmedTitle) {
+    return actionError("COLLECTION_ITEM_INVALID");
+  }
+
+  if (kind === "movie") {
+    if (!item.externalId) {
+      return actionError("COLLECTION_ITEM_NO_ID");
+    }
+    return addMovieEntry({
+      tmdbId: Number(item.externalId),
+      title: trimmedTitle,
+      posterPath: normalizeTmdbPosterPath(item.posterPath),
+      rating: 8,
+    });
+  }
+
+  if (kind === "book") {
+    return addBookToWantList({
+      title: trimmedTitle,
+      author: item.subtitle?.trim() || undefined,
+    });
+  }
+
+  const catalogKind = kind as CatalogKind;
+  if (!item.externalId) {
+    return actionError("COLLECTION_ITEM_NO_ID");
+  }
+
+  return addCatalogEntry({
+    kind: catalogKind,
+    externalId: Number(item.externalId),
+    title: trimmedTitle,
+    posterUrl: normalizePosterUrl(item.posterPath),
+    rating: 8,
+  });
 }

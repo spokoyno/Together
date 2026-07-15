@@ -303,6 +303,10 @@ export const enCatalog = {
   sharedCollectionsDeleteAdmin: "Remove collection (admin)",
   sharedCollectionsNotAdmin: "Only administrators can delete collections.",
   sharedCollectionsDeleteFailed: "Could not delete collection.",
+  sharedCollectionsAddToWant: "Add to “{list}”",
+  sharedCollectionsAddedToWant: "Added to “{list}”.",
+  sharedCollectionsAddedToWantShort: "Added ✓",
+  sharedCollectionsAddToWantFailed: "Could not add to your list.",
 
 
   // ONBOARDING
