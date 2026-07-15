@@ -19,6 +19,7 @@ type CatalogPanelProps = {
   userId: string;
   partnerId: string;
   partnerName: string;
+  isAdmin?: boolean;
 };
 
 type CatalogTab = "want" | "completed" | "community";
@@ -63,6 +64,7 @@ export function CatalogPanel({
   userId,
   partnerId,
   partnerName,
+  isAdmin = false,
 }: CatalogPanelProps) {
   const [tab, setTab] = useState<CatalogTab>("want");
   const [showSearch, setShowSearch] = useState(false);
@@ -195,7 +197,7 @@ export function CatalogPanel({
       />
 
       {tab === "community" ? (
-        <SharedCollectionsPanel embedded kind={config.sharedKind} searchPath={config.searchPath} />
+        <SharedCollectionsPanel embedded isAdmin={isAdmin} kind={config.sharedKind} searchPath={config.searchPath} />
       ) : (
         <>
       {error ? <p className="mb-3 alert-error rounded-xl px-3 py-2 text-sm">{error}</p> : null}

@@ -27,6 +27,7 @@ type MoviesPanelProps = {
   userId: string;
   partnerId: string;
   partnerName: string;
+  isAdmin?: boolean;
 };
 
 type MoviesTab = "want" | "watched" | "collections" | "community";
@@ -75,7 +76,7 @@ function MoviePoster({ url, size = "card" }: { url: string | null; size?: "card"
   );
 }
 
-export function MoviesPanel({ movies, collections, userId, partnerId, partnerName }: MoviesPanelProps) {
+export function MoviesPanel({ movies, collections, userId, partnerId, partnerName, isAdmin = false }: MoviesPanelProps) {
   const [tab, setTab] = useState<MoviesTab>("want");
   const [showCreateCollection, setShowCreateCollection] = useState(false);
   const [collectionTitle, setCollectionTitle] = useState("");
@@ -241,7 +242,7 @@ export function MoviesPanel({ movies, collections, userId, partnerId, partnerNam
       {error ? <p className="mb-3 alert-error rounded-xl px-3 py-2 text-sm">{error}</p> : null}
 
       {tab === "community" ? (
-        <SharedCollectionsPanel embedded kind="movie" searchPath="/api/movies/search" />
+        <SharedCollectionsPanel embedded isAdmin={isAdmin} kind="movie" searchPath="/api/movies/search" />
       ) : tab === "collections" ? (
         <section className="grid gap-3">
           {collections.length ? (

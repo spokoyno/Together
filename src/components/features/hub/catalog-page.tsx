@@ -1,5 +1,6 @@
 import { HubPanelHeader } from "@/components/features/hub/hub-panel-header";
 import { CatalogPanel } from "@/components/features/hub/catalog-panel";
+import { isAppAdmin } from "@/lib/admin/server";
 import { CATALOG_CONFIGS, toCatalogPanelConfig, type CatalogKind } from "@/lib/hub/catalog";
 import { PANEL_DESC_KEYS, PANEL_LABEL_KEYS } from "@/lib/i18n/panel-keys";
 import { loadHubCatalog, requireHubContext } from "@/lib/hub/load-data.server";
@@ -18,7 +19,10 @@ type CatalogPageProps = {
 export async function CatalogHubPage({ kind }: CatalogPageProps) {
   const ctx = await requireHubContext();
   const config = CATALOG_CONFIGS[kind];
-  const entries = await loadHubCatalog(ctx, kind);
+  const [entries, admin] = await Promise.all([
+    loadHubCatalog(ctx, kind),
+    isAppAdmin(ctx.userId),
+  ]);
   const panelId = CATALOG_PANEL_ID[kind];
 
   return (
@@ -30,6 +34,7 @@ export async function CatalogHubPage({ kind }: CatalogPageProps) {
       <CatalogPanel
         config={toCatalogPanelConfig(config)}
         entries={entries}
+        isAdmin={admin}
         partnerId={ctx.partnerId}
         partnerName={ctx.partnerName}
         userId={ctx.userId}

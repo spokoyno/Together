@@ -300,6 +300,9 @@ export const enCatalog = {
   sharedCollectionsSearchError: "Search unavailable. Try again.",
   sharedCollectionsViews: "{count} views",
   sharedCollectionsItems: "items",
+  sharedCollectionsDeleteAdmin: "Remove collection (admin)",
+  sharedCollectionsNotAdmin: "Only administrators can delete collections.",
+  sharedCollectionsDeleteFailed: "Could not delete collection.",
 
 
   // ONBOARDING

@@ -4,10 +4,12 @@ import { Heart, Plus, Search, X } from "lucide-react";
 import { useEffect, useState, useTransition } from "react";
 import { useLanguage } from "@/components/providers/language-provider";
 import { EmptyState } from "@/components/ui/empty-state";
+import { ConfirmDeleteButton } from "@/components/ui/confirm-delete-button";
 import { TabGrid } from "@/components/ui/tab-grid";
 import { ModalSheet } from "@/components/ui/modal-sheet";
 import {
   createSharedCollection,
+  deleteSharedCollection,
   fetchSharedCollections,
   recordSharedCollectionView,
   toggleSharedCollectionLike,
@@ -21,6 +23,7 @@ type SharedCollectionsPanelProps = {
   kind: SharedCollectionKind;
   searchPath: string;
   embedded?: boolean;
+  isAdmin?: boolean;
 };
 
 type DraftItem = {
@@ -59,7 +62,12 @@ const KIND_EMOJI: Record<SharedCollectionKind, string> = {
   book: "📚",
 };
 
-export function SharedCollectionsPanel({ kind, searchPath, embedded = false }: SharedCollectionsPanelProps) {
+export function SharedCollectionsPanel({
+  kind,
+  searchPath,
+  embedded = false,
+  isAdmin = false,
+}: SharedCollectionsPanelProps) {
   const { locale, t } = useLanguage();
   const [sort, setSort] = useState<SharedCollectionSort>("new");
   const [query, setQuery] = useState("");
@@ -200,6 +208,25 @@ export function SharedCollectionsPanel({ kind, searchPath, embedded = false }: S
     });
   }
 
+  function removeCollection(collectionId: string) {
+    setError("");
+    startTransition(async () => {
+      const result = await deleteSharedCollection(collectionId, kind);
+      if (!result.ok) {
+        setError(
+          result.error === "NOT_ADMIN"
+            ? t("sharedCollectionsNotAdmin")
+            : t("sharedCollectionsDeleteFailed"),
+        );
+        return;
+      }
+      if (detailId === collectionId) {
+        setDetailId(null);
+      }
+      reloadCollections();
+    });
+  }
+
   return (
     <div className={embedded ? "pb-28" : undefined}>
       <TabGrid
@@ -239,24 +266,34 @@ export function SharedCollectionsPanel({ kind, searchPath, embedded = false }: S
         </button>
       </div>
 
+      {error ? <p className="mb-3 alert-error rounded-xl px-3 py-2 text-sm">{error}</p> : null}
+
       {collections.length ? (
         <div className="grid gap-2">
           {collections.map((collection) => (
             <article className="rounded-2xl surface-panel p-4" key={collection.id}>
-              <button
-                className="w-full text-left"
-                onClick={() => openDetail(collection)}
-                type="button"
-              >
-                <p className="font-semibold">{collection.title}</p>
-                {collection.description ? (
-                  <p className="mt-1 line-clamp-2 text-sm text-[var(--muted)]">{collection.description}</p>
+              <div className="flex items-start gap-2">
+                <button
+                  className="min-w-0 flex-1 text-left"
+                  onClick={() => openDetail(collection)}
+                  type="button"
+                >
+                  <p className="font-semibold">{collection.title}</p>
+                  {collection.description ? (
+                    <p className="mt-1 line-clamp-2 text-sm text-[var(--muted)]">{collection.description}</p>
+                  ) : null}
+                  <p className="mt-2 text-xs text-[var(--muted)]">
+                    {collection.author_name} · {collection.items.length}{" "}
+                    {t("sharedCollectionsItems")} · {formatDateLocalized(locale, collection.created_at.slice(0, 10))}
+                  </p>
+                </button>
+                {isAdmin ? (
+                  <ConfirmDeleteButton
+                    disabled={isPending}
+                    onConfirm={() => removeCollection(collection.id)}
+                  />
                 ) : null}
-                <p className="mt-2 text-xs text-[var(--muted)]">
-                  {collection.author_name} · {collection.items.length}{" "}
-                  {t("sharedCollectionsItems")} · {formatDateLocalized(locale, collection.created_at.slice(0, 10))}
-                </p>
-              </button>
+              </div>
               <div className="mt-3 flex items-center gap-4 text-xs text-[var(--muted)]">
                 <span>{t("sharedCollectionsViews", { count: collection.view_count })}</span>
                 <button
@@ -378,18 +415,26 @@ export function SharedCollectionsPanel({ kind, searchPath, embedded = false }: S
       {detail ? (
         <ModalSheet className="max-h-[90vh]" onClose={() => setDetailId(null)} open>
             <div className="mb-4 flex items-start justify-between gap-3">
-              <div>
+              <div className="min-w-0">
                 <p className="text-lg font-bold">{detail.title}</p>
                 <p className="mt-1 text-sm text-[var(--muted)]">{detail.author_name}</p>
               </div>
-              <button
-                aria-label={t("commonClose")}
-                className="grid size-9 shrink-0 place-items-center rounded-full surface-input"
-                onClick={() => setDetailId(null)}
-                type="button"
-              >
-                <X aria-hidden className="size-5" />
-              </button>
+              <div className="flex shrink-0 items-center gap-1">
+                {isAdmin ? (
+                  <ConfirmDeleteButton
+                    disabled={isPending}
+                    onConfirm={() => removeCollection(detail.id)}
+                  />
+                ) : null}
+                <button
+                  aria-label={t("commonClose")}
+                  className="grid size-9 shrink-0 place-items-center rounded-full surface-input"
+                  onClick={() => setDetailId(null)}
+                  type="button"
+                >
+                  <X aria-hidden className="size-5" />
+                </button>
+              </div>
             </div>
 
             {detail.description ? (

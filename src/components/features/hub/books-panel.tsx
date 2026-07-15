@@ -18,6 +18,7 @@ type BooksPanelProps = {
   userId: string;
   partnerId: string;
   partnerName: string;
+  isAdmin?: boolean;
 };
 
 type BooksTab = "want" | "read" | "community";
@@ -52,7 +53,7 @@ function BookCover({ size = "card" }: { size?: "card" | "thumb" }) {
   );
 }
 
-export function BooksPanel({ books, userId, partnerId, partnerName }: BooksPanelProps) {
+export function BooksPanel({ books, userId, partnerId, partnerName, isAdmin = false }: BooksPanelProps) {
   const [tab, setTab] = useState<BooksTab>("want");
   const [showForm, setShowForm] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -202,7 +203,7 @@ export function BooksPanel({ books, userId, partnerId, partnerName }: BooksPanel
       {error ? <p className="mb-3 alert-error rounded-xl px-3 py-2 text-sm">{error}</p> : null}
 
       {tab === "community" ? (
-        <SharedCollectionsPanel embedded kind="book" searchPath="/api/books/search" />
+        <SharedCollectionsPanel embedded isAdmin={isAdmin} kind="book" searchPath="/api/books/search" />
       ) : tab === "want" ? (
         <section className="grid gap-4">
           {wantBooks.length ? (

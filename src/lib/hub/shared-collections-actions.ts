@@ -200,3 +200,21 @@ export async function recordSharedCollectionView(collectionId: string) {
   await supabase.rpc("record_shared_collection_view", { p_collection_id: collectionId });
   return { ok: true as const };
 }
+
+export async function deleteSharedCollection(collectionId: string, kind: SharedCollectionKind) {
+  const { supabase, user } = await getAuthContext();
+  const { isAppAdmin } = await import("@/lib/admin/server");
+
+  if (!(await isAppAdmin(user.id))) {
+    return actionError("NOT_ADMIN");
+  }
+
+  const { error } = await supabase.from("shared_collections").delete().eq("id", collectionId);
+
+  if (error) {
+    return actionError("COLLECTION_DELETE_FAILED");
+  }
+
+  revalidatePath(KIND_PATHS[kind]);
+  return { ok: true as const };
+}
